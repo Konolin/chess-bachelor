@@ -1,7 +1,9 @@
 <div class="board-container">
-  @for(tile of this.tiles; track tile.id) {
-    <div [ngClass]="(Math.floor(tile.id / 8) + tile.id) % 2 === 0 ? 'light-tile tile' : 'dark-tile tile'">
-      {{ tile.occupiedBy }}
+  @for(tile of this.tiles; track tile.index) {
+    <div
+      [ngClass]="getTileClasses(tile)"
+      (click)="onTileClicked(tile)">
+      {{ tile.occupiedByString }}
     </div>
   }
 </div>

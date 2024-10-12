@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { BoardState } from '../../../shared/types/board-state';
 import { Tile } from '../../../shared/types/tile';
@@ -10,8 +10,15 @@ import { Tile } from '../../../shared/types/tile';
 export class GameService {
   private readonly http = inject(HttpClient);
 
-  startingGameBoardFEN(): Observable<BoardState> {
+  fetchStartingGameBoardFEN(): Observable<BoardState> {
     return this.http.get<BoardState>('http://localhost:8080/api/game/starting-board-state');
+  }
+
+  fetchLegalMovesIndexes(tileIndex: number) {
+    const params = new HttpParams().set('tileIndex', tileIndex); // Assuming 'tile.id' is the property you want to send
+    return this.http.get<number[]>('http://localhost:8080/api/game/get-legal-moves-indexes', {
+      params,
+    });
   }
 
   FENtoTileArray(fen: string): Tile[] {
@@ -25,14 +32,14 @@ export class GameService {
       }
       // add occupied tiles
       if (isNaN(parseInt(char))) {
-        tileArray.push({ id: index, occupiedBy: char });
+        tileArray.push({ index: index, occupiedByString: char });
         index++;
         continue;
       }
 
       // add empty tiles
       for (let i = 0; i < parseInt(char); i++) {
-        tileArray.push({ id: index, occupiedBy: '' });
+        tileArray.push({ index: index, occupiedByString: '' });
         index++;
       }
     }

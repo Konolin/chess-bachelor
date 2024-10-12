@@ -1,4 +1,4 @@
 export type Tile = {
-  id: number;
-  occupiedBy: string;
+  index: number;
+  occupiedByString: string;
 };
