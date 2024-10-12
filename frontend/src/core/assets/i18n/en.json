@@ -1,0 +1,6 @@
+{
+  "exceptions": {
+    "errorTitle": "Error",
+    "unknownException": "An unknown exception occurred."
+  }
+}
