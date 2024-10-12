@@ -1,0 +1,27 @@
+.board-container {
+  display: grid;
+  grid-template-columns: repeat(8, 5fr);
+  grid-template-rows: repeat(8, 5fr);
+  gap: 0;
+  width: 40rem;
+  height: 40rem;
+  border: 2px solid black;
+}
+
+.tile {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 3rem;
+  font-weight: bold;
+  height: 100%;
+  aspect-ratio: 1/1;
+}
+
+.dark-tile {
+  background-color: #769656;
+}
+
+.light-tile {
+  background-color: #eeeed2;
+}

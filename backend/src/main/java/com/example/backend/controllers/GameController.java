@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class GameController {
     @GetMapping("/starting-board-state")
     public ResponseEntity<BoardState> getStartingBoardState() {
-        int s = 0;
         return ResponseEntity.ok(new BoardState(ChessConstants.STARTING_BOARD_FEN));
     }
 }
