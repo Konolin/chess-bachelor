@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { BoardState } from '../../../shared/types/board-state';
 import { Tile } from '../../../shared/types/tile';
+import { AllMovesDTO } from '../../../shared/types/all-moves-dto';
 
 @Injectable({
   providedIn: 'root',
@@ -14,9 +15,9 @@ export class GameService {
     return this.http.get<BoardState>('http://localhost:8080/api/game/starting-board-state');
   }
 
-  fetchLegalMovesIndexes(tileIndex: number) {
+  fetchLegalMoves(tileIndex: number) {
     const params = new HttpParams().set('tileIndex', tileIndex); // Assuming 'tile.id' is the property you want to send
-    return this.http.get<number[]>('http://localhost:8080/api/game/get-legal-moves-indexes', {
+    return this.http.get<AllMovesDTO>('http://localhost:8080/api/game/get-legal-moves-indexes', {
       params,
     });
   }

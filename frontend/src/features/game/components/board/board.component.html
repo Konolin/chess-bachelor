@@ -3,7 +3,9 @@
     <div
       [ngClass]="getTileClasses(tile)"
       (click)="onTileClicked(tile)">
-      {{ tile.occupiedByString }}
+      @if(tile.occupiedByString) {
+        <img [src]="getPieceImageUrl(tile.occupiedByString)" alt="{{ tile.occupiedByString }}"/>
+      }
     </div>
   }
 </div>

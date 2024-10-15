@@ -4,6 +4,7 @@ import { take } from 'rxjs';
 import { Button } from 'primeng/button';
 import { Tile } from '../../../../shared/types/tile';
 import { NgClass } from '@angular/common';
+import { AllMovesDTO } from '../../../../shared/types/all-moves-dto';
 
 @Component({
   selector: 'app-board',
@@ -15,7 +16,7 @@ import { NgClass } from '@angular/common';
 export class BoardComponent implements OnInit {
   protected tiles: Tile[] = [];
   protected readonly Math = Math;
-  protected legalMovesIndexes: number[] = [];
+  protected allLegalMoves: AllMovesDTO | null = null;
 
   private readonly gameService = inject(GameService);
   private previousSelectedTile: Tile | null = null;
@@ -33,7 +34,7 @@ export class BoardComponent implements OnInit {
     // if the current tile is the same as the previous tile, deselect it
     if (this.previousSelectedTile === tile) {
       this.previousSelectedTile = null;
-      this.legalMovesIndexes = [];
+      this.allLegalMoves = null;
       return;
     }
 
@@ -42,20 +43,38 @@ export class BoardComponent implements OnInit {
       this.previousSelectedTile = tile;
       // get all legal moves of the selected piece
       this.gameService
-        .fetchLegalMovesIndexes(tile.index)
+        .fetchLegalMoves(tile.index)
         .pipe(take(1))
-        .subscribe((response) => (this.legalMovesIndexes = response));
+        .subscribe((response) => (this.allLegalMoves = response));
     }
   }
 
   getTileClasses(tile: Tile): string {
-    if (this.legalMovesIndexes.includes(tile.index)) {
-      return 'tile legal-move-tile';
+    let styleClass =
+      (Math.floor(tile.index / 8) + tile.index) % 2 === 0 ? 'tile light-tile' : 'tile dark-tile';
+
+    if (this.allLegalMoves && this.allLegalMoves.attackMoves) {
+      for (const move of this.allLegalMoves.attackMoves) {
+        if (move.toTileIndex === tile.index) {
+          return (styleClass += ' attack-move');
+        }
+      }
     }
-    if ((Math.floor(tile.index / 8) + tile.index) % 2 === 0) {
-      return 'tile light-tile';
+
+    if (this.allLegalMoves && this.allLegalMoves.allMoves) {
+      for (const move of this.allLegalMoves.allMoves) {
+        if (move.toTileIndex === tile.index) {
+          return (styleClass += ' normal-move');
+        }
+      }
     }
-    return 'tile dark-tile';
+
+    return styleClass;
+  }
+
+  getPieceImageUrl(piece: string): string {
+    const color = piece === piece.toUpperCase() ? 'w' : 'b';
+    return `assets/pieces/${color}${piece.toLowerCase()}.svg`;
   }
 
   private initGameBoard(): void {

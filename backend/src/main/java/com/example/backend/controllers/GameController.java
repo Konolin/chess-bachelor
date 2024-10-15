@@ -2,8 +2,12 @@ package com.example.backend.controllers;
 
 import com.example.backend.models.BoardState;
 import com.example.backend.models.ChessConstants;
+import com.example.backend.models.Move;
+import com.example.backend.models.dtos.AllMovesDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/game")
@@ -16,8 +20,8 @@ public class GameController {
     }
 
     @GetMapping("/get-legal-moves-indexes")
-    public ResponseEntity<Integer[]> getLegalMovesIndexes(@RequestParam Integer tileIndex) {
+    public ResponseEntity<AllMovesDTO> getLegalMovesIndexes(@RequestParam Integer tileIndex) {
         // TODO - temporary
-        return ResponseEntity.ok(new Integer[]{0, 1, 2, 3, 4, 5, 6, 7});
+        return ResponseEntity.ok(new AllMovesDTO(List.of(new Move(tileIndex, tileIndex + 8)), List.of(new Move(tileIndex, tileIndex - 8))));
     }
 }

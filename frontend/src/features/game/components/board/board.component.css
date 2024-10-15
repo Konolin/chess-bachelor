@@ -26,6 +26,35 @@
   background-color: #eeeed2;
 }
 
-.legal-move-tile {
-  background-color: #61ef03;
+.normal-move {
+  position: relative;
+}
+
+.normal-move::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: #afafaf;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.attack-move {
+  position: relative;
+}
+
+.attack-move::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3rem;
+  height: 3rem;
+  border: 0.3rem solid #afafaf;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background-color: transparent;
 }
