@@ -20,6 +20,7 @@
     "@angular/router": "^18.2.0",
     "@jsverse/transloco": "^7.5.0",
     "ngx-toastr": "^19.0.0",
+    "primeicons": "^7.0.0",
     "primeng": "^17.18.11",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

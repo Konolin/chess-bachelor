@@ -1,1 +1,13 @@
-<router-outlet></router-outlet>
+<div class="app-container">
+  <div class="navbar-container">
+    <p-menubar [model]="items">
+      <ng-template pTemplate="item" let-item>
+        <a [routerLink]="item.route" class="p-menuitem-link">
+          <span [class]="item.icon"></span>
+          <span>{{ item.label }}</span>
+        </a>
+      </ng-template>
+    </p-menubar>
+  </div>
+  <router-outlet></router-outlet>
+</div>
