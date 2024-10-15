@@ -22,6 +22,12 @@ public class GameController {
     @GetMapping("/get-legal-moves-indexes")
     public ResponseEntity<AllMovesDTO> getLegalMovesIndexes(@RequestParam Integer tileIndex) {
         // TODO - temporary
-        return ResponseEntity.ok(new AllMovesDTO(List.of(new Move(tileIndex, tileIndex + 8)), List.of(new Move(tileIndex, tileIndex - 8))));
+        return ResponseEntity.ok(new AllMovesDTO(List.of(new Move(tileIndex, tileIndex + 8), new Move(tileIndex, tileIndex - 8)), List.of(new Move(tileIndex, tileIndex - 8))));
+    }
+
+    @GetMapping("make-move")
+    public ResponseEntity<BoardState> makeMove(@RequestParam Integer fromTileIndex, @RequestParam Integer toTileIndex) {
+        // TODO - temporary
+        return ResponseEntity.ok(new BoardState("rnbqkbnr/ppppppPp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
     }
 }

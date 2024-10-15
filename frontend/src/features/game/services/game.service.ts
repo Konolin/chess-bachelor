@@ -15,9 +15,18 @@ export class GameService {
     return this.http.get<BoardState>('http://localhost:8080/api/game/starting-board-state');
   }
 
-  fetchLegalMoves(tileIndex: number) {
+  fetchLegalMoves(tileIndex: number): Observable<AllMovesDTO> {
     const params = new HttpParams().set('tileIndex', tileIndex); // Assuming 'tile.id' is the property you want to send
     return this.http.get<AllMovesDTO>('http://localhost:8080/api/game/get-legal-moves-indexes', {
+      params,
+    });
+  }
+
+  makeMove(fromTileIndex: number, toTileIndex: number): Observable<BoardState> {
+    const params = new HttpParams()
+      .set('fromTileIndex', fromTileIndex)
+      .set('toTileIndex', toTileIndex);
+    return this.http.get<BoardState>('http://localhost:8080/api/game/make-move', {
       params,
     });
   }
@@ -31,13 +40,16 @@ export class GameService {
       if (char === '/') {
         continue;
       }
+      // TODO - temporary, add this functionality later
+      if (char === ' ') {
+        break;
+      }
       // add occupied tiles
       if (isNaN(parseInt(char))) {
         tileArray.push({ index: index, occupiedByString: char });
         index++;
         continue;
       }
-
       // add empty tiles
       for (let i = 0; i < parseInt(char); i++) {
         tileArray.push({ index: index, occupiedByString: '' });

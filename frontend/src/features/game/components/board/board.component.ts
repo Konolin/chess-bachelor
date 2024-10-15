@@ -26,27 +26,72 @@ export class BoardComponent implements OnInit {
   }
 
   onTileClicked(tile: Tile): void {
-    // if an empty tile is clicked, do nothing
-    if (!tile.occupiedByString) {
+    // if an empty tile is clicked and no piece was previously selected, do nothing
+    if (this.isInvalidSelection(tile)) {
       return;
     }
 
     // if the current tile is the same as the previous tile, deselect it
     if (this.previousSelectedTile === tile) {
-      this.previousSelectedTile = null;
-      this.allLegalMoves = null;
+      this.cancelMove();
       return;
     }
 
     // if no previous tile is selected, select the current tile and find all legal moves
     if (!this.previousSelectedTile) {
-      this.previousSelectedTile = tile;
-      // get all legal moves of the selected piece
-      this.gameService
-        .fetchLegalMoves(tile.index)
-        .pipe(take(1))
-        .subscribe((response) => (this.allLegalMoves = response));
+      this.selectTile(tile);
+      return;
     }
+
+    // if a piece is selected but a non-legal tile is selected, move is cancelled
+    if (this.allLegalMoves && this.allLegalMoves.allMoves) {
+      for (const move of this.allLegalMoves.allMoves) {
+        if (move.toTileIndex === tile.index) {
+          // the destination tile is a valid move, execute move
+          this.makeMove(tile);
+          return;
+        }
+      }
+      // if another friendly piece is selected, show the legal moves for that piece
+      if (tile.occupiedByString) {
+        this.selectAnotherPiece(tile);
+        return;
+      }
+
+      // the destination tile is not a legal move
+      this.cancelMove();
+    }
+  }
+
+  private makeMove(tile: Tile) {
+    this.gameService
+      .makeMove(this.previousSelectedTile!.index, tile.index)
+      .pipe(take(1))
+      .subscribe((response) => {
+        this.tiles = this.gameService.FENtoTileArray(response.fen);
+      });
+  }
+
+  private selectTile(tile: Tile): void {
+    this.previousSelectedTile = tile;
+    this.gameService
+      .fetchLegalMoves(tile.index)
+      .pipe(take(1))
+      .subscribe((response) => (this.allLegalMoves = response));
+  }
+
+  private isInvalidSelection(tile: Tile): boolean {
+    return !tile.occupiedByString && !this.previousSelectedTile;
+  }
+
+  private selectAnotherPiece(tile: Tile) {
+    this.previousSelectedTile = null;
+    this.onTileClicked(tile);
+  }
+
+  private cancelMove() {
+    this.previousSelectedTile = null;
+    this.allLegalMoves = null;
   }
 
   getTileClasses(tile: Tile): string {
@@ -82,11 +127,9 @@ export class BoardComponent implements OnInit {
     this.gameService
       .fetchStartingGameBoardFEN()
       .pipe(take(1))
-      .subscribe({
-        next: (response) => {
-          // transform FEN in an array of strings
-          this.tiles = this.gameService.FENtoTileArray(response.fen);
-        },
+      .subscribe((response) => {
+        // transform FEN in an array of strings
+        this.tiles = this.gameService.FENtoTileArray(response.fen);
       });
   }
 }
