@@ -1,0 +1,53 @@
+.board-container {
+  display: grid;
+  grid-template-columns: repeat(8, 5fr);
+  grid-template-rows: repeat(8, 5fr);
+  gap: 0;
+  width: 40rem;
+  height: 40rem;
+  border: 2px solid black;
+}
+
+.tile {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 3rem;
+  font-weight: bold;
+  height: 100%;
+  aspect-ratio: 1/1;
+}
+
+.dark-tile {
+  background-color: var(--dark-square-color);
+}
+
+.light-tile {
+  background-color: var(--light-square-color);
+}
+
+.normal-move, .attack-move {
+  position: relative;
+}
+
+.normal-move::before, .attack-move::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.normal-move::before {
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: var(--legal-move-color);
+}
+
+.attack-move::before {
+  width: 3rem;
+  height: 3rem;
+  border: 0.3rem solid var(--legal-move-color);
+  background-color: transparent;
+}

@@ -1,0 +1,11 @@
+<div class="board-container">
+  @for(tile of this.tiles; track tile.index) {
+    <div
+      [ngClass]="getTileClasses(tile)"
+      (click)="onTileClicked(tile)">
+      @if(tile.occupiedByString) {
+        <img [src]="getPieceImageUrl(tile.occupiedByString)" alt="{{ tile.occupiedByString }}"/>
+      }
+    </div>
+  }
+</div>

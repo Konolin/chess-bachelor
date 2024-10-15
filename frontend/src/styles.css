@@ -1,2 +1,16 @@
 @import "primeng/resources/themes/lara-light-blue/theme.css";
 @import "primeng/resources/primeng.css";
+
+:root {
+  --dark-square-color: #769656;
+  --light-square-color: #eeeed2;
+  --legal-move-color: #afafaf;
+}
+
+html, body, header {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
