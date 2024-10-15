@@ -1,4 +1,4 @@
-package com.example.backend.models;
+package com.example.backend.models.board;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

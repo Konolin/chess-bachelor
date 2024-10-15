@@ -1,6 +1,6 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.BoardState;
+import com.example.backend.models.board.BoardState;
 import com.example.backend.models.ChessConstants;
 import com.example.backend.models.Move;
 import com.example.backend.models.dtos.AllMovesDTO;
