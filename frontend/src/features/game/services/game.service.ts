@@ -12,7 +12,7 @@ export class GameService {
   private readonly http = inject(HttpClient);
 
   fetchStartingGameBoardFEN(): Observable<BoardDto> {
-    return this.http.get<BoardDto>('http://localhost:8080/api/game/starting-board-state');
+    return this.http.get<BoardDto>('http://localhost:8080/api/game/starting-board');
   }
 
   fetchLegalMoves(tileIndex: number): Observable<AllMovesDTO> {
