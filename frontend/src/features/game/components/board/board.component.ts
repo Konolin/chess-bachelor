@@ -5,6 +5,7 @@ import { Button } from 'primeng/button';
 import { Tile } from '../../../../shared/types/tile';
 import { NgClass } from '@angular/common';
 import { AllMovesDTO } from '../../../../shared/types/all-moves-dto';
+import { BoardState } from '../../../../shared/types/board-state';
 
 @Component({
   selector: 'app-board',
@@ -33,7 +34,7 @@ export class BoardComponent implements OnInit {
 
     // if the current tile is the same as the previous tile, deselect it
     if (this.previousSelectedTile === tile) {
-      this.cancelMove();
+      this.resetMove();
       return;
     }
 
@@ -59,39 +60,8 @@ export class BoardComponent implements OnInit {
       }
 
       // the destination tile is not a legal move
-      this.cancelMove();
+      this.resetMove();
     }
-  }
-
-  private makeMove(tile: Tile) {
-    this.gameService
-      .makeMove(this.previousSelectedTile!.index, tile.index)
-      .pipe(take(1))
-      .subscribe((response) => {
-        this.tiles = this.gameService.FENtoTileArray(response.fen);
-      });
-  }
-
-  private selectTile(tile: Tile): void {
-    this.previousSelectedTile = tile;
-    this.gameService
-      .fetchLegalMoves(tile.index)
-      .pipe(take(1))
-      .subscribe((response) => (this.allLegalMoves = response));
-  }
-
-  private isInvalidSelection(tile: Tile): boolean {
-    return !tile.occupiedByString && !this.previousSelectedTile;
-  }
-
-  private selectAnotherPiece(tile: Tile) {
-    this.previousSelectedTile = null;
-    this.onTileClicked(tile);
-  }
-
-  private cancelMove() {
-    this.previousSelectedTile = null;
-    this.allLegalMoves = null;
   }
 
   getTileClasses(tile: Tile): string {
@@ -122,6 +92,38 @@ export class BoardComponent implements OnInit {
     return `assets/pieces/${color}${piece.toLowerCase()}.svg`;
   }
 
+  private makeMove(tile: Tile) {
+    this.gameService
+      .makeMove(this.previousSelectedTile!.index, tile.index)
+      .pipe(take(1))
+      .subscribe((response) => {
+        this.updateGameState(response);
+      });
+    this.resetMove();
+  }
+
+  private selectTile(tile: Tile): void {
+    this.previousSelectedTile = tile;
+    this.gameService
+      .fetchLegalMoves(tile.index)
+      .pipe(take(1))
+      .subscribe((response) => (this.allLegalMoves = response));
+  }
+
+  private isInvalidSelection(tile: Tile): boolean {
+    return !tile.occupiedByString && !this.previousSelectedTile;
+  }
+
+  private selectAnotherPiece(tile: Tile) {
+    this.previousSelectedTile = null;
+    this.onTileClicked(tile);
+  }
+
+  private resetMove() {
+    this.previousSelectedTile = null;
+    this.allLegalMoves = null;
+  }
+
   private initGameBoard(): void {
     // fetch board FEN
     this.gameService
@@ -129,7 +131,11 @@ export class BoardComponent implements OnInit {
       .pipe(take(1))
       .subscribe((response) => {
         // transform FEN in an array of strings
-        this.tiles = this.gameService.FENtoTileArray(response.fen);
+        this.updateGameState(response);
       });
+  }
+
+  private updateGameState(boardState: BoardState) {
+    this.tiles = this.gameService.FENtoTileArray(boardState.fen);
   }
 }
