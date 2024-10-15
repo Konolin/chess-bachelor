@@ -5,7 +5,7 @@ import { Button } from 'primeng/button';
 import { Tile } from '../../../../shared/types/tile';
 import { NgClass } from '@angular/common';
 import { AllMovesDTO } from '../../../../shared/types/all-moves-dto';
-import { BoardState } from '../../../../shared/types/board-state';
+import { BoardDto } from '../../../../shared/types/board-dto';
 
 @Component({
   selector: 'app-board',
@@ -135,7 +135,7 @@ export class BoardComponent implements OnInit {
       });
   }
 
-  private updateGameState(boardState: BoardState) {
+  private updateGameState(boardState: BoardDto) {
     this.tiles = this.gameService.FENtoTileArray(boardState.fen);
   }
 }

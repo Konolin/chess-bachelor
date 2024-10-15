@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { BoardState } from '../../../shared/types/board-state';
+import { BoardDto } from '../../../shared/types/board-dto';
 import { Tile } from '../../../shared/types/tile';
 import { AllMovesDTO } from '../../../shared/types/all-moves-dto';
 
@@ -11,8 +11,8 @@ import { AllMovesDTO } from '../../../shared/types/all-moves-dto';
 export class GameService {
   private readonly http = inject(HttpClient);
 
-  fetchStartingGameBoardFEN(): Observable<BoardState> {
-    return this.http.get<BoardState>('http://localhost:8080/api/game/starting-board-state');
+  fetchStartingGameBoardFEN(): Observable<BoardDto> {
+    return this.http.get<BoardDto>('http://localhost:8080/api/game/starting-board-state');
   }
 
   fetchLegalMoves(tileIndex: number): Observable<AllMovesDTO> {
@@ -22,11 +22,11 @@ export class GameService {
     });
   }
 
-  makeMove(fromTileIndex: number, toTileIndex: number): Observable<BoardState> {
+  makeMove(fromTileIndex: number, toTileIndex: number): Observable<BoardDto> {
     const params = new HttpParams()
       .set('fromTileIndex', fromTileIndex)
       .set('toTileIndex', toTileIndex);
-    return this.http.get<BoardState>('http://localhost:8080/api/game/make-move', {
+    return this.http.get<BoardDto>('http://localhost:8080/api/game/make-move', {
       params,
     });
   }

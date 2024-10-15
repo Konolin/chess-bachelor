@@ -1,9 +1,9 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.board.BoardState;
-import com.example.backend.models.ChessConstants;
+import com.example.backend.models.ChessUtils;
 import com.example.backend.models.Move;
 import com.example.backend.models.dtos.AllMovesDTO;
+import com.example.backend.models.dtos.BoardDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,9 +14,9 @@ import java.util.List;
 @CrossOrigin(origins = "http://localhost:4200")
 public class GameController {
     @GetMapping("/starting-board-state")
-    public ResponseEntity<BoardState> getStartingBoardState() {
+    public ResponseEntity<BoardDTO> getStartingBoardState() {
         // TODO - temporary
-        return ResponseEntity.ok(new BoardState(ChessConstants.STARTING_BOARD_FEN));
+        return ResponseEntity.ok(new BoardDTO(ChessUtils.STARTING_BOARD_FEN));
     }
 
     @GetMapping("/get-legal-moves-indexes")
@@ -26,8 +26,8 @@ public class GameController {
     }
 
     @GetMapping("make-move")
-    public ResponseEntity<BoardState> makeMove(@RequestParam Integer fromTileIndex, @RequestParam Integer toTileIndex) {
+    public ResponseEntity<BoardDTO> makeMove(@RequestParam Integer fromTileIndex, @RequestParam Integer toTileIndex) {
         // TODO - temporary
-        return ResponseEntity.ok(new BoardState("rnbqkbnr/ppppppPp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
+        return ResponseEntity.ok(new BoardDTO("rnbqkbnr/ppppppPp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
     }
 }
