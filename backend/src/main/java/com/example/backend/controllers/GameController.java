@@ -5,6 +5,7 @@ import com.example.backend.models.Move;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.dtos.AllMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
+import com.example.backend.services.GameService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,7 +24,7 @@ public class GameController {
     }
 
     @GetMapping("/get-legal-moves-indexes")
-    public ResponseEntity<AllMovesDTO> getLegalMovesIndexes(@RequestParam Integer tileIndex) {
+    public ResponseEntity<AllMovesDTO> getLegalMoves(@RequestParam Integer tileIndex) {
         // TODO - temporary
         return ResponseEntity.ok(new AllMovesDTO(List.of(new Move(tileIndex, tileIndex + 8), new Move(tileIndex, tileIndex - 8)), List.of(new Move(tileIndex, tileIndex - 8))));
     }
@@ -40,6 +41,7 @@ public class GameController {
     public ResponseEntity<String> test() {
         Board.Builder builder = new Board.Builder();
         Board board = builder.setStandardStartingPosition().build();
-        return ResponseEntity.ok(board.toString());
+
+        return ResponseEntity.ok(GameService.getAllLegalMoves(board).toString());
     }
 }
