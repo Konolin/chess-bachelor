@@ -53,33 +53,27 @@ public class Board {
                 this.setPieceAtPosition(new Pawn(i, Alliance.BLACK))
                         .setPieceAtPosition(new Pawn(i + 40, Alliance.WHITE));
             }
-
             // add rooks
             this.setPieceAtPosition(new Rook(0, Alliance.BLACK))
                     .setPieceAtPosition(new Rook(7, Alliance.BLACK))
                     .setPieceAtPosition(new Rook(56, Alliance.WHITE))
                     .setPieceAtPosition(new Rook(63, Alliance.WHITE));
-
             // add knights
             this.setPieceAtPosition(new Knight(1, Alliance.BLACK))
                     .setPieceAtPosition(new Knight(6, Alliance.BLACK))
                     .setPieceAtPosition(new Knight(57, Alliance.WHITE))
                     .setPieceAtPosition(new Knight(62, Alliance.WHITE));
-
             // add bishops
             this.setPieceAtPosition(new Bishop(2, Alliance.BLACK))
                     .setPieceAtPosition(new Bishop(5, Alliance.BLACK))
                     .setPieceAtPosition(new Bishop(58, Alliance.WHITE))
                     .setPieceAtPosition(new Bishop(61, Alliance.WHITE));
-
             // add queens
             this.setPieceAtPosition(new Queen(3, Alliance.BLACK))
                     .setPieceAtPosition(new Queen(59, Alliance.WHITE));
-
             // add kings
             this.setPieceAtPosition(new King(4, Alliance.BLACK))
                     .setPieceAtPosition(new King(60, Alliance.WHITE));
-
             return this;
         }
 
