@@ -40,6 +40,10 @@ public class Tile {
         return this.occupyingPiece == null;
     }
 
+    public boolean isOccupied() {
+        return !isEmpty();
+    }
+
     @Override
     public String toString() {
         return this.occupyingPiece == null ? "-" : this.occupyingPiece.toString();

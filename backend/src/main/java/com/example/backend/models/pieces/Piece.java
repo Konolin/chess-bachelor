@@ -1,21 +1,22 @@
 package com.example.backend.models.pieces;
 
 import com.example.backend.models.Move;
+import com.example.backend.models.board.Board;
 import lombok.Getter;
 
 import java.util.List;
 
 @Getter
 public abstract class Piece {
-    private final List<Move> legalMoves;
     private final int position;
     private final Alliance alliance;
+    private final boolean isFirstMove;
 
-    protected Piece(final int position, final Alliance alliance) {
+    protected Piece(final int position, final Alliance alliance, final boolean isFirstMove) {
         this.position = position;
         this.alliance = alliance;
-        this.legalMoves = this.generateLegalMoves();
+        this.isFirstMove = isFirstMove;
     }
 
-    abstract List<Move> generateLegalMoves();
+    public abstract List<Move> generateLegalMoves(final Board board);
 }

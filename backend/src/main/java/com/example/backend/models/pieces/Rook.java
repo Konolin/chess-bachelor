@@ -1,16 +1,17 @@
 package com.example.backend.models.pieces;
 
 import com.example.backend.models.Move;
+import com.example.backend.models.board.Board;
 
 import java.util.List;
 
 public class Rook extends Piece {
-    public Rook(int position, Alliance alliance) {
-        super(position, alliance);
+    public Rook(final int position, final Alliance alliance, final boolean isFirstMove) {
+        super(position, alliance, isFirstMove);
     }
 
     @Override
-    List<Move> generateLegalMoves() {
+    public List<Move> generateLegalMoves(final Board board) {
         return List.of();
     }
 
