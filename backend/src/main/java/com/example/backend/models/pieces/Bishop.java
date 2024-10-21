@@ -41,8 +41,8 @@ public class Bishop extends Piece {
     }
 
     private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
-        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == -9 || offset == -1 || offset == 7) ||
-                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 1 || offset == 9);
+        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == -9 || offset == 7) ||
+                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 9);
     }
 
     @Override
