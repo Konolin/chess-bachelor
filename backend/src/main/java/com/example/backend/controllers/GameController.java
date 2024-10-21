@@ -1,33 +1,35 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.BoardState;
-import com.example.backend.models.ChessConstants;
-import com.example.backend.models.Move;
 import com.example.backend.models.dtos.AllMovesDTO;
+import com.example.backend.models.dtos.BoardStateDTO;
+import com.example.backend.services.GameService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/game")
 @CrossOrigin(origins = "http://localhost:4200")
 public class GameController {
-    @GetMapping("/starting-board-state")
-    public ResponseEntity<BoardState> getStartingBoardState() {
-        // TODO - temporary
-        return ResponseEntity.ok(new BoardState(ChessConstants.STARTING_BOARD_FEN));
+    private final GameService gameService;
+
+    @Autowired
+    public GameController(GameService gameService) {
+        this.gameService = gameService;
     }
 
-    @GetMapping("/get-legal-moves-indexes")
-    public ResponseEntity<AllMovesDTO> getLegalMovesIndexes(@RequestParam Integer tileIndex) {
-        // TODO - temporary
-        return ResponseEntity.ok(new AllMovesDTO(List.of(new Move(tileIndex, tileIndex + 8), new Move(tileIndex, tileIndex - 8)), List.of(new Move(tileIndex, tileIndex - 8))));
+    @GetMapping("/get-moves-for-position")
+    public ResponseEntity<AllMovesDTO> getAllMovesForPosition(@RequestParam Integer tileIndex) {
+        return ResponseEntity.ok(gameService.getAllMovesForPosition(tileIndex));
     }
 
     @GetMapping("make-move")
-    public ResponseEntity<BoardState> makeMove(@RequestParam Integer fromTileIndex, @RequestParam Integer toTileIndex) {
-        // TODO - temporary
-        return ResponseEntity.ok(new BoardState("rnbqkbnr/ppppppPp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
+    public ResponseEntity<BoardStateDTO> makeMove(@RequestParam Integer fromTileIndex, @RequestParam Integer toTileIndex) {
+        return ResponseEntity.ok(gameService.makeMove(fromTileIndex, toTileIndex));
+    }
+
+    @GetMapping("/starting-board-state")
+    public ResponseEntity<BoardStateDTO> getStartingBoardState() {
+        return ResponseEntity.ok(gameService.initializeBoardState());
     }
 }

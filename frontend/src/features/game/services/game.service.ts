@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { BoardState } from '../../../shared/types/board-state';
 import { Tile } from '../../../shared/types/tile';
 import { AllMovesDTO } from '../../../shared/types/all-moves-dto';
+import { FenObject } from '../../../shared/types/fen-object';
 
 @Injectable({
   providedIn: 'root',
@@ -16,8 +17,8 @@ export class GameService {
   }
 
   fetchLegalMoves(tileIndex: number): Observable<AllMovesDTO> {
-    const params = new HttpParams().set('tileIndex', tileIndex); // Assuming 'tile.id' is the property you want to send
-    return this.http.get<AllMovesDTO>('http://localhost:8080/api/game/get-legal-moves-indexes', {
+    const params = new HttpParams().set('tileIndex', tileIndex);
+    return this.http.get<AllMovesDTO>('http://localhost:8080/api/game/get-moves-for-position', {
       params,
     });
   }
@@ -31,21 +32,23 @@ export class GameService {
     });
   }
 
-  FENtoTileArray(fen: string): Tile[] {
+  FENStringToObject(fen: string): FenObject {
     const tileArray: Tile[] = [];
+    let moveMaker = '';
     let index = 0;
+    let segmentsRead = 0;
 
     for (const char of fen) {
       // skip breaking characters
       if (char === '/') {
         continue;
       }
-      // TODO - temporary, add this functionality later
       if (char === ' ') {
-        break;
+        segmentsRead += 1;
+        continue;
       }
       // add occupied tiles
-      if (isNaN(parseInt(char))) {
+      if (segmentsRead === 0 && isNaN(parseInt(char))) {
         tileArray.push({ index: index, occupiedByString: char });
         index++;
         continue;
@@ -55,8 +58,13 @@ export class GameService {
         tileArray.push({ index: index, occupiedByString: '' });
         index++;
       }
+      // add moveMaker
+      if (segmentsRead === 1) {
+        moveMaker = char;
+        index++;
+      }
     }
 
-    return tileArray;
+    return { tiles: tileArray, moveMaker: moveMaker };
   }
 }

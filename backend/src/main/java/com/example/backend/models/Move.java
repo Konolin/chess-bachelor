@@ -12,4 +12,9 @@ import lombok.Setter;
 public class Move {
     private int fromTileIndex;
     private int toTileIndex;
+
+    @Override
+    public String toString() {
+        return fromTileIndex + " - " + toTileIndex;
+    }
 }

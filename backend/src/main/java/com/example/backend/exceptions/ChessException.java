@@ -4,9 +4,9 @@ import lombok.Getter;
 
 @Getter
 public class ChessException extends RuntimeException {
-    private final ExceptionCodes code;
+    private final ChessExceptionCodes code;
 
-    public ChessException(String message, ExceptionCodes code) {
+    public ChessException(String message, ChessExceptionCodes code) {
         super(message);
         this.code = code;
     }

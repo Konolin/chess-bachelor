@@ -1,6 +1,5 @@
-package com.example.backend.models;
+package com.example.backend.models.dtos;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -8,7 +7,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class BoardState {
+public class BoardStateDTO {
     private String fen;
 }

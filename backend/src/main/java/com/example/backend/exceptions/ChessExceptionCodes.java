@@ -5,9 +5,12 @@ import lombok.Getter;
 
 @AllArgsConstructor
 @Getter
-public enum ExceptionCodes {
+public enum ChessExceptionCodes {
     TEST_EXCEPTION("test_exception"),
-    ILLEGAL_STATE("illegal_state"),;
+    ILLEGAL_STATE("illegal_state"),
+    INVALID_MOVE("invalid_move"),
+    INVALID_POSITION("invalid_position"),
+    INVALID_FEN_STRING("invalid_fen_string");
 
     private final String code;
 }
