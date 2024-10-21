@@ -15,11 +15,20 @@ public class Board {
     private final List<Tile> tiles;
     private final List<Move> whitePlayerLegalMoves;
     private final List<Move> blackPlayerLegalMoves;
+    private final List<Piece> whitePieces;
+    private final List<Piece> blackPieces;
+    private final Alliance moveMaker;
 
     private Board(Builder builder) {
         this.tiles = this.createTiles(builder);
+
+        this.whitePieces = calculatePieces(Alliance.WHITE);
+        this.blackPieces = calculatePieces(Alliance.BLACK);
+
         this.whitePlayerLegalMoves = this.calculateLegalMoves(Alliance.WHITE);
         this.blackPlayerLegalMoves = this.calculateLegalMoves(Alliance.BLACK);
+
+        this.moveMaker = builder.moveMaker;
     }
 
     private List<Tile> createTiles(final Builder builder) {
@@ -30,14 +39,30 @@ public class Board {
         return List.of(tilesArray);
     }
 
-    private List<Move> calculateLegalMoves(final Alliance alliance) {
-        final List<Move> legalMoves = new ArrayList<>();
-        for (final Tile tile : this.tiles) {
-            if (!tile.isEmpty() && tile.getOccupyingPiece().getAlliance() == alliance) {
-                legalMoves.addAll(tile.getOccupyingPiece().generateLegalMoves(this));
-            }
+    public List<Move> calculateLegalMoves(final Alliance alliance) {
+        List<Move> legalMoves = new ArrayList<>();
+        List<Piece> pieces = alliance.isBlack() ? blackPieces : whitePieces;
+        assert pieces != null;
+        for (final Piece piece : pieces) {
+            legalMoves.addAll(piece.generateLegalMoves(this));
         }
         return legalMoves;
+    }
+
+    private List<Piece> calculatePieces(final Alliance alliance) {
+        return tiles.stream()
+                .filter(Tile::isOccupied)
+                .map(Tile::getOccupyingPiece)
+                .filter(piece -> piece != null && piece.getAlliance() == alliance)
+                .toList();
+    }
+
+    public List<Piece> getMoveMakersPieces() {
+        return moveMaker.isWhite() ? whitePieces : blackPieces;
+    }
+
+    public List<Piece> getOpponentsPieces() {
+        return moveMaker.isWhite() ? blackPieces : whitePieces;
     }
 
     public Tile getTileAtCoordinate(final int tileCoordinate) {
@@ -59,9 +84,15 @@ public class Board {
 
     public static class Builder {
         private final Map<Integer, Piece> boardConfig;
+        private Alliance moveMaker;
 
         public Builder() {
             this.boardConfig = new HashMap<>();
+        }
+
+        public Builder setMoveMaker(final Alliance moveMaker) {
+            this.moveMaker = moveMaker;
+            return this;
         }
 
         public Builder setPieceAtPosition(final Piece piece) {

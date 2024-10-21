@@ -33,6 +33,11 @@ public class King extends Piece {
         return legalMoves;
     }
 
+    @Override
+    public King movePiece(final Alliance alliance, final int toTilePosition) {
+        return new King(toTilePosition, alliance, false);
+    }
+
     private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int candidateOffset) {
         return ChessUtils.FIRST_COLUMN[currentPosition] && (candidateOffset == -9 || candidateOffset == -1 || candidateOffset == 7) ||
                 ChessUtils.EIGHTH_COLUMN[currentPosition] && (candidateOffset == -7 || candidateOffset == 1 || candidateOffset == 9);

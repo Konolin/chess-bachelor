@@ -19,7 +19,7 @@ public class Rook extends Piece {
     public List<Move> generateLegalMoves(final Board board) {
         List<Move> legalMoves = new ArrayList<>();
         for (final int offset : MOVE_OFFSETS) {
-            final int candidatePosition = this.getPosition() + offset;
+            int candidatePosition = this.getPosition() + offset;
             while (isValidCandidatePosition(candidatePosition, offset)) {
                 final Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
                 if (candidateTile.isEmpty()) {
@@ -30,9 +30,15 @@ public class Rook extends Piece {
                     }
                     break;
                 }
+                candidatePosition += offset;
             }
         }
         return legalMoves;
+    }
+
+    @Override
+    public Rook movePiece(final Alliance alliance, final int toTilePosition) {
+        return new Rook(toTilePosition, alliance, false);
     }
 
     private boolean isValidCandidatePosition(final int candidatePosition, final int offset) {

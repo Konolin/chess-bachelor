@@ -1,7 +1,7 @@
 package com.example.backend.models;
 
 import com.example.backend.exceptions.ChessException;
-import com.example.backend.exceptions.ExceptionCodes;
+import com.example.backend.exceptions.ChessExceptionCodes;
 
 public class ChessUtils {
     public static final int TILES_NUMBER = 64;
@@ -20,7 +20,7 @@ public class ChessUtils {
     public static final String STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 
     private ChessUtils() {
-        throw new ChessException("illegal state", ExceptionCodes.ILLEGAL_STATE);
+        throw new ChessException("illegal state", ChessExceptionCodes.ILLEGAL_STATE);
     }
 
     public static boolean isValidPosition(final int position) {

@@ -41,6 +41,11 @@ public class Pawn extends Piece {
         return legalMoves;
     }
 
+    @Override
+    public Pawn movePiece(final Alliance alliance, final int toTilePosition) {
+        return new Pawn(toTilePosition, alliance, false);
+    }
+
     private boolean isContinueCase(final int offset, final int candidatePosition) {
         return !ChessUtils.isValidPosition(candidatePosition) ||
                 isFirstOrEighthColumnExclusion(this.getPosition(), offset) ||

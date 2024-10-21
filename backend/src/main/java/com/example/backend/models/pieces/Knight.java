@@ -33,6 +33,11 @@ public class Knight extends Piece {
         return legalMoves;
     }
 
+    @Override
+    public Knight movePiece(final Alliance alliance, final int toTilePosition) {
+        return new Knight(toTilePosition, alliance);
+    }
+
     private boolean isColumnExceptions(final int position, final int offset) {
         return isEighthColumnExclusion(position, offset) ||
                 isSeventhColumnExclusion(position, offset) ||

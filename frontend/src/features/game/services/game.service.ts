@@ -16,8 +16,8 @@ export class GameService {
   }
 
   fetchLegalMoves(tileIndex: number): Observable<AllMovesDTO> {
-    const params = new HttpParams().set('tileIndex', tileIndex); // Assuming 'tile.id' is the property you want to send
-    return this.http.get<AllMovesDTO>('http://localhost:8080/api/game/get-legal-moves-indexes', {
+    const params = new HttpParams().set('tileIndex', tileIndex);
+    return this.http.get<AllMovesDTO>('http://localhost:8080/api/game/get-moves-for-position', {
       params,
     });
   }
