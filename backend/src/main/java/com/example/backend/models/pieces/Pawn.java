@@ -22,14 +22,11 @@ public class Pawn extends Piece {
         for (final int offset : MOVE_OFFSETS) {
             int candidatePosition = this.getPosition() + offset * this.getAlliance().getDirection();
 
-            if (!ChessUtils.isValidPosition(candidatePosition) || isFirstOrEighthColumnExclusion(this.getPosition(), offset)) {
-                continue;
-            }
-            if (offset == 16 && !this.isFirstMove()) {
+            if (isContinueCase(offset, candidatePosition)) {
                 continue;
             }
 
-            Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
+            final Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
             if ((offset == 7 || offset == 9) && candidateTile.isOccupied()) {
                 if (candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
                     legalMoves.add(new Move(this.getPosition(), candidatePosition));
@@ -44,10 +41,15 @@ public class Pawn extends Piece {
         return legalMoves;
     }
 
+    private boolean isContinueCase(final int offset, final int candidatePosition) {
+        return !ChessUtils.isValidPosition(candidatePosition) ||
+                isFirstOrEighthColumnExclusion(this.getPosition(), offset) ||
+                offset == 16 && !this.isFirstMove();
+    }
 
-    private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int candidateOffset) {
-        return ChessUtils.FIRST_COLUMN[currentPosition] && (candidateOffset == -9 || candidateOffset == -1 || candidateOffset == 7) ||
-                ChessUtils.EIGHTH_COLUMN[currentPosition] && (candidateOffset == -7 || candidateOffset == 1 || candidateOffset == 9);
+    private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
+        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == -9 || offset == -1 || offset == 7) ||
+                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 1 || offset == 9);
     }
 
     @Override
