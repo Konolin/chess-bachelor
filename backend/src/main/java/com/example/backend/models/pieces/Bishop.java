@@ -18,19 +18,31 @@ public class Bishop extends Piece {
     @Override
     public List<Move> generateLegalMoves(final Board board) {
         List<Move> legalMoves = new ArrayList<>();
+
         for (final int offset: MOVE_OFFSETS) {
-            int candidatePosition = this.getPosition() + offset;
-            while (isValidCandidatePosition(candidatePosition, offset)) {
+            int currentIterationPosition = this.getPosition();
+            while (ChessUtils.isValidPosition(currentIterationPosition)) {
+                final int candidatePosition = currentIterationPosition + offset;
+
+                // reached board limits
+                if (!ChessUtils.isValidPosition(candidatePosition) ||
+                        isFirstOrEighthColumnExclusion(currentIterationPosition, offset)) {
+                    break;
+                }
+
                 final Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
                 if (candidateTile.isEmpty()) {
+                    // make normal move
                     legalMoves.add(new Move(this.getPosition(), candidatePosition));
-                } else {
+                } else if (candidateTile.isOccupied()) {
                     if (candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
+                        // make attack move
                         legalMoves.add(new Move(this.getPosition(), candidatePosition));
                     }
                     break;
                 }
-                candidatePosition += offset;
+
+                currentIterationPosition = candidatePosition;
             }
         }
         return legalMoves;
@@ -39,11 +51,6 @@ public class Bishop extends Piece {
     @Override
     public Bishop movePiece(final Alliance alliance, final int toTilePosition) {
         return new Bishop(toTilePosition, alliance);
-    }
-
-    private boolean isValidCandidatePosition(final int candidatePosition, final int offset) {
-        return ChessUtils.isValidPosition(candidatePosition) &&
-                !isFirstOrEighthColumnExclusion(this.getPosition(), offset);
     }
 
     private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {

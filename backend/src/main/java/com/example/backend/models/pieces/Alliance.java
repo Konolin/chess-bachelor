@@ -37,10 +37,10 @@ public enum Alliance {
     public abstract Alliance getOpponent();
 
     public boolean isWhite() {
-        return this.equals(BLACK);
+        return this.equals(WHITE);
     }
 
     public boolean isBlack() {
-        return this.equals(WHITE);
+        return this.equals(BLACK);
     }
 }

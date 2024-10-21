@@ -21,6 +21,7 @@ export class BoardComponent implements OnInit {
 
   private readonly gameService = inject(GameService);
   private previousSelectedTile: Tile | null = null;
+  private moveMaker: string | null = null;
 
   ngOnInit(): void {
     this.initGameBoard();
@@ -38,14 +39,14 @@ export class BoardComponent implements OnInit {
       return;
     }
 
-    // if no previous tile is selected, select the current tile and find all legal moves
-    if (!this.previousSelectedTile) {
-      this.selectTile(tile);
+    // if no previous tile is selected and the correct alliance is selected,
+    // select the current tile and find all legal moves
+    if (!this.previousSelectedTile && this.isCorrectAlliance(tile)) {
+      this.selectTileAndFetchMoves(tile);
       return;
     }
 
-    // if a piece is selected but a non-legal tile is selected, move is cancelled
-    if (this.allLegalMoves && this.allLegalMoves.allMoves) {
+    if (this.allLegalMoves?.allMoves) {
       for (const move of this.allLegalMoves.allMoves) {
         if (move.toTileIndex === tile.index) {
           // the destination tile is a valid move, execute move
@@ -65,21 +66,21 @@ export class BoardComponent implements OnInit {
   }
 
   getTileClasses(tile: Tile): string {
-    let styleClass =
+    const styleClass =
       (Math.floor(tile.index / 8) + tile.index) % 2 === 0 ? 'tile light-tile' : 'tile dark-tile';
 
-    if (this.allLegalMoves && this.allLegalMoves.attackMoves) {
+    if (this.allLegalMoves?.attackMoves) {
       for (const move of this.allLegalMoves.attackMoves) {
         if (move.toTileIndex === tile.index) {
-          return (styleClass += ' attack-move');
+          return styleClass + ' attack-move';
         }
       }
     }
 
-    if (this.allLegalMoves && this.allLegalMoves.allMoves) {
+    if (this.allLegalMoves?.allMoves) {
       for (const move of this.allLegalMoves.allMoves) {
         if (move.toTileIndex === tile.index) {
-          return (styleClass += ' normal-move');
+          return styleClass + ' normal-move';
         }
       }
     }
@@ -92,7 +93,7 @@ export class BoardComponent implements OnInit {
     return `assets/pieces/${color}${piece.toLowerCase()}.svg`;
   }
 
-  private makeMove(tile: Tile) {
+  private makeMove(tile: Tile): void {
     this.gameService
       .makeMove(this.previousSelectedTile!.index, tile.index)
       .pipe(take(1))
@@ -102,7 +103,7 @@ export class BoardComponent implements OnInit {
     this.resetMove();
   }
 
-  private selectTile(tile: Tile): void {
+  private selectTileAndFetchMoves(tile: Tile): void {
     this.previousSelectedTile = tile;
     this.gameService
       .fetchLegalMoves(tile.index)
@@ -114,9 +115,16 @@ export class BoardComponent implements OnInit {
     return !tile.occupiedByString && !this.previousSelectedTile;
   }
 
-  private selectAnotherPiece(tile: Tile) {
+  private selectAnotherPiece(tile: Tile): void {
     this.previousSelectedTile = null;
     this.onTileClicked(tile);
+  }
+
+  private isCorrectAlliance(tile: Tile): boolean {
+    const isWhitePiece = /^[A-Z]+$/.test(tile.occupiedByString);
+    const isBlackPiece = /^[a-z]+$/.test(tile.occupiedByString);
+
+    return (isWhitePiece && this.moveMaker === 'w') || (isBlackPiece && this.moveMaker === 'b');
   }
 
   private resetMove() {
@@ -136,6 +144,8 @@ export class BoardComponent implements OnInit {
   }
 
   private updateGameState(boardState: BoardState) {
-    this.tiles = this.gameService.FENtoTileArray(boardState.fen);
+    const fenObject = this.gameService.FENStringToObject(boardState.fen);
+    this.tiles = fenObject.tiles;
+    this.moveMaker = fenObject.moveMaker;
   }
 }
