@@ -1,6 +1,6 @@
 package com.example.backend.models.pieces;
 
-import com.example.backend.models.Move;
+import com.example.backend.models.moves.Move;
 import com.example.backend.models.board.Board;
 import lombok.Getter;
 

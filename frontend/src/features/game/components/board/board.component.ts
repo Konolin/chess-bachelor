@@ -4,8 +4,9 @@ import { take } from 'rxjs';
 import { Button } from 'primeng/button';
 import { Tile } from '../../../../shared/types/tile';
 import { NgClass } from '@angular/common';
-import { AllMovesDTO } from '../../../../shared/types/all-moves-dto';
 import { BoardState } from '../../../../shared/types/board-state';
+import { Move } from '../../../../shared/types/move';
+import { MoveType } from '../../../../shared/types/move-type';
 
 @Component({
   selector: 'app-board',
@@ -17,7 +18,7 @@ import { BoardState } from '../../../../shared/types/board-state';
 export class BoardComponent implements OnInit {
   protected tiles: Tile[] = [];
   protected readonly Math = Math;
-  protected allLegalMoves: AllMovesDTO | null = null;
+  protected legalMoves: Move[] | null = null;
 
   private readonly gameService = inject(GameService);
   private previousSelectedTile: Tile | null = null;
@@ -46,8 +47,8 @@ export class BoardComponent implements OnInit {
       return;
     }
 
-    if (this.allLegalMoves?.allMoves) {
-      for (const move of this.allLegalMoves.allMoves) {
+    if (this.legalMoves) {
+      for (const move of this.legalMoves) {
         if (move.toTileIndex === tile.index) {
           // the destination tile is a valid move, execute move
           this.makeMove(tile);
@@ -69,20 +70,9 @@ export class BoardComponent implements OnInit {
     const styleClass =
       (Math.floor(tile.index / 8) + tile.index) % 2 === 0 ? 'tile light-tile' : 'tile dark-tile';
 
-    if (this.allLegalMoves?.attackMoves) {
-      for (const move of this.allLegalMoves.attackMoves) {
-        if (move.toTileIndex === tile.index) {
-          return styleClass + ' attack-move';
-        }
-      }
-    }
-
-    if (this.allLegalMoves?.allMoves) {
-      for (const move of this.allLegalMoves.allMoves) {
-        if (move.toTileIndex === tile.index) {
-          return styleClass + ' normal-move';
-        }
-      }
+    const move = this.legalMoves?.find((move) => move.toTileIndex === tile.index);
+    if (move) {
+      return styleClass + (move.moveType === MoveType.ATTACK ? ' attack-move' : ' normal-move');
     }
 
     return styleClass;
@@ -108,7 +98,7 @@ export class BoardComponent implements OnInit {
     this.gameService
       .fetchLegalMoves(tile.index)
       .pipe(take(1))
-      .subscribe((response) => (this.allLegalMoves = response));
+      .subscribe((response) => (this.legalMoves = response.legalMoves));
   }
 
   private isInvalidSelection(tile: Tile): boolean {
@@ -129,7 +119,7 @@ export class BoardComponent implements OnInit {
 
   private resetMove() {
     this.previousSelectedTile = null;
-    this.allLegalMoves = null;
+    this.legalMoves = null;
   }
 
   private initGameBoard(): void {

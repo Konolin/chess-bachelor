@@ -1,6 +1,6 @@
 package com.example.backend.models.dtos;
 
-import com.example.backend.models.Move;
+import com.example.backend.models.moves.Move;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +12,6 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AllMovesDTO {
-    private List<Move> allMoves;
-    private List<Move> attackMoves;
+public class LegalMovesDTO {
+    private List<Move> legalMoves;
 }

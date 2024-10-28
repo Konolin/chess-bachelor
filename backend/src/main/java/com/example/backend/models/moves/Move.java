@@ -1,4 +1,4 @@
-package com.example.backend.models;
+package com.example.backend.models.moves;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,9 +12,10 @@ import lombok.Setter;
 public class Move {
     private int fromTileIndex;
     private int toTileIndex;
+    private MoveType moveType;
 
     @Override
     public String toString() {
-        return fromTileIndex + " - " + toTileIndex;
+        return fromTileIndex + " - " + toTileIndex + " ( " + moveType.name() + " ) ";
     }
 }

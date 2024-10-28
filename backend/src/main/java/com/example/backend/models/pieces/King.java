@@ -1,8 +1,9 @@
 package com.example.backend.models.pieces;
 
 import com.example.backend.models.ChessUtils;
-import com.example.backend.models.Move;
+import com.example.backend.models.moves.Move;
 import com.example.backend.models.board.Board;
+import com.example.backend.models.moves.MoveType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,10 +24,10 @@ public class King extends Piece {
                 continue;
             }
             if (board.getTileAtCoordinate(candidatePosition).isEmpty()){
-                legalMoves.add(new Move(this.getPosition(), candidatePosition));
+                legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
             } else {
                 if (board.getTileAtCoordinate(candidatePosition).getOccupyingPiece().getAlliance() != this.getAlliance()) {
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition));
+                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
                 }
             }
         }

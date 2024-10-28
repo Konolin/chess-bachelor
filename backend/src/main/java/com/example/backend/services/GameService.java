@@ -2,7 +2,7 @@ package com.example.backend.services;
 
 import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
-import com.example.backend.models.dtos.AllMovesDTO;
+import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
@@ -31,17 +31,17 @@ public class GameService {
         return boardStateDTO;
     }
 
-    public AllMovesDTO getAllMovesForPosition(final int position) {
-        AllMovesDTO allMovesDTO = new AllMovesDTO();
+    public LegalMovesDTO getAllMovesForPosition(final int position) {
+        LegalMovesDTO legalMovesDTO = new LegalMovesDTO();
 
         final Tile candidateTile = board.getTileAtCoordinate(position);
         if (candidateTile.isOccupied()) {
-            allMovesDTO.setAllMoves(candidateTile.getOccupyingPiece().generateLegalMoves(board));
+            legalMovesDTO.setLegalMoves(candidateTile.getOccupyingPiece().generateLegalMoves(board));
         } else {
-            allMovesDTO.setAllMoves(null);
+            legalMovesDTO.setLegalMoves(null);
         }
 
-        return allMovesDTO;
+        return legalMovesDTO;
     }
 
     public BoardStateDTO makeMove(final int fromTilePosition, final int toTilePosition) {

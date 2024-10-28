@@ -1,7 +1,7 @@
 package com.example.backend.models.board;
 
 import com.example.backend.models.ChessUtils;
-import com.example.backend.models.Move;
+import com.example.backend.models.moves.Move;
 import com.example.backend.models.pieces.*;
 import lombok.Getter;
 

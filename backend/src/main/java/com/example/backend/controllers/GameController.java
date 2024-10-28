@@ -1,6 +1,6 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.dtos.AllMovesDTO;
+import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
 import com.example.backend.services.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +19,7 @@ public class GameController {
     }
 
     @GetMapping("/get-moves-for-position")
-    public ResponseEntity<AllMovesDTO> getAllMovesForPosition(@RequestParam Integer tileIndex) {
+    public ResponseEntity<LegalMovesDTO> getAllMovesForPosition(@RequestParam Integer tileIndex) {
         return ResponseEntity.ok(gameService.getAllMovesForPosition(tileIndex));
     }
 
