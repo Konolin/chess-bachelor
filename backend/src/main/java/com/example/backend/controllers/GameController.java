@@ -2,6 +2,7 @@ package com.example.backend.controllers;
 
 import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
+import com.example.backend.models.moves.Move;
 import com.example.backend.services.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +24,9 @@ public class GameController {
         return ResponseEntity.ok(gameService.getAllMovesForPosition(tileIndex));
     }
 
-    @GetMapping("make-move")
-    public ResponseEntity<BoardStateDTO> makeMove(@RequestParam Integer fromTileIndex, @RequestParam Integer toTileIndex) {
-        return ResponseEntity.ok(gameService.makeMove(fromTileIndex, toTileIndex));
+    @PostMapping("make-move")
+    public ResponseEntity<BoardStateDTO> makeMove(@RequestBody Move move) {
+        return ResponseEntity.ok(gameService.makeMove(move));
     }
 
     @GetMapping("/starting-board-state")

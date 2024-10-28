@@ -84,13 +84,19 @@ export class BoardComponent implements OnInit {
   }
 
   private makeMove(tile: Tile): void {
-    this.gameService
-      .makeMove(this.previousSelectedTile!.index, tile.index)
-      .pipe(take(1))
-      .subscribe((response) => {
-        this.updateGameState(response);
-      });
-    this.resetMove();
+    const move = this.legalMoves!.find(
+      (m) => m.fromTileIndex === this.previousSelectedTile!.index && m.toTileIndex === tile.index
+    );
+
+    if (move) {
+      this.gameService
+        .makeMove(move)
+        .pipe(take(1))
+        .subscribe((response) => {
+          this.updateGameState(response);
+        });
+      this.resetMove();
+    }
   }
 
   private selectTileAndFetchMoves(tile: Tile): void {

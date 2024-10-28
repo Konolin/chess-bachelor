@@ -18,12 +18,14 @@ public class Board {
     private final List<Piece> whitePieces;
     private final List<Piece> blackPieces;
     private final Alliance moveMaker;
+    private final Pawn enPassantPawn;
 
     private Board(Builder builder) {
         this.tiles = this.createTiles(builder);
 
         this.whitePieces = calculatePieces(Alliance.WHITE);
         this.blackPieces = calculatePieces(Alliance.BLACK);
+        this.enPassantPawn = builder.enPassantPawn;
 
         this.whitePlayerLegalMoves = this.calculateLegalMoves(Alliance.WHITE);
         this.blackPlayerLegalMoves = this.calculateLegalMoves(Alliance.BLACK);
@@ -85,6 +87,7 @@ public class Board {
     public static class Builder {
         private final Map<Integer, Piece> boardConfig;
         private Alliance moveMaker;
+        private Pawn enPassantPawn;
 
         public Builder() {
             this.boardConfig = new HashMap<>();
@@ -97,6 +100,11 @@ public class Board {
 
         public Builder setPieceAtPosition(final Piece piece) {
             this.boardConfig.put(piece.getPosition(), piece);
+            return this;
+        }
+
+        public Builder setEmptyTile(final int position) {
+            this.boardConfig.put(position, null);
             return this;
         }
 
@@ -127,6 +135,15 @@ public class Board {
             // add kings
             this.setPieceAtPosition(new King(4, Alliance.BLACK, true))
                     .setPieceAtPosition(new King(60, Alliance.WHITE, true));
+
+            // set en passant pawn as null for the starting position
+            this.setEnPassantPawn(null);
+
+            return this;
+        }
+
+        public Builder setEnPassantPawn(Pawn enPassantPawn) {
+            this.enPassantPawn = enPassantPawn;
             return this;
         }
 

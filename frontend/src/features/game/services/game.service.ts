@@ -5,6 +5,7 @@ import { BoardState } from '../../../shared/types/board-state';
 import { Tile } from '../../../shared/types/tile';
 import { LegalMovesDto } from '../../../shared/types/legal-moves-dto';
 import { FenObject } from '../../../shared/types/fen-object';
+import { Move } from '../../../shared/types/move';
 
 @Injectable({
   providedIn: 'root',
@@ -23,13 +24,8 @@ export class GameService {
     });
   }
 
-  makeMove(fromTileIndex: number, toTileIndex: number): Observable<BoardState> {
-    const params = new HttpParams()
-      .set('fromTileIndex', fromTileIndex)
-      .set('toTileIndex', toTileIndex);
-    return this.http.get<BoardState>('http://localhost:8080/api/game/make-move', {
-      params,
-    });
+  makeMove(move: Move): Observable<BoardState> {
+    return this.http.post<BoardState>('http://localhost:8080/api/game/make-move', move);
   }
 
   FENStringToObject(fen: string): FenObject {

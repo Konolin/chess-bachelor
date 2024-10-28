@@ -4,7 +4,10 @@ import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
 import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
+import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.Alliance;
+import com.example.backend.models.pieces.Pawn;
 import com.example.backend.models.pieces.Piece;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,14 +47,26 @@ public class GameService {
         return legalMovesDTO;
     }
 
-    public BoardStateDTO makeMove(final int fromTilePosition, final int toTilePosition) {
-        validator.makeMoveValidator(board, fromTilePosition, toTilePosition);
+    public BoardStateDTO makeMove(final Move move) {
+        validator.makeMoveValidator(board, move.getFromTileIndex(), move.getToTileIndex());
 
-        final Piece movedPiece = board.getTileAtCoordinate(fromTilePosition).getOccupyingPiece();
-        board = placePieces(new Board.Builder(), movedPiece)
-                .setPieceAtPosition(movedPiece.movePiece(movedPiece.getAlliance(), toTilePosition))
-                .setMoveMaker(board.getMoveMaker().getOpponent())
-                .build();
+        // the piece that is going to be moved
+        final Piece movingPiece = board.getTileAtCoordinate(move.getFromTileIndex()).getOccupyingPiece();
+        // the piece after it was moved to the new position
+        final Piece movedPiece = movingPiece.movePiece(movingPiece.getAlliance(), move.getToTileIndex());
+
+        Board.Builder builder = placePieces(new Board.Builder(), movingPiece)
+                .setPieceAtPosition(movedPiece)
+                .setMoveMaker(board.getMoveMaker().getOpponent());
+
+        if (move.getMoveType() == MoveType.EN_PASSANT) {
+            builder.setEmptyTile(board.getEnPassantPawn().getPosition());
+        }
+
+        // check if there needs to be an en passant pawn saved
+        builder.setEnPassantPawn(move.getMoveType() == MoveType.DOUBLE_PAWN_ADVANCE ? (Pawn) movedPiece : null);
+
+        board = builder.build();
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
