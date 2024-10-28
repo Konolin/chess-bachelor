@@ -72,7 +72,12 @@ export class BoardComponent implements OnInit {
 
     const move = this.legalMoves?.find((move) => move.toTileIndex === tile.index);
     if (move) {
-      return styleClass + (move.moveType === MoveType.ATTACK ? ' attack-move' : ' normal-move');
+      return (
+        styleClass +
+        (move.moveType === MoveType.ATTACK || move.moveType === MoveType.EN_PASSANT
+          ? ' attack-move'
+          : ' normal-move')
+      );
     }
 
     return styleClass;

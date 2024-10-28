@@ -1,4 +1,6 @@
 export enum MoveType {
   NORMAL = 'NORMAL',
   ATTACK = 'ATTACK',
+  EN_PASSANT = 'EN_PASSANT',
+  DOUBLE_PAWN_ADVANCE = 'DOUBLE_PAWN_ADVANCE',
 }
