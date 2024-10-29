@@ -6,6 +6,7 @@ import { Tile } from '../../../shared/types/tile';
 import { LegalMovesDto } from '../../../shared/types/legal-moves-dto';
 import { FenObject } from '../../../shared/types/fen-object';
 import { Move } from '../../../shared/types/move';
+import { PromotionDto } from '../../../shared/types/promotion-dto';
 
 @Injectable({
   providedIn: 'root',
@@ -62,5 +63,13 @@ export class GameService {
     }
 
     return { tiles: tileArray, moveMaker: moveMaker };
+  }
+
+  promoteToSelectedPiece(position: number, piece: string): Observable<BoardState> {
+    const promotionDto: PromotionDto = { position, pieceChar: piece };
+    return this.http.post<BoardState>(
+      `http://localhost:8080/api/game/promote-to-piece`,
+      promotionDto
+    );
   }
 }

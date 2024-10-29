@@ -1,10 +1,23 @@
 <div class="board-container">
-  @for(tile of this.tiles; track tile.index) {
-    <div
-      [ngClass]="getTileClasses(tile)"
-      (click)="onTileClicked(tile)">
-      @if(tile.occupiedByString) {
-        <img [src]="getPieceImageUrl(tile.occupiedByString)" alt="{{ tile.occupiedByString }}"/>
+  @for (tile of this.tiles; track tile.index) {
+    <div [ngClass]="getTileClasses(tile)" (click)="onTileClicked(tile)">
+      @let pieceColor = tile.occupiedByString === tile.occupiedByString.toUpperCase() ? 'w' : 'b';
+      @if (tile.index === promotionTile?.index) {
+        <span class="promotion-selection">
+          @for (piece of ['q', 'n', 'b', 'r']; track piece) {
+            <div class="promotion-option">
+              <img
+                [src]="getPieceImageUrl(piece, pieceColor)"
+                (click)="onPromotedPieceSelection(tile.index, piece, pieceColor)"
+                alt="{{ piece }}" />
+            </div>
+          }
+        </span>
+      }
+      @if (tile.occupiedByString) {
+        <img
+          [src]="getPieceImageUrl(tile.occupiedByString, pieceColor)"
+          alt="{{ tile.occupiedByString }}" />
       }
     </div>
   }

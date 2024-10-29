@@ -1,9 +1,11 @@
 package com.example.backend.services;
 
+import com.example.backend.models.ChessUtils;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
 import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
+import com.example.backend.models.dtos.PromotionDTO;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.Alliance;
@@ -47,6 +49,21 @@ public class GameService {
         return legalMovesDTO;
     }
 
+    public BoardStateDTO promoteToPiece(final PromotionDTO promotionDTO) {
+        final Piece movingPiece = board.getTileAtCoordinate(promotionDTO.getPosition()).getOccupyingPiece();
+        final Piece promotedPiece = ChessUtils.createPieceFromCharAndPosition(promotionDTO.getPieceChar(), promotionDTO.getPosition());
+
+        Board.Builder builder = placePieces(new Board.Builder(), movingPiece)
+                .setPieceAtPosition(promotedPiece)
+                .setMoveMaker(board.getMoveMaker());
+
+        board = builder.build();
+        BoardStateDTO boardStateDTO = new BoardStateDTO();
+        boardStateDTO.setFen(FenService.createFENFromGame(board));
+
+        return boardStateDTO;
+    }
+
     public BoardStateDTO makeMove(final Move move) {
         validator.makeMoveValidator(board, move.getFromTileIndex(), move.getToTileIndex());
 
@@ -67,7 +84,6 @@ public class GameService {
         builder.setEnPassantPawn(move.getMoveType() == MoveType.DOUBLE_PAWN_ADVANCE ? (Pawn) movedPiece : null);
 
         board = builder.build();
-
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
 

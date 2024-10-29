@@ -35,14 +35,24 @@ public class Pawn extends Piece {
             if (offset == 7 || offset == 9) {
                 // normal attack move
                 if (candidateTile.isOccupied() && candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
+                    if (this.getAlliance().isPromotionSquare(candidatePosition)) {
+                        // promote and attack
+                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION_ATTACK));
+                    } else {
+                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
+                    }
                     // en passant attack move
                 } else if (candidateTile.isEmpty() && isEnPassantMove(board, candidateTile, offset)) {
                     legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.EN_PASSANT));
                 }
                 // normal 1 tile move
             } else if (offset == 8 && candidateTile.isEmpty()) {
-                legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
+                if (this.getAlliance().isPromotionSquare(candidatePosition)) {
+                    // promote and attack
+                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION));
+                } else {
+                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
+                }
                 // normal 2 tile move
             } else if (offset == 16 && candidateTile.isEmpty() && board.getTileAtCoordinate(candidatePosition - 8).isEmpty()) {
                 legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.DOUBLE_PAWN_ADVANCE));

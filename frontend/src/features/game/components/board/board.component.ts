@@ -6,7 +6,7 @@ import { Tile } from '../../../../shared/types/tile';
 import { NgClass } from '@angular/common';
 import { BoardState } from '../../../../shared/types/board-state';
 import { Move } from '../../../../shared/types/move';
-import { MoveType } from '../../../../shared/types/move-type';
+import { isAttack, isPromotion } from '../../../../shared/types/move-type';
 
 @Component({
   selector: 'app-board',
@@ -19,6 +19,8 @@ export class BoardComponent implements OnInit {
   protected tiles: Tile[] = [];
   protected readonly Math = Math;
   protected legalMoves: Move[] | null = null;
+  protected isPromotionMove: boolean = false;
+  protected promotionTile: Tile | null = null;
 
   private readonly gameService = inject(GameService);
   private previousSelectedTile: Tile | null = null;
@@ -72,20 +74,29 @@ export class BoardComponent implements OnInit {
 
     const move = this.legalMoves?.find((move) => move.toTileIndex === tile.index);
     if (move) {
-      return (
-        styleClass +
-        (move.moveType === MoveType.ATTACK || move.moveType === MoveType.EN_PASSANT
-          ? ' attack-move'
-          : ' normal-move')
-      );
+      return styleClass + (isAttack(move.moveType) ? ' attack-move' : ' normal-move');
     }
 
     return styleClass;
   }
 
-  getPieceImageUrl(piece: string): string {
-    const color = piece === piece.toUpperCase() ? 'w' : 'b';
+  getPieceImageUrl(piece: string, color: 'w' | 'b'): string {
     return `assets/pieces/${color}${piece.toLowerCase()}.svg`;
+  }
+
+  onPromotedPieceSelection(piecePosition: number, piece: string, pieceColor: 'w' | 'b'): void {
+    this.isPromotionMove = false;
+    this.promotionTile = null;
+    if (pieceColor === 'w') {
+      piece = piece.toUpperCase();
+    }
+
+    this.gameService
+      .promoteToSelectedPiece(piecePosition, piece)
+      .pipe(take(1))
+      .subscribe((response) => {
+        this.updateGameState(response);
+      });
   }
 
   private makeMove(tile: Tile): void {
@@ -100,6 +111,12 @@ export class BoardComponent implements OnInit {
         .subscribe((response) => {
           this.updateGameState(response);
         });
+
+      if (isPromotion(move.moveType)) {
+        this.isPromotionMove = true;
+        this.promotionTile = this.tiles[move.toTileIndex];
+      }
+
       this.resetMove();
     }
   }

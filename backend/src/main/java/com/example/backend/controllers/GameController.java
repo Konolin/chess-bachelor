@@ -2,6 +2,7 @@ package com.example.backend.controllers;
 
 import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
+import com.example.backend.models.dtos.PromotionDTO;
 import com.example.backend.models.moves.Move;
 import com.example.backend.services.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,5 +33,10 @@ public class GameController {
     @GetMapping("/starting-board-state")
     public ResponseEntity<BoardStateDTO> getStartingBoardState() {
         return ResponseEntity.ok(gameService.initializeBoardState());
+    }
+
+    @PostMapping("/promote-to-piece")
+    public ResponseEntity<BoardStateDTO> promoteToPiece(@RequestBody PromotionDTO promotionDTO) {
+        return ResponseEntity.ok(gameService.promoteToPiece(promotionDTO));
     }
 }
