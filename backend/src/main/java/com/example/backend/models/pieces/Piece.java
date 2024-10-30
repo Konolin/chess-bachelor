@@ -2,7 +2,6 @@ package com.example.backend.models.pieces;
 
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.board.Board;
-import com.example.backend.models.moves.MoveType;
 import lombok.Getter;
 
 import java.util.List;
@@ -49,6 +48,10 @@ public abstract class Piece {
         result = prime * result + position;
         result = prime * result + (isFirstMove ? 1 : 0);
         return result;
+    }
+
+    public boolean isKing() {
+        return false;
     }
 
     public abstract Piece movePiece(final Alliance alliance, final int toTilePosition);

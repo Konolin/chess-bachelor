@@ -14,6 +14,9 @@ import com.example.backend.models.pieces.Piece;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class GameService {
     private Board board;
@@ -32,16 +35,19 @@ public class GameService {
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
+        boardStateDTO.setWinnerFlag(0);
 
         return boardStateDTO;
     }
 
     public LegalMovesDTO getAllMovesForPosition(final int position) {
-        LegalMovesDTO legalMovesDTO = new LegalMovesDTO();
+        validator.validatePosition(position);
 
+        LegalMovesDTO legalMovesDTO = new LegalMovesDTO();
         final Tile candidateTile = board.getTileAtCoordinate(position);
+
         if (candidateTile.isOccupied()) {
-            legalMovesDTO.setLegalMoves(candidateTile.getOccupyingPiece().generateLegalMoves(board));
+            legalMovesDTO.setLegalMoves(filterCheckMoves(candidateTile.getOccupyingPiece().generateLegalMoves(board)));
         } else {
             legalMovesDTO.setLegalMoves(null);
         }
@@ -60,6 +66,7 @@ public class GameService {
         board = builder.build();
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
+        boardStateDTO.setWinnerFlag(0);
 
         return boardStateDTO;
     }
@@ -67,10 +74,15 @@ public class GameService {
     public BoardStateDTO makeMove(final Move move) {
         validator.makeMoveInputValidator(board, move);
 
-        return executeMove(move);
+        board = executeMove(move);
+        BoardStateDTO boardStateDTO = new BoardStateDTO();
+        boardStateDTO.setFen(FenService.createFENFromGame(board));
+        boardStateDTO.setWinnerFlag(0);
+
+        return boardStateDTO;
     }
 
-    private BoardStateDTO executeMove(final Move move) {
+    private Board executeMove(final Move move) {
         // the piece that is going to be moved
         final Piece movingPiece = board.getTileAtCoordinate(move.getFromTileIndex()).getOccupyingPiece();
         // the piece after it was moved to the new position
@@ -87,11 +99,7 @@ public class GameService {
         // check if there needs to be an en passant pawn saved
         builder.setEnPassantPawn(move.getMoveType() == MoveType.DOUBLE_PAWN_ADVANCE ? (Pawn) movedPiece : null);
 
-        board = builder.build();
-        BoardStateDTO boardStateDTO = new BoardStateDTO();
-        boardStateDTO.setFen(FenService.createFENFromGame(board));
-
-        return boardStateDTO;
+        return builder.build();
     }
 
     private Board.Builder placePieces(final Board.Builder builder, final Piece movedPiece) {
@@ -104,5 +112,22 @@ public class GameService {
             builder.setPieceAtPosition(piece);
         }
         return builder;
+    }
+
+    private List<Move> filterCheckMoves(final List<Move> allMoves) {
+        final List<Move> legalMoves = new ArrayList<>();
+
+        for (final Move move : allMoves) {
+            Board transitionBoard = executeMove(move);
+
+            // remove moves that cause the current player to be in check.
+            // the opponents alliance is checked because the move maker changes after executeMove(), which means
+            // the current move maker (who's moves are filtered) is considered the opponent in the transitionBoard
+            if (!transitionBoard.isAllianceInCheck(transitionBoard.getMoveMaker().getOpponent())) {
+                legalMoves.add(move);
+            }
+        }
+
+        return legalMoves;
     }
 }
