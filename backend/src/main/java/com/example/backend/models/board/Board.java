@@ -1,5 +1,7 @@
 package com.example.backend.models.board;
 
+import com.example.backend.exceptions.ChessException;
+import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.ChessUtils;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.pieces.*;
@@ -13,11 +15,15 @@ import java.util.Map;
 @Getter
 public class Board {
     private final List<Tile> tiles;
+    private final Alliance moveMaker;
+
     private final List<Move> whitePlayerLegalMoves;
     private final List<Move> blackPlayerLegalMoves;
+    private final List<Integer> whiteAttackingPositions;
+    private final List<Integer> blackAttackingPositions;
+
     private final List<Piece> whitePieces;
     private final List<Piece> blackPieces;
-    private final Alliance moveMaker;
     private final Pawn enPassantPawn;
 
     private Board(Builder builder) {
@@ -27,8 +33,11 @@ public class Board {
         this.blackPieces = calculatePieces(Alliance.BLACK);
         this.enPassantPawn = builder.enPassantPawn;
 
-        this.whitePlayerLegalMoves = this.calculateLegalMoves(Alliance.WHITE);
-        this.blackPlayerLegalMoves = this.calculateLegalMoves(Alliance.BLACK);
+        this.whitePlayerLegalMoves = calculateLegalMoves(Alliance.WHITE);
+        this.blackPlayerLegalMoves = calculateLegalMoves(Alliance.BLACK);
+
+        this.whiteAttackingPositions = calculateAttackingPositions(Alliance.WHITE);
+        this.blackAttackingPositions = calculateAttackingPositions(Alliance.BLACK);
 
         this.moveMaker = builder.moveMaker;
     }
@@ -59,12 +68,26 @@ public class Board {
                 .toList();
     }
 
+    private List<Integer> calculateAttackingPositions(final Alliance alliance) {
+        return (alliance.isWhite() ? whitePlayerLegalMoves : blackPlayerLegalMoves)
+                .stream()
+                .map(Move::getToTileIndex)
+                .toList();
+    }
+
     public List<Piece> getMoveMakersPieces() {
         return moveMaker.isWhite() ? whitePieces : blackPieces;
     }
 
     public List<Piece> getOpponentsPieces() {
         return moveMaker.isWhite() ? blackPieces : whitePieces;
+    }
+
+    public Alliance getAllianceOfPieceAtPosition(final int position) {
+        if (ChessUtils.isValidPosition(position)) {
+            return getTileAtCoordinate(position).getOccupyingPiece().getAlliance();
+        }
+        throw new ChessException("Invalid position " + position, ChessExceptionCodes.INVALID_POSITION);
     }
 
     public Tile getTileAtCoordinate(final int tileCoordinate) {

@@ -26,7 +26,7 @@ public class King extends Piece {
             if (board.getTileAtCoordinate(candidatePosition).isEmpty()){
                 legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
             } else {
-                if (board.getTileAtCoordinate(candidatePosition).getOccupyingPiece().getAlliance() != this.getAlliance()) {
+                if (board.getAllianceOfPieceAtPosition(candidatePosition) != this.getAlliance()) {
                     legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
                 }
             }

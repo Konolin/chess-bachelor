@@ -65,8 +65,12 @@ public class GameService {
     }
 
     public BoardStateDTO makeMove(final Move move) {
-        validator.makeMoveValidator(board, move.getFromTileIndex(), move.getToTileIndex());
+        validator.makeMoveInputValidator(board, move);
 
+        return executeMove(move);
+    }
+
+    private BoardStateDTO executeMove(final Move move) {
         // the piece that is going to be moved
         final Piece movingPiece = board.getTileAtCoordinate(move.getFromTileIndex()).getOccupyingPiece();
         // the piece after it was moved to the new position
