@@ -42,6 +42,16 @@ public class Board {
         this.moveMaker = builder.moveMaker;
     }
 
+    public boolean isAllianceInCheck(final Alliance alliance) {
+        return getAlliancesPieces(alliance)
+                .stream()
+                .filter(Piece::isKing)
+                .findFirst()
+                .map(Piece::getPosition)
+                .map(position -> getAlliancesAttackingPositions(alliance.getOpponent()).contains(position))
+                .orElse(false);
+    }
+
     private List<Tile> createTiles(final Builder builder) {
         final Tile[] tilesArray = new Tile[ChessUtils.TILES_NUMBER];
         for (int position = 0; position < ChessUtils.TILES_NUMBER; position++) {
@@ -79,13 +89,24 @@ public class Board {
         return moveMaker.isWhite() ? whitePieces : blackPieces;
     }
 
+    private List<Integer> getAlliancesAttackingPositions(final Alliance alliance) {
+        return alliance.isWhite() ? whiteAttackingPositions : blackAttackingPositions;
+    }
+
+    private List<Piece> getAlliancesPieces(final Alliance alliance) {
+        return alliance.isWhite() ? whitePieces : blackPieces;
+    }
+
     public List<Piece> getOpponentsPieces() {
         return moveMaker.isWhite() ? blackPieces : whitePieces;
     }
 
     public Alliance getAllianceOfPieceAtPosition(final int position) {
         if (ChessUtils.isValidPosition(position)) {
-            return getTileAtCoordinate(position).getOccupyingPiece().getAlliance();
+            if (tiles.get(position).isOccupied()) {
+                return tiles.get(position).getOccupyingPiece().getAlliance();
+            }
+            return null;
         }
         throw new ChessException("Invalid position " + position, ChessExceptionCodes.INVALID_POSITION);
     }

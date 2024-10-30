@@ -48,4 +48,9 @@ public class King extends Piece {
     public String toString() {
         return this.getAlliance().isWhite() ? "K" : "k";
     }
+
+    @Override
+    public boolean isKing() {
+        return true;
+    }
 }
