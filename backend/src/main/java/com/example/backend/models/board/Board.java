@@ -82,14 +82,6 @@ public class Board {
                 .toList();
     }
 
-    public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
-        return alliance.isWhite() ? whiteLegalMoves : blackLegalMoves;
-    }
-
-    private List<Integer> getAlliancesAttackingPositions(final Alliance alliance) {
-        return alliance.isWhite() ? whiteAttackingPositions : blackAttackingPositions;
-    }
-
     private void calculateCastleCapabilities() {
         isBlackKingSideCastleCapable = false;
         isBlackQueenSideCastleCapable = false;
@@ -117,59 +109,38 @@ public class Board {
         }
     }
 
-    public List<Move> calculateMoveMakersCastleMoves() {
+    private boolean isAllianceCastleCapable(final Alliance alliance) {
+        if (alliance.isWhite()) {
+            return isWhiteKingSideCastleCapable || isWhiteQueenSideCastleCapable;
+        }
+        return isBlackKingSideCastleCapable || isBlackQueenSideCastleCapable;
+    }
+
+    public List<Move> calculateAlliancesCastleMoves(final Alliance alliance) {
         final List<Move> castleMoves = new ArrayList<>();
 
-        King king = getEligibleKingForCastle(moveMaker);
-        if (king == null) {
-            return castleMoves; // return early if the king is not eligible
+        // return early if the move maker is not castle eligible
+        if (!isAllianceCastleCapable(alliance)) {
+            return castleMoves;
         }
 
-        List<Rook> rooks = getEligibleRooksForCastle(moveMaker);
-        if (rooks.isEmpty()) {
-            return castleMoves; // return early if no eligible rooks
-        }
+        final List<Rook> rooks = getEligibleRooksForCastle(alliance);
 
         // check if the squares between the rook and king are safe
-        final int kingPosition = king.getPosition();
+        final int kingPosition = getEligibleKingForCastle(alliance).getPosition();
         for (final Rook rook : rooks) {
             if (rook.getPosition() < kingPosition) {
-                addQueenSideCastleMove(kingPosition, castleMoves);
+                if (areTilesEligibleForCastle(kingPosition, new int[]{-1, -2, -3})) {
+                    castleMoves.add(new Move(kingPosition, kingPosition - 2, MoveType.QUEEN_SIDE_CASTLE));
+                }
             } else {
-                addKingSideCastleMove(kingPosition, castleMoves);
+                if (areTilesEligibleForCastle(kingPosition, new int[]{1, 2})) {
+                    castleMoves.add(new Move(kingPosition, kingPosition + 2, MoveType.KING_SIDE_CASTLE));
+                }
             }
         }
 
         return castleMoves;
-    }
-
-    private King getEligibleKingForCastle(final Alliance alliance) {
-        return getAlliancesPieces(alliance).stream()
-                .filter(piece -> piece.isKing() && piece.isFirstMove())
-                .map(King.class::cast)
-                .findFirst()
-                .orElse(null);
-    }
-
-    private List<Rook> getEligibleRooksForCastle(final Alliance alliance) {
-        return getAlliancesPieces(alliance).stream()
-                .filter(piece -> piece.isRook() && piece.isFirstMove())
-                .map(Rook.class::cast)
-                .toList();
-    }
-
-    // helper method to check and add queen-side castle move if eligible
-    private void addQueenSideCastleMove(int kingPosition, List<Move> castleMoves) {
-        if (areTilesEligibleForCastle(kingPosition, new int[]{-1, -2, -3})) {
-            castleMoves.add(new Move(kingPosition, kingPosition - 2, MoveType.QUEEN_SIDE_CASTLE));
-        }
-    }
-
-    // helper method to check and add king-side castle move if eligible
-    private void addKingSideCastleMove(int kingPosition, List<Move> castleMoves) {
-        if (areTilesEligibleForCastle(kingPosition, new int[]{1, 2})) {
-            castleMoves.add(new Move(kingPosition, kingPosition + 2, MoveType.KING_SIDE_CASTLE));
-        }
     }
 
     // helper method to check if the tiles between rook and king are eligible for castling
@@ -215,6 +186,29 @@ public class Board {
         return this.tiles.get(tileCoordinate);
     }
 
+    public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
+        return alliance.isWhite() ? whiteLegalMoves : blackLegalMoves;
+    }
+
+    private List<Integer> getAlliancesAttackingPositions(final Alliance alliance) {
+        return alliance.isWhite() ? whiteAttackingPositions : blackAttackingPositions;
+    }
+
+    private King getEligibleKingForCastle(final Alliance alliance) {
+        return getAlliancesPieces(alliance).stream()
+                .filter(piece -> piece.isKing() && piece.isFirstMove())
+                .map(King.class::cast)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private List<Rook> getEligibleRooksForCastle(final Alliance alliance) {
+        return getAlliancesPieces(alliance).stream()
+                .filter(piece -> piece.isRook() && piece.isFirstMove())
+                .map(Rook.class::cast)
+                .toList();
+    }
+
     @Override
     public String toString() {
         final StringBuilder builder = new StringBuilder();
@@ -253,36 +247,7 @@ public class Board {
         }
 
         public Builder setStandardStartingPosition() {
-            // add pawns
-            for (int i = 8; i < 16; i++) {
-                this.setPieceAtPosition(new Pawn(i, Alliance.BLACK, true))
-                        .setPieceAtPosition(new Pawn(i + 40, Alliance.WHITE, true));
-            }
-            // add rooks
-            this.setPieceAtPosition(new Rook(0, Alliance.BLACK, true))
-                    .setPieceAtPosition(new Rook(7, Alliance.BLACK, true))
-                    .setPieceAtPosition(new Rook(56, Alliance.WHITE, true))
-                    .setPieceAtPosition(new Rook(63, Alliance.WHITE, true));
-            // add knights
-            this.setPieceAtPosition(new Knight(1, Alliance.BLACK))
-                    .setPieceAtPosition(new Knight(6, Alliance.BLACK))
-                    .setPieceAtPosition(new Knight(57, Alliance.WHITE))
-                    .setPieceAtPosition(new Knight(62, Alliance.WHITE));
-            // add bishops
-            this.setPieceAtPosition(new Bishop(2, Alliance.BLACK))
-                    .setPieceAtPosition(new Bishop(5, Alliance.BLACK))
-                    .setPieceAtPosition(new Bishop(58, Alliance.WHITE))
-                    .setPieceAtPosition(new Bishop(61, Alliance.WHITE));
-            // add queens
-            this.setPieceAtPosition(new Queen(3, Alliance.BLACK))
-                    .setPieceAtPosition(new Queen(59, Alliance.WHITE));
-            // add kings
-            this.setPieceAtPosition(new King(4, Alliance.BLACK, true))
-                    .setPieceAtPosition(new King(60, Alliance.WHITE, true));
-
-            // set en passant pawn as null for the starting position
-            this.setEnPassantPawn(null);
-
+            ChessUtils.initializeStandardPosition(this);
             return this;
         }
 

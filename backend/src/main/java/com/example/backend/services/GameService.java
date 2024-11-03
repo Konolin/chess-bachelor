@@ -53,7 +53,7 @@ public class GameService {
             final List<Move> legalMoves = filterCheckMoves(piece.generateLegalMoves(board));
             // add the castle moves if the piece is king
             if (piece.isKing()) {
-                legalMoves.addAll(board.calculateMoveMakersCastleMoves());
+                legalMoves.addAll(board.calculateAlliancesCastleMoves(board.getMoveMaker()));
             }
             legalMovesDTO.setLegalMoves(legalMoves);
         } else {

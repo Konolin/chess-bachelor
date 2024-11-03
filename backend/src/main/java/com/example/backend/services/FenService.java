@@ -148,16 +148,16 @@ public class FenService {
     private static String calculateCastleText(final Board board) {
         StringBuilder builder = new StringBuilder();
         if (board.isBlackKingSideCastleCapable()) {
-            builder.append("K");
-        }
-        if (board.isBlackQueenSideCastleCapable()) {
-            builder.append("Q");
-        }
-        if (board.isWhiteKingSideCastleCapable()) {
             builder.append("k");
         }
-        if (board.isWhiteQueenSideCastleCapable()) {
+        if (board.isBlackQueenSideCastleCapable()) {
             builder.append("q");
+        }
+        if (board.isWhiteKingSideCastleCapable()) {
+            builder.append("K");
+        }
+        if (board.isWhiteQueenSideCastleCapable()) {
+            builder.append("Q");
         }
         final String result = builder.toString();
         return result.isEmpty() ? "-" : result;
