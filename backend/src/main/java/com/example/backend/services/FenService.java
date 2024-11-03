@@ -15,7 +15,9 @@ public class FenService {
     public static Board createGameFromFEN(final String fenString) {
         final String[] fenPartitions = fenString.trim().split(" ");
         final Board.Builder builder = new Board.Builder();
+        final String enPassantString = fenPartitions[3];
         final String gameConfiguration = fenPartitions[0];
+
         final char[] boardTiles = gameConfiguration
                 .replace("/", "")
                 .replace("8", "--------")
@@ -27,6 +29,7 @@ public class FenService {
                 .replace("2", "--")
                 .replace("1", "-")
                 .toCharArray();
+
         int i = 0;
         while (i < boardTiles.length) {
             switch (boardTiles[i]) {
@@ -47,11 +50,15 @@ public class FenService {
                     i++;
                     break;
                 case 'k':
-                    builder.setPieceAtPosition(new King(i, Alliance.BLACK, true));
+                    builder.setPieceAtPosition(new King(i, Alliance.BLACK, canBlackKingCastle(fenPartitions[2])));
                     i++;
                     break;
                 case 'p':
                     builder.setPieceAtPosition(new Pawn(i, Alliance.BLACK, true));
+                    if (!enPassantString.equals("-") &&
+                            ChessUtils.getAlgebraicNotationAtCoordinate(i - 8).equals(enPassantString)) {
+                        builder.setEnPassantPawn(new Pawn(i, Alliance.BLACK, false));
+                    }
                     i++;
                     break;
                 case 'R':
@@ -71,11 +78,15 @@ public class FenService {
                     i++;
                     break;
                 case 'K':
-                    builder.setPieceAtPosition(new King(i, Alliance.WHITE, true));
+                    builder.setPieceAtPosition(new King(i, Alliance.WHITE, canWhiteKingCastle(fenPartitions[2])));
                     i++;
                     break;
                 case 'P':
                     builder.setPieceAtPosition(new Pawn(i, Alliance.WHITE, true));
+                    if (!enPassantString.equals("-") &&
+                            ChessUtils.getAlgebraicNotationAtCoordinate(i + 8).equals(enPassantString)) {
+                        builder.setEnPassantPawn(new Pawn(i, Alliance.WHITE, false));
+                    }
                     i++;
                     break;
                 case '-':
@@ -100,7 +111,9 @@ public class FenService {
 
     public static String createFENFromGame(final Board board) {
         return calculateBoardText(board) + " " +
-                calculateCurrentPlayerText(board);
+                calculateCurrentPlayerText(board) + " " +
+                calculateCastleText(board) + " " +
+                calculateEnPassantText(board);
     }
 
     private static String calculateBoardText(final Board board) {
@@ -130,5 +143,41 @@ public class FenService {
 
     private static String calculateCurrentPlayerText(final Board board) {
         return board.getMoveMaker().toString().substring(0, 1).toLowerCase();
+    }
+
+    private static String calculateCastleText(final Board board) {
+        StringBuilder builder = new StringBuilder();
+        if (board.isBlackKingSideCastleCapable()) {
+            builder.append("K");
+        }
+        if (board.isBlackQueenSideCastleCapable()) {
+            builder.append("Q");
+        }
+        if (board.isWhiteKingSideCastleCapable()) {
+            builder.append("k");
+        }
+        if (board.isWhiteQueenSideCastleCapable()) {
+            builder.append("q");
+        }
+        final String result = builder.toString();
+        return result.isEmpty() ? "-" : result;
+    }
+
+    private static String calculateEnPassantText(final Board board) {
+        final Pawn enPassantPawn = board.getEnPassantPawn();
+        if (enPassantPawn != null) {
+            // the position behind the pawn
+            return ChessUtils.getAlgebraicNotationAtCoordinate(enPassantPawn.getPosition() +
+                    8 * enPassantPawn.getAlliance().getOppositeDirection());
+        }
+        return "-";
+    }
+
+    private static boolean canWhiteKingCastle(final String fenCastleString) {
+        return fenCastleString.contains("K") || fenCastleString.contains("Q");
+    }
+
+    private static boolean canBlackKingCastle(final String fenCastleString) {
+        return fenCastleString.contains("k") || fenCastleString.contains("q");
     }
 }

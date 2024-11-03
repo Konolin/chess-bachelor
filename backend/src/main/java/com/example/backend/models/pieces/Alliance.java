@@ -9,6 +9,11 @@ public enum Alliance {
         }
 
         @Override
+        public int getOppositeDirection() {
+            return -1;
+        }
+
+        @Override
         public Alliance getOpponent() {
             return WHITE;
         }
@@ -29,6 +34,11 @@ public enum Alliance {
         }
 
         @Override
+        public int getOppositeDirection() {
+            return 1;
+        }
+
+        @Override
         public Alliance getOpponent() {
             return BLACK;
         }
@@ -45,6 +55,8 @@ public enum Alliance {
     };
 
     public abstract int getDirection();
+
+    public abstract int getOppositeDirection();
 
     public abstract Alliance getOpponent();
 
