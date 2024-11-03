@@ -60,6 +60,11 @@ public class Rook extends Piece {
     }
 
     @Override
+    public boolean isRook() {
+        return true;
+    }
+
+    @Override
     public String toString() {
         return this.getAlliance().isWhite() ? "R" : "r";
     }

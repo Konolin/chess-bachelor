@@ -4,6 +4,7 @@ import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.ChessUtils;
 import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.*;
 import lombok.Getter;
 
@@ -74,12 +75,73 @@ public class Board {
                 .toList();
     }
 
-    public List<Move> getAllianceLegalMoves(final Alliance alliance) {
+    public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
         return alliance.isWhite() ? whiteLegalMoves : blackLegalMoves;
     }
 
     private List<Integer> getAlliancesAttackingPositions(final Alliance alliance) {
         return alliance.isWhite() ? whiteAttackingPositions : blackAttackingPositions;
+    }
+
+    public List<Move> getMoveMakersCastleMoves() {
+        final List<Move> castleMoves = new ArrayList<>();
+
+        King king = getEligibleKingForCastle();
+        if (king == null) {
+            return castleMoves; // return early if the king is not eligible
+        }
+
+        List<Rook> rooks = getEligibleRooksForCastle();
+        if (rooks.isEmpty()) {
+            return castleMoves; // return early if no eligible rooks
+        }
+
+        // check if the squares between the rook and king are safe
+        for (final Rook rook : rooks) {
+            final int kingPosition = king.getPosition();
+            if (rook.getPosition() < kingPosition) {
+                // check queen side
+                if (areTilesEligibleForCastle(kingPosition, new int[]{-1, -2, -3})) {
+                    castleMoves.add(new Move(kingPosition, kingPosition - 2, MoveType.QUEEN_SIDE_CASTLE));
+                }
+            } else {
+                // check king side
+                if (areTilesEligibleForCastle(kingPosition, new int[]{1, 2})){
+                    castleMoves.add(new Move(kingPosition, kingPosition + 2, MoveType.KING_SIDE_CASTLE));
+                }
+            }
+        }
+
+        return castleMoves;
+    }
+
+    private King getEligibleKingForCastle() {
+        return getAlliancesPieces(moveMaker).stream()
+                .filter(piece -> piece.isKing() && piece.isFirstMove())
+                .map(King.class::cast)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private List<Rook> getEligibleRooksForCastle() {
+        return getAlliancesPieces(moveMaker).stream()
+                .filter(piece -> piece.isRook() && piece.isFirstMove())
+                .map(Rook.class::cast)
+                .toList();
+    }
+
+    private boolean areTilesEligibleForCastle(final int kingPosition, final int[] offsets) {
+        for (int offset : offsets) {
+            // check if tile is occupied
+            if (getTileAtCoordinate(kingPosition + offset).isOccupied()) {
+                return false;
+            }
+            // check if tile is attacked by opponent
+            if (getAlliancesAttackingPositions(moveMaker.getOpponent()).contains(kingPosition + offset)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public List<Piece> getAlliancesPieces(final Alliance alliance) {

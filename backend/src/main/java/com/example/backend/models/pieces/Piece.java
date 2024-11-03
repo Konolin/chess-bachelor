@@ -54,5 +54,9 @@ public abstract class Piece {
         return false;
     }
 
+    public boolean isRook() {
+        return false;
+    }
+
     public abstract Piece movePiece(final Alliance alliance, final int toTilePosition);
 }

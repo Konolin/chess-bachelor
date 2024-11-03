@@ -3,14 +3,15 @@ package com.example.backend.services;
 import com.example.backend.models.ChessUtils;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
-import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
+import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.PromotionDTO;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Pawn;
 import com.example.backend.models.pieces.Piece;
+import com.example.backend.models.pieces.Rook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +20,8 @@ import java.util.List;
 
 @Service
 public class GameService {
-    private Board board;
     private final ChessValidator validator;
+    private Board board;
 
     @Autowired
     public GameService(final ChessValidator validator) {
@@ -43,11 +44,18 @@ public class GameService {
     public LegalMovesDTO getAllMovesForPosition(final int position) {
         validator.validatePosition(position);
 
-        LegalMovesDTO legalMovesDTO = new LegalMovesDTO();
+        final LegalMovesDTO legalMovesDTO = new LegalMovesDTO();
         final Tile candidateTile = board.getTileAtCoordinate(position);
 
         if (candidateTile.isOccupied()) {
-            legalMovesDTO.setLegalMoves(filterCheckMoves(candidateTile.getOccupyingPiece().generateLegalMoves(board)));
+            final Piece piece = candidateTile.getOccupyingPiece();
+            // get the legal moves that do not result in check
+            final List<Move> legalMoves = filterCheckMoves(piece.generateLegalMoves(board));
+            // add the castle moves if the piece is king
+            if (piece.isKing()) {
+                legalMoves.addAll(board.getMoveMakersCastleMoves());
+            }
+            legalMovesDTO.setLegalMoves(legalMoves);
         } else {
             legalMovesDTO.setLegalMoves(null);
         }
@@ -83,27 +91,53 @@ public class GameService {
     }
 
     private Board executeMove(final Move move) {
-        // the piece that is going to be moved
+        // obtain the piece to be moved and its new state after the move
         final Piece movingPiece = board.getTileAtCoordinate(move.getFromTileIndex()).getOccupyingPiece();
-        // the piece after it was moved to the new position
         final Piece movedPiece = movingPiece.movePiece(movingPiece.getAlliance(), move.getToTileIndex());
 
-        Board.Builder builder = placePieces(new Board.Builder(), movingPiece)
-                .setPieceAtPosition(movedPiece)
-                .setMoveMaker(board.getMoveMaker().getOpponent());
+        // initialize builder and place all pieces except the one being moved
+        Board.Builder boardBuilder = placePieces(new Board.Builder(), movingPiece)
+                .setPieceAtPosition(movedPiece);
 
+        // handle special moves: en passant, double pawn advance, and castling
+        handleEnPassant(move, boardBuilder, movedPiece);
+        handleCastleMove(move, boardBuilder);
+
+        // set the next move maker (switch turns) and return the new board state
+        return boardBuilder
+                .setMoveMaker(board.getMoveMaker().getOpponent())
+                .build();
+    }
+
+    // helper method to handle en passant logic
+    private void handleEnPassant(final Move move, Board.Builder boardBuilder, final Piece movedPiece) {
         if (move.getMoveType() == MoveType.EN_PASSANT) {
-            builder.setEmptyTile(board.getEnPassantPawn().getPosition());
+            boardBuilder.setEmptyTile(board.getEnPassantPawn().getPosition());
         }
 
-        // check if there needs to be an en passant pawn saved
-        builder.setEnPassantPawn(move.getMoveType() == MoveType.DOUBLE_PAWN_ADVANCE ? (Pawn) movedPiece : null);
+        // set the en passant pawn if this move is a double pawn advance
+        if (move.getMoveType() == MoveType.DOUBLE_PAWN_ADVANCE) {
+            boardBuilder.setEnPassantPawn((Pawn) movedPiece);
+        } else {
+            boardBuilder.setEnPassantPawn(null);
+        }
+    }
 
-        return builder.build();
+    // helper method to handle castling logic
+    private void handleCastleMove(final Move move, Board.Builder boardBuilder) {
+        if (move.getMoveType().isCastleMove()) {
+            if (move.getMoveType() == MoveType.KING_SIDE_CASTLE) {
+                boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() + 1, board.getMoveMaker(), false))
+                        .setEmptyTile(move.getFromTileIndex() + 3);
+            } else { // Queen-side castle
+                boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() - 1, board.getMoveMaker(), false))
+                        .setEmptyTile(move.getFromTileIndex() - 4);
+            }
+        }
     }
 
     private Board.Builder placePieces(final Board.Builder builder, final Piece movedPiece) {
-        for (final Piece piece: board.getAlliancesPieces(board.getMoveMaker())) {
+        for (final Piece piece : board.getAlliancesPieces(board.getMoveMaker())) {
             if (!movedPiece.equals(piece)) {
                 builder.setPieceAtPosition(piece);
             }
@@ -133,7 +167,7 @@ public class GameService {
 
     private int getWinnerFlag() {
         final Alliance moveMaker = board.getMoveMaker();
-        if (board.isAllianceInCheck(moveMaker) && filterCheckMoves(board.getAllianceLegalMoves(moveMaker)).isEmpty()) {
+        if (board.isAllianceInCheck(moveMaker) && filterCheckMoves(board.getAlliancesLegalMoves(moveMaker)).isEmpty()) {
             return moveMaker.isWhite() ? -1 : 1;
         }
         return 0;
