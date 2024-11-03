@@ -176,6 +176,8 @@ export class BoardComponent implements OnInit {
     this.winnerFlag = boardState.winnerFlag;
     this.isWinnerDialogVisible = this.winnerFlag !== 0;
 
+    console.log(boardState.fen);
+
     const fenObject = this.gameService.FENStringToObject(boardState.fen);
     this.tiles = fenObject.tiles;
     this.moveMaker = fenObject.moveMaker;

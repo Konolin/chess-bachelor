@@ -100,6 +100,13 @@ public class FenService {
         return builder.build();
     }
 
+    public static String createFENFromGame(final Board board) {
+        return calculateBoardText(board) + " " +
+                calculateCurrentPlayerText(board) + " " +
+                calculateCastleText(board) + " " +
+                calculateEnPassantText(board);
+    }
+
     private static Alliance moveMaker(final String moveMakerString) {
         if (moveMakerString.equals("w")) {
             return Alliance.WHITE;
@@ -107,13 +114,6 @@ public class FenService {
             return Alliance.BLACK;
         }
         throw new ChessException("Invalid FEN String " + moveMakerString, ChessExceptionCodes.INVALID_FEN_STRING);
-    }
-
-    public static String createFENFromGame(final Board board) {
-        return calculateBoardText(board) + " " +
-                calculateCurrentPlayerText(board) + " " +
-                calculateCastleText(board) + " " +
-                calculateEnPassantText(board);
     }
 
     private static String calculateBoardText(final Board board) {
