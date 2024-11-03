@@ -4,7 +4,7 @@
       @let pieceColor = tile.occupiedByString === tile.occupiedByString.toUpperCase() ? 'w' : 'b';
       @if (tile.index === promotionTile?.index) {
         <span class="promotion-selection">
-          @for (piece of ['q', 'n', 'b', 'r']; track piece) {
+          @for (piece of promotionPieces; track piece) {
             <div class="promotion-option">
               <img
                 [src]="getPieceImageUrl(piece, pieceColor)"
@@ -22,3 +22,14 @@
     </div>
   }
 </div>
+
+<p-dialog
+  header="Checkmate"
+  [modal]="true"
+  [(visible)]="isWinnerDialogVisible"
+  class="winner-dialog">
+  <span class="winner-text">{{ getWinner() }} is the winner!</span>
+  <div class="button-container">
+    <p-button label="Continue" severity="primary" (onClick)="isWinnerDialogVisible = false" />
+  </div>
+</p-dialog>

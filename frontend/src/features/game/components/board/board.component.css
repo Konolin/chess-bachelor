@@ -75,3 +75,29 @@
   font-size: 2rem;
   width: 100%;
 }
+
+.winner-dialog {
+  width: 30rem;
+}
+
+.winner-text {
+  display: block;
+  color: var(--text-color);
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.p-button {
+  min-width: 100px;
+  border-radius: 5px;
+  font-weight: bold;
+}
+

@@ -17,8 +17,8 @@ public class Board {
     private final List<Tile> tiles;
     private final Alliance moveMaker;
 
-    private final List<Move> whitePlayerLegalMoves;
-    private final List<Move> blackPlayerLegalMoves;
+    private final List<Move> whiteLegalMoves;
+    private final List<Move> blackLegalMoves;
     private final List<Integer> whiteAttackingPositions;
     private final List<Integer> blackAttackingPositions;
 
@@ -33,23 +33,13 @@ public class Board {
         this.blackPieces = calculatePieces(Alliance.BLACK);
         this.enPassantPawn = builder.enPassantPawn;
 
-        this.whitePlayerLegalMoves = calculateLegalMoves(Alliance.WHITE);
-        this.blackPlayerLegalMoves = calculateLegalMoves(Alliance.BLACK);
+        this.whiteLegalMoves = calculateLegalMoves(Alliance.WHITE);
+        this.blackLegalMoves = calculateLegalMoves(Alliance.BLACK);
 
         this.whiteAttackingPositions = calculateAttackingPositions(Alliance.WHITE);
         this.blackAttackingPositions = calculateAttackingPositions(Alliance.BLACK);
 
         this.moveMaker = builder.moveMaker;
-    }
-
-    public boolean isAllianceInCheck(final Alliance alliance) {
-        return getAlliancesPieces(alliance)
-                .stream()
-                .filter(Piece::isKing)
-                .findFirst()
-                .map(Piece::getPosition)
-                .map(position -> getAlliancesAttackingPositions(alliance.getOpponent()).contains(position))
-                .orElse(false);
     }
 
     private List<Tile> createTiles(final Builder builder) {
@@ -62,8 +52,7 @@ public class Board {
 
     public List<Move> calculateLegalMoves(final Alliance alliance) {
         List<Move> legalMoves = new ArrayList<>();
-        List<Piece> pieces = alliance.isBlack() ? blackPieces : whitePieces;
-        assert pieces != null;
+        List<Piece> pieces = alliance.isWhite() ? whitePieces : blackPieces;
         for (final Piece piece : pieces) {
             legalMoves.addAll(piece.generateLegalMoves(this));
         }
@@ -79,36 +68,42 @@ public class Board {
     }
 
     private List<Integer> calculateAttackingPositions(final Alliance alliance) {
-        return (alliance.isWhite() ? whitePlayerLegalMoves : blackPlayerLegalMoves)
+        return (alliance.isWhite() ? whiteLegalMoves : blackLegalMoves)
                 .stream()
                 .map(Move::getToTileIndex)
                 .toList();
     }
 
-    public List<Piece> getMoveMakersPieces() {
-        return moveMaker.isWhite() ? whitePieces : blackPieces;
+    public List<Move> getAllianceLegalMoves(final Alliance alliance) {
+        return alliance.isWhite() ? whiteLegalMoves : blackLegalMoves;
     }
 
     private List<Integer> getAlliancesAttackingPositions(final Alliance alliance) {
         return alliance.isWhite() ? whiteAttackingPositions : blackAttackingPositions;
     }
 
-    private List<Piece> getAlliancesPieces(final Alliance alliance) {
+    public List<Piece> getAlliancesPieces(final Alliance alliance) {
         return alliance.isWhite() ? whitePieces : blackPieces;
     }
 
-    public List<Piece> getOpponentsPieces() {
-        return moveMaker.isWhite() ? blackPieces : whitePieces;
-    }
-
     public Alliance getAllianceOfPieceAtPosition(final int position) {
-        if (ChessUtils.isValidPosition(position)) {
-            if (tiles.get(position).isOccupied()) {
-                return tiles.get(position).getOccupyingPiece().getAlliance();
-            }
+        if (!ChessUtils.isValidPosition(position)) {
+            throw new ChessException("Invalid position " + position, ChessExceptionCodes.INVALID_POSITION);
+        }
+        if (tiles.get(position).isEmpty()) {
             return null;
         }
-        throw new ChessException("Invalid position " + position, ChessExceptionCodes.INVALID_POSITION);
+        return tiles.get(position).getOccupyingPiece().getAlliance();
+    }
+
+    public boolean isAllianceInCheck(final Alliance alliance) {
+        return getAlliancesPieces(alliance)
+                .stream()
+                .filter(Piece::isKing)
+                .findFirst()
+                .map(Piece::getPosition)
+                .map(position -> getAlliancesAttackingPositions(alliance.getOpponent()).contains(position))
+                .orElse(false);
     }
 
     public Tile getTileAtCoordinate(final int tileCoordinate) {

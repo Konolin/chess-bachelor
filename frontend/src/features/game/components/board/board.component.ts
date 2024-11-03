@@ -7,11 +7,12 @@ import { NgClass } from '@angular/common';
 import { BoardState } from '../../../../shared/types/board-state';
 import { Move } from '../../../../shared/types/move';
 import { isAttack, isPromotion } from '../../../../shared/types/move-type';
+import { DialogModule } from 'primeng/dialog';
 
 @Component({
   selector: 'app-board',
   standalone: true,
-  imports: [Button, NgClass],
+  imports: [Button, NgClass, DialogModule],
   templateUrl: './board.component.html',
   styleUrl: './board.component.css',
 })
@@ -21,6 +22,9 @@ export class BoardComponent implements OnInit {
   protected legalMoves: Move[] | null = null;
   protected isPromotionMove: boolean = false;
   protected promotionTile: Tile | null = null;
+  protected promotionPieces: string[] = ['q', 'r', 'b', 'n'];
+  protected winnerFlag: -1 | 0 | 1 = 0;
+  protected isWinnerDialogVisible: boolean = false;
 
   private readonly gameService = inject(GameService);
   private previousSelectedTile: Tile | null = null;
@@ -28,6 +32,10 @@ export class BoardComponent implements OnInit {
 
   ngOnInit(): void {
     this.initGameBoard();
+  }
+
+  getWinner() {
+    return this.winnerFlag === 1 ? 'White' : 'Black';
   }
 
   onTileClicked(tile: Tile): void {
@@ -134,6 +142,9 @@ export class BoardComponent implements OnInit {
   }
 
   private selectAnotherPiece(tile: Tile): void {
+    if (this.previousSelectedTile === tile) {
+      return; // avoid recursive call if the tile is already selected
+    }
     this.previousSelectedTile = null;
     this.onTileClicked(tile);
   }
@@ -162,6 +173,9 @@ export class BoardComponent implements OnInit {
   }
 
   private updateGameState(boardState: BoardState) {
+    this.winnerFlag = boardState.winnerFlag;
+    this.isWinnerDialogVisible = this.winnerFlag !== 0;
+
     const fenObject = this.gameService.FENStringToObject(boardState.fen);
     this.tiles = fenObject.tiles;
     this.moveMaker = fenObject.moveMaker;

@@ -66,7 +66,7 @@ public class GameService {
         board = builder.build();
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
-        boardStateDTO.setWinnerFlag(0);
+        boardStateDTO.setWinnerFlag(getWinnerFlag());
 
         return boardStateDTO;
     }
@@ -77,7 +77,7 @@ public class GameService {
         board = executeMove(move);
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
-        boardStateDTO.setWinnerFlag(0);
+        boardStateDTO.setWinnerFlag(getWinnerFlag());
 
         return boardStateDTO;
     }
@@ -103,12 +103,12 @@ public class GameService {
     }
 
     private Board.Builder placePieces(final Board.Builder builder, final Piece movedPiece) {
-        for (final Piece piece: board.getMoveMakersPieces()) {
+        for (final Piece piece: board.getAlliancesPieces(board.getMoveMaker())) {
             if (!movedPiece.equals(piece)) {
                 builder.setPieceAtPosition(piece);
             }
         }
-        for (final Piece piece : board.getOpponentsPieces()) {
+        for (final Piece piece : board.getAlliancesPieces(board.getMoveMaker().getOpponent())) {
             builder.setPieceAtPosition(piece);
         }
         return builder;
@@ -129,5 +129,13 @@ public class GameService {
         }
 
         return legalMoves;
+    }
+
+    private int getWinnerFlag() {
+        final Alliance moveMaker = board.getMoveMaker();
+        if (board.isAllianceInCheck(moveMaker) && filterCheckMoves(board.getAllianceLegalMoves(moveMaker)).isEmpty()) {
+            return moveMaker.isWhite() ? -1 : 1;
+        }
+        return 0;
     }
 }

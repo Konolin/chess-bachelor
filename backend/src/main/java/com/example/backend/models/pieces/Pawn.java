@@ -21,10 +21,11 @@ public class Pawn extends Piece {
         List<Move> legalMoves = new ArrayList<>();
 
         for (final int offset : MOVE_OFFSETS) {
-            int candidatePosition = this.getPosition() + offset * this.getAlliance().getDirection();
+            final int directedOffset = offset * this.getAlliance().getDirection();
+            int candidatePosition = this.getPosition() + directedOffset;
 
             // skip invalid moves
-            if (isContinueCase(offset, candidatePosition)) {
+            if (isContinueCase(directedOffset, candidatePosition)) {
                 continue;
             }
 
@@ -54,7 +55,7 @@ public class Pawn extends Piece {
                     legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
                 }
                 // normal 2 tile move
-            } else if (offset == 16 && candidateTile.isEmpty() && board.getTileAtCoordinate(candidatePosition - 8).isEmpty()) {
+            } else if (offset == 16 && candidateTile.isEmpty() && board.getTileAtCoordinate(candidatePosition - 8 * this.getAlliance().getDirection()).isEmpty()) {
                 legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.DOUBLE_PAWN_ADVANCE));
             }
         }
@@ -87,8 +88,8 @@ public class Pawn extends Piece {
     }
 
     private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
-        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == -9 || offset == -1 || offset == 7) ||
-                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 1 || offset == 9);
+        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == 7 || offset == -9) ||
+                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 9);
     }
 
     @Override
