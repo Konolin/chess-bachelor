@@ -10,7 +10,8 @@ public enum ChessExceptionCodes {
     ILLEGAL_STATE("illegal_state"),
     INVALID_MOVE("invalid_move"),
     INVALID_POSITION("invalid_position"),
-    INVALID_FEN_STRING("invalid_fen_string");
+    INVALID_FEN_STRING("invalid_fen_string"),
+    INVALID_PIECE_CHARACTER("invalid_piece_character");
 
     private final String code;
 }

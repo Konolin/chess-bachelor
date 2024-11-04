@@ -1,9 +1,10 @@
 package com.example.backend.models.pieces;
 
 import com.example.backend.models.ChessUtils;
-import com.example.backend.models.Move;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
+import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,25 +21,59 @@ public class Pawn extends Piece {
         List<Move> legalMoves = new ArrayList<>();
 
         for (final int offset : MOVE_OFFSETS) {
-            int candidatePosition = this.getPosition() + offset * this.getAlliance().getDirection();
+            final int directedOffset = offset * this.getAlliance().getDirection();
+            int candidatePosition = this.getPosition() + directedOffset;
 
-            if (isContinueCase(offset, candidatePosition)) {
+            // skip invalid moves
+            if (isContinueCase(directedOffset, candidatePosition)) {
                 continue;
             }
 
+            // get candidate tile
             final Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
-            if ((offset == 7 || offset == 9) && candidateTile.isOccupied()) {
-                if (candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition));
+
+            // attack move
+            if (offset == 7 || offset == 9) {
+                // normal attack move
+                if (candidateTile.isOccupied() && candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
+                    if (this.getAlliance().isPromotionSquare(candidatePosition)) {
+                        // promote and attack
+                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION_ATTACK));
+                    } else {
+                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
+                    }
+                    // en passant attack move
+                } else if (candidateTile.isEmpty() && isEnPassantMove(board, candidateTile, offset)) {
+                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.EN_PASSANT));
                 }
+                // normal 1 tile move
             } else if (offset == 8 && candidateTile.isEmpty()) {
-                legalMoves.add(new Move(this.getPosition(), candidatePosition));
-            } else if (offset == 16 && candidateTile.isEmpty() && board.getTileAtCoordinate(candidatePosition - 8).isEmpty()) {
-                legalMoves.add(new Move(this.getPosition(), candidatePosition));
+                if (this.getAlliance().isPromotionSquare(candidatePosition)) {
+                    // promote and attack
+                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION));
+                } else {
+                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
+                }
+                // normal 2 tile move
+            } else if (offset == 16 && candidateTile.isEmpty() && board.getTileAtCoordinate(candidatePosition - 8 * this.getAlliance().getDirection()).isEmpty()) {
+                legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.DOUBLE_PAWN_ADVANCE));
             }
         }
 
         return legalMoves;
+    }
+
+    private boolean isEnPassantMove(final Board board, final Tile candidateTile, final int offset) {
+        final int neighbourPosition = this.getPosition() + (offset == 7 ? -1 : 1) * this.getAlliance().getDirection();
+        final Tile neighbourTile = board.getTileAtCoordinate(neighbourPosition);
+
+        if (!neighbourTile.isOccupied()) {
+            return false;
+        }
+
+        final Piece neighbourPiece = neighbourTile.getOccupyingPiece();
+        return candidateTile.isEmpty() && neighbourPiece.getAlliance() != this.getAlliance() &&
+                neighbourPiece.equals(board.getEnPassantPawn());
     }
 
     @Override
@@ -53,8 +88,8 @@ public class Pawn extends Piece {
     }
 
     private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
-        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == -9 || offset == -1 || offset == 7) ||
-                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 1 || offset == 9);
+        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == 7 || offset == -9) ||
+                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 9);
     }
 
     @Override

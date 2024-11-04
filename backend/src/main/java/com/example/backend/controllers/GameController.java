@@ -1,7 +1,9 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.dtos.AllMovesDTO;
+import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
+import com.example.backend.models.dtos.PromotionDTO;
+import com.example.backend.models.moves.Move;
 import com.example.backend.services.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,17 +21,22 @@ public class GameController {
     }
 
     @GetMapping("/get-moves-for-position")
-    public ResponseEntity<AllMovesDTO> getAllMovesForPosition(@RequestParam Integer tileIndex) {
+    public ResponseEntity<LegalMovesDTO> getAllMovesForPosition(@RequestParam Integer tileIndex) {
         return ResponseEntity.ok(gameService.getAllMovesForPosition(tileIndex));
     }
 
-    @GetMapping("make-move")
-    public ResponseEntity<BoardStateDTO> makeMove(@RequestParam Integer fromTileIndex, @RequestParam Integer toTileIndex) {
-        return ResponseEntity.ok(gameService.makeMove(fromTileIndex, toTileIndex));
+    @PostMapping("make-move")
+    public ResponseEntity<BoardStateDTO> makeMove(@RequestBody Move move) {
+        return ResponseEntity.ok(gameService.makeMove(move));
     }
 
     @GetMapping("/starting-board-state")
     public ResponseEntity<BoardStateDTO> getStartingBoardState() {
         return ResponseEntity.ok(gameService.initializeBoardState());
+    }
+
+    @PostMapping("/promote-to-piece")
+    public ResponseEntity<BoardStateDTO> promoteToPiece(@RequestBody PromotionDTO promotionDTO) {
+        return ResponseEntity.ok(gameService.promoteToPiece(promotionDTO));
     }
 }

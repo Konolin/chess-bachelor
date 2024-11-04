@@ -1,5 +1,7 @@
 package com.example.backend.models.pieces;
 
+import com.example.backend.models.ChessUtils;
+
 public enum Alliance {
     BLACK {
         public int getDirection() {
@@ -7,8 +9,18 @@ public enum Alliance {
         }
 
         @Override
+        public int getOppositeDirection() {
+            return -1;
+        }
+
+        @Override
         public Alliance getOpponent() {
             return WHITE;
+        }
+
+        @Override
+        public boolean isPromotionSquare(final int position) {
+            return ChessUtils.EIGHTH_ROW[position];
         }
 
         @Override
@@ -22,8 +34,18 @@ public enum Alliance {
         }
 
         @Override
+        public int getOppositeDirection() {
+            return 1;
+        }
+
+        @Override
         public Alliance getOpponent() {
             return BLACK;
+        }
+
+        @Override
+        public boolean isPromotionSquare(final int position) {
+            return ChessUtils.FIRST_ROW[position];
         }
 
         @Override
@@ -34,6 +56,8 @@ public enum Alliance {
 
     public abstract int getDirection();
 
+    public abstract int getOppositeDirection();
+
     public abstract Alliance getOpponent();
 
     public boolean isWhite() {
@@ -43,4 +67,6 @@ public enum Alliance {
     public boolean isBlack() {
         return this.equals(BLACK);
     }
+
+    public abstract boolean isPromotionSquare(final int position);
 }

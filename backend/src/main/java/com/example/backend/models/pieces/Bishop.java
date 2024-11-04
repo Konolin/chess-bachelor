@@ -1,9 +1,10 @@
 package com.example.backend.models.pieces;
 
 import com.example.backend.models.ChessUtils;
-import com.example.backend.models.Move;
+import com.example.backend.models.moves.Move;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
+import com.example.backend.models.moves.MoveType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,11 +34,11 @@ public class Bishop extends Piece {
                 final Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
                 if (candidateTile.isEmpty()) {
                     // make normal move
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition));
+                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
                 } else if (candidateTile.isOccupied()) {
                     if (candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
                         // make attack move
-                        legalMoves.add(new Move(this.getPosition(), candidatePosition));
+                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
                     }
                     break;
                 }

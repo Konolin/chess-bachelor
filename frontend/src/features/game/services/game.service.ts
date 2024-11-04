@@ -3,8 +3,10 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { BoardState } from '../../../shared/types/board-state';
 import { Tile } from '../../../shared/types/tile';
-import { AllMovesDTO } from '../../../shared/types/all-moves-dto';
+import { LegalMovesDto } from '../../../shared/types/legal-moves-dto';
 import { FenObject } from '../../../shared/types/fen-object';
+import { Move } from '../../../shared/types/move';
+import { PromotionDto } from '../../../shared/types/promotion-dto';
 
 @Injectable({
   providedIn: 'root',
@@ -16,20 +18,15 @@ export class GameService {
     return this.http.get<BoardState>('http://localhost:8080/api/game/starting-board-state');
   }
 
-  fetchLegalMoves(tileIndex: number): Observable<AllMovesDTO> {
+  fetchLegalMoves(tileIndex: number): Observable<LegalMovesDto> {
     const params = new HttpParams().set('tileIndex', tileIndex);
-    return this.http.get<AllMovesDTO>('http://localhost:8080/api/game/get-moves-for-position', {
+    return this.http.get<LegalMovesDto>('http://localhost:8080/api/game/get-moves-for-position', {
       params,
     });
   }
 
-  makeMove(fromTileIndex: number, toTileIndex: number): Observable<BoardState> {
-    const params = new HttpParams()
-      .set('fromTileIndex', fromTileIndex)
-      .set('toTileIndex', toTileIndex);
-    return this.http.get<BoardState>('http://localhost:8080/api/game/make-move', {
-      params,
-    });
+  makeMove(move: Move): Observable<BoardState> {
+    return this.http.post<BoardState>('http://localhost:8080/api/game/make-move', move);
   }
 
   FENStringToObject(fen: string): FenObject {
@@ -66,5 +63,13 @@ export class GameService {
     }
 
     return { tiles: tileArray, moveMaker: moveMaker };
+  }
+
+  promoteToSelectedPiece(position: number, piece: string): Observable<BoardState> {
+    const promotionDto: PromotionDto = { position, pieceChar: piece };
+    return this.http.post<BoardState>(
+      `http://localhost:8080/api/game/promote-to-piece`,
+      promotionDto
+    );
   }
 }

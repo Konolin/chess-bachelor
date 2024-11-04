@@ -1,18 +1,27 @@
 package com.example.backend.services;
 
+import com.example.backend.models.ChessUtils;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
-import com.example.backend.models.dtos.AllMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
+import com.example.backend.models.dtos.LegalMovesDTO;
+import com.example.backend.models.dtos.PromotionDTO;
+import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.Alliance;
+import com.example.backend.models.pieces.Pawn;
 import com.example.backend.models.pieces.Piece;
+import com.example.backend.models.pieces.Rook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class GameService {
-    private Board board;
     private final ChessValidator validator;
+    private Board board;
 
     @Autowired
     public GameService(final ChessValidator validator) {
@@ -27,47 +36,140 @@ public class GameService {
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
+        boardStateDTO.setWinnerFlag(0);
 
         return boardStateDTO;
     }
 
-    public AllMovesDTO getAllMovesForPosition(final int position) {
-        AllMovesDTO allMovesDTO = new AllMovesDTO();
+    public LegalMovesDTO getAllMovesForPosition(final int position) {
+        validator.validatePosition(position);
 
+        final LegalMovesDTO legalMovesDTO = new LegalMovesDTO();
         final Tile candidateTile = board.getTileAtCoordinate(position);
+
         if (candidateTile.isOccupied()) {
-            allMovesDTO.setAllMoves(candidateTile.getOccupyingPiece().generateLegalMoves(board));
+            final Piece piece = candidateTile.getOccupyingPiece();
+            // get the legal moves that do not result in check
+            final List<Move> legalMoves = filterCheckMoves(piece.generateLegalMoves(board));
+            // add the castle moves if the piece is king
+            if (piece.isKing()) {
+                legalMoves.addAll(board.calculateAlliancesCastleMoves(board.getMoveMaker()));
+            }
+            legalMovesDTO.setLegalMoves(legalMoves);
         } else {
-            allMovesDTO.setAllMoves(null);
+            legalMovesDTO.setLegalMoves(null);
         }
 
-        return allMovesDTO;
+        return legalMovesDTO;
     }
 
-    public BoardStateDTO makeMove(final int fromTilePosition, final int toTilePosition) {
-        validator.makeMoveValidator(board, fromTilePosition, toTilePosition);
+    public BoardStateDTO promoteToPiece(final PromotionDTO promotionDTO) {
+        final Piece movingPiece = board.getTileAtCoordinate(promotionDTO.getPosition()).getOccupyingPiece();
+        final Piece promotedPiece = ChessUtils.createPieceFromCharAndPosition(promotionDTO.getPieceChar(), promotionDTO.getPosition());
 
-        final Piece movedPiece = board.getTileAtCoordinate(fromTilePosition).getOccupyingPiece();
-        board = placePieces(new Board.Builder(), movedPiece)
-                .setPieceAtPosition(movedPiece.movePiece(movedPiece.getAlliance(), toTilePosition))
-                .setMoveMaker(board.getMoveMaker().getOpponent())
-                .build();
+        Board.Builder builder = placePieces(new Board.Builder(), movingPiece)
+                .setPieceAtPosition(promotedPiece)
+                .setMoveMaker(board.getMoveMaker());
 
+        board = builder.build();
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
+        boardStateDTO.setWinnerFlag(getWinnerFlag());
 
         return boardStateDTO;
+    }
+
+    public BoardStateDTO makeMove(final Move move) {
+        validator.makeMoveInputValidator(board, move);
+
+        board = executeMove(move);
+        BoardStateDTO boardStateDTO = new BoardStateDTO();
+        boardStateDTO.setFen(FenService.createFENFromGame(board));
+        boardStateDTO.setWinnerFlag(getWinnerFlag());
+
+        return boardStateDTO;
+    }
+
+    private Board executeMove(final Move move) {
+        // obtain the piece to be moved and its new state after the move
+        final Piece movingPiece = board.getTileAtCoordinate(move.getFromTileIndex()).getOccupyingPiece();
+        final Piece movedPiece = movingPiece.movePiece(movingPiece.getAlliance(), move.getToTileIndex());
+
+        // initialize builder and place all pieces except the one being moved
+        Board.Builder boardBuilder = placePieces(new Board.Builder(), movingPiece)
+                .setPieceAtPosition(movedPiece);
+
+        // handle special moves: en passant, double pawn advance, and castling
+        handleEnPassant(move, boardBuilder, movedPiece);
+        handleCastleMove(move, boardBuilder);
+
+        // set the next move maker (switch turns) and return the new board state
+        return boardBuilder
+                .setMoveMaker(board.getMoveMaker().getOpponent())
+                .build();
+    }
+
+    // helper method to handle en passant logic
+    private void handleEnPassant(final Move move, Board.Builder boardBuilder, final Piece movedPiece) {
+        if (move.getMoveType() == MoveType.EN_PASSANT) {
+            boardBuilder.setEmptyTile(board.getEnPassantPawn().getPosition());
+        }
+
+        // set the en passant pawn if this move is a double pawn advance
+        if (move.getMoveType() == MoveType.DOUBLE_PAWN_ADVANCE) {
+            boardBuilder.setEnPassantPawn((Pawn) movedPiece);
+        } else {
+            boardBuilder.setEnPassantPawn(null);
+        }
+    }
+
+    // helper method to handle castling logic
+    private void handleCastleMove(final Move move, Board.Builder boardBuilder) {
+        if (move.getMoveType().isCastleMove()) {
+            if (move.getMoveType() == MoveType.KING_SIDE_CASTLE) {
+                boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() + 1, board.getMoveMaker(), false))
+                        .setEmptyTile(move.getFromTileIndex() + 3);
+            } else { // Queen-side castle
+                boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() - 1, board.getMoveMaker(), false))
+                        .setEmptyTile(move.getFromTileIndex() - 4);
+            }
+        }
     }
 
     private Board.Builder placePieces(final Board.Builder builder, final Piece movedPiece) {
-        for (final Piece piece: board.getMoveMakersPieces()) {
+        for (final Piece piece : board.getAlliancesPieces(board.getMoveMaker())) {
             if (!movedPiece.equals(piece)) {
                 builder.setPieceAtPosition(piece);
             }
         }
-        for (final Piece piece : board.getOpponentsPieces()) {
+        for (final Piece piece : board.getAlliancesPieces(board.getMoveMaker().getOpponent())) {
             builder.setPieceAtPosition(piece);
         }
         return builder;
+    }
+
+    private List<Move> filterCheckMoves(final List<Move> allMoves) {
+        final List<Move> legalMoves = new ArrayList<>();
+
+        for (final Move move : allMoves) {
+            Board transitionBoard = executeMove(move);
+
+            // remove moves that cause the current player to be in check.
+            // the opponents alliance is checked because the move maker changes after executeMove(), which means
+            // the current move maker (who's moves are filtered) is considered the opponent in the transitionBoard
+            if (!transitionBoard.isAllianceInCheck(transitionBoard.getMoveMaker().getOpponent())) {
+                legalMoves.add(move);
+            }
+        }
+
+        return legalMoves;
+    }
+
+    private int getWinnerFlag() {
+        final Alliance moveMaker = board.getMoveMaker();
+        if (board.isAllianceInCheck(moveMaker) && filterCheckMoves(board.getAlliancesLegalMoves(moveMaker)).isEmpty()) {
+            return moveMaker.isWhite() ? -1 : 1;
+        }
+        return 0;
     }
 }

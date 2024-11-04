@@ -1,7 +1,10 @@
 package com.example.backend.models.board;
 
+import com.example.backend.exceptions.ChessException;
+import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.ChessUtils;
-import com.example.backend.models.Move;
+import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.*;
 import lombok.Getter;
 
@@ -13,22 +16,38 @@ import java.util.Map;
 @Getter
 public class Board {
     private final List<Tile> tiles;
-    private final List<Move> whitePlayerLegalMoves;
-    private final List<Move> blackPlayerLegalMoves;
+    private final Alliance moveMaker;
+
+    private final List<Move> whiteLegalMoves;
+    private final List<Move> blackLegalMoves;
+    private final List<Integer> whiteAttackingPositions;
+    private final List<Integer> blackAttackingPositions;
+
     private final List<Piece> whitePieces;
     private final List<Piece> blackPieces;
-    private final Alliance moveMaker;
+    private final Pawn enPassantPawn;
+
+    private boolean isBlackKingSideCastleCapable;
+    private boolean isBlackQueenSideCastleCapable;
+    private boolean isWhiteKingSideCastleCapable;
+    private boolean isWhiteQueenSideCastleCapable;
 
     private Board(Builder builder) {
         this.tiles = this.createTiles(builder);
 
         this.whitePieces = calculatePieces(Alliance.WHITE);
         this.blackPieces = calculatePieces(Alliance.BLACK);
+        this.enPassantPawn = builder.enPassantPawn;
 
-        this.whitePlayerLegalMoves = this.calculateLegalMoves(Alliance.WHITE);
-        this.blackPlayerLegalMoves = this.calculateLegalMoves(Alliance.BLACK);
+        this.whiteLegalMoves = calculateLegalMoves(Alliance.WHITE);
+        this.blackLegalMoves = calculateLegalMoves(Alliance.BLACK);
+
+        this.whiteAttackingPositions = calculateAttackingPositions(Alliance.WHITE);
+        this.blackAttackingPositions = calculateAttackingPositions(Alliance.BLACK);
 
         this.moveMaker = builder.moveMaker;
+
+        calculateCastleCapabilities();
     }
 
     private List<Tile> createTiles(final Builder builder) {
@@ -41,8 +60,7 @@ public class Board {
 
     public List<Move> calculateLegalMoves(final Alliance alliance) {
         List<Move> legalMoves = new ArrayList<>();
-        List<Piece> pieces = alliance.isBlack() ? blackPieces : whitePieces;
-        assert pieces != null;
+        List<Piece> pieces = alliance.isWhite() ? whitePieces : blackPieces;
         for (final Piece piece : pieces) {
             legalMoves.addAll(piece.generateLegalMoves(this));
         }
@@ -57,16 +75,138 @@ public class Board {
                 .toList();
     }
 
-    public List<Piece> getMoveMakersPieces() {
-        return moveMaker.isWhite() ? whitePieces : blackPieces;
+    private List<Integer> calculateAttackingPositions(final Alliance alliance) {
+        return (alliance.isWhite() ? whiteLegalMoves : blackLegalMoves)
+                .stream()
+                .map(Move::getToTileIndex)
+                .toList();
     }
 
-    public List<Piece> getOpponentsPieces() {
-        return moveMaker.isWhite() ? blackPieces : whitePieces;
+    private void calculateCastleCapabilities() {
+        isBlackKingSideCastleCapable = false;
+        isBlackQueenSideCastleCapable = false;
+        isWhiteKingSideCastleCapable = false;
+        isWhiteQueenSideCastleCapable = false;
+
+        if (getEligibleKingForCastle(Alliance.WHITE) != null) {
+            for (final Rook rook : getEligibleRooksForCastle(Alliance.WHITE)) {
+                if (rook.getPosition() == 63) {
+                    isWhiteKingSideCastleCapable = true;
+                } else {
+                    isWhiteQueenSideCastleCapable = true;
+                }
+            }
+        }
+
+        if (getEligibleKingForCastle(Alliance.BLACK) != null) {
+            for (final Rook rook : getEligibleRooksForCastle(Alliance.BLACK)) {
+                if (rook.getPosition() == 7) {
+                    isBlackKingSideCastleCapable = true;
+                } else {
+                    isBlackQueenSideCastleCapable = true;
+                }
+            }
+        }
+    }
+
+    private boolean isAllianceCastleCapable(final Alliance alliance) {
+        if (alliance.isWhite()) {
+            return isWhiteKingSideCastleCapable || isWhiteQueenSideCastleCapable;
+        }
+        return isBlackKingSideCastleCapable || isBlackQueenSideCastleCapable;
+    }
+
+    public List<Move> calculateAlliancesCastleMoves(final Alliance alliance) {
+        final List<Move> castleMoves = new ArrayList<>();
+
+        // return early if the move maker is not castle eligible
+        if (!isAllianceCastleCapable(alliance)) {
+            return castleMoves;
+        }
+
+        final List<Rook> rooks = getEligibleRooksForCastle(alliance);
+
+        // check if the squares between the rook and king are safe
+        final int kingPosition = getEligibleKingForCastle(alliance).getPosition();
+        for (final Rook rook : rooks) {
+            if (rook.getPosition() < kingPosition) {
+                if (areTilesEligibleForCastle(kingPosition, new int[]{-1, -2, -3})) {
+                    castleMoves.add(new Move(kingPosition, kingPosition - 2, MoveType.QUEEN_SIDE_CASTLE));
+                }
+            } else {
+                if (areTilesEligibleForCastle(kingPosition, new int[]{1, 2})) {
+                    castleMoves.add(new Move(kingPosition, kingPosition + 2, MoveType.KING_SIDE_CASTLE));
+                }
+            }
+        }
+
+        return castleMoves;
+    }
+
+    // helper method to check if the tiles between rook and king are eligible for castling
+    private boolean areTilesEligibleForCastle(final int kingPosition, final int[] offsets) {
+        for (int offset : offsets) {
+            // check if tile is occupied
+            if (getTileAtCoordinate(kingPosition + offset).isOccupied()) {
+                return false;
+            }
+            // check if tile is attacked by opponent
+            if (getAlliancesAttackingPositions(moveMaker.getOpponent()).contains(kingPosition + offset)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public List<Piece> getAlliancesPieces(final Alliance alliance) {
+        return alliance.isWhite() ? whitePieces : blackPieces;
+    }
+
+    public Alliance getAllianceOfPieceAtPosition(final int position) {
+        if (!ChessUtils.isValidPosition(position)) {
+            throw new ChessException("Invalid position " + position, ChessExceptionCodes.INVALID_POSITION);
+        }
+        if (tiles.get(position).isEmpty()) {
+            return null;
+        }
+        return tiles.get(position).getOccupyingPiece().getAlliance();
+    }
+
+    public boolean isAllianceInCheck(final Alliance alliance) {
+        return getAlliancesPieces(alliance)
+                .stream()
+                .filter(Piece::isKing)
+                .findFirst()
+                .map(Piece::getPosition)
+                .map(position -> getAlliancesAttackingPositions(alliance.getOpponent()).contains(position))
+                .orElse(false);
     }
 
     public Tile getTileAtCoordinate(final int tileCoordinate) {
         return this.tiles.get(tileCoordinate);
+    }
+
+    public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
+        return alliance.isWhite() ? whiteLegalMoves : blackLegalMoves;
+    }
+
+    private List<Integer> getAlliancesAttackingPositions(final Alliance alliance) {
+        return alliance.isWhite() ? whiteAttackingPositions : blackAttackingPositions;
+    }
+
+    private King getEligibleKingForCastle(final Alliance alliance) {
+        return getAlliancesPieces(alliance).stream()
+                .filter(piece -> piece.isKing() && piece.isFirstMove())
+                .map(King.class::cast)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private List<Rook> getEligibleRooksForCastle(final Alliance alliance) {
+        return getAlliancesPieces(alliance).stream()
+                .filter(piece -> piece.isRook() && piece.isFirstMove())
+                .map(Rook.class::cast)
+                .toList();
     }
 
     @Override
@@ -85,6 +225,7 @@ public class Board {
     public static class Builder {
         private final Map<Integer, Piece> boardConfig;
         private Alliance moveMaker;
+        private Pawn enPassantPawn;
 
         public Builder() {
             this.boardConfig = new HashMap<>();
@@ -100,33 +241,18 @@ public class Board {
             return this;
         }
 
+        public Builder setEmptyTile(final int position) {
+            this.boardConfig.put(position, null);
+            return this;
+        }
+
         public Builder setStandardStartingPosition() {
-            // add pawns
-            for (int i = 8; i < 16; i++) {
-                this.setPieceAtPosition(new Pawn(i, Alliance.BLACK, true))
-                        .setPieceAtPosition(new Pawn(i + 40, Alliance.WHITE, true));
-            }
-            // add rooks
-            this.setPieceAtPosition(new Rook(0, Alliance.BLACK, true))
-                    .setPieceAtPosition(new Rook(7, Alliance.BLACK, true))
-                    .setPieceAtPosition(new Rook(56, Alliance.WHITE, true))
-                    .setPieceAtPosition(new Rook(63, Alliance.WHITE, true));
-            // add knights
-            this.setPieceAtPosition(new Knight(1, Alliance.BLACK))
-                    .setPieceAtPosition(new Knight(6, Alliance.BLACK))
-                    .setPieceAtPosition(new Knight(57, Alliance.WHITE))
-                    .setPieceAtPosition(new Knight(62, Alliance.WHITE));
-            // add bishops
-            this.setPieceAtPosition(new Bishop(2, Alliance.BLACK))
-                    .setPieceAtPosition(new Bishop(5, Alliance.BLACK))
-                    .setPieceAtPosition(new Bishop(58, Alliance.WHITE))
-                    .setPieceAtPosition(new Bishop(61, Alliance.WHITE));
-            // add queens
-            this.setPieceAtPosition(new Queen(3, Alliance.BLACK))
-                    .setPieceAtPosition(new Queen(59, Alliance.WHITE));
-            // add kings
-            this.setPieceAtPosition(new King(4, Alliance.BLACK, true))
-                    .setPieceAtPosition(new King(60, Alliance.WHITE, true));
+            ChessUtils.initializeStandardPosition(this);
+            return this;
+        }
+
+        public Builder setEnPassantPawn(Pawn enPassantPawn) {
+            this.enPassantPawn = enPassantPawn;
             return this;
         }
 

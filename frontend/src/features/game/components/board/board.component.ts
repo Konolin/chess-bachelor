@@ -4,20 +4,27 @@ import { take } from 'rxjs';
 import { Button } from 'primeng/button';
 import { Tile } from '../../../../shared/types/tile';
 import { NgClass } from '@angular/common';
-import { AllMovesDTO } from '../../../../shared/types/all-moves-dto';
 import { BoardState } from '../../../../shared/types/board-state';
+import { Move } from '../../../../shared/types/move';
+import { isAttack, isPromotion } from '../../../../shared/types/move-type';
+import { DialogModule } from 'primeng/dialog';
 
 @Component({
   selector: 'app-board',
   standalone: true,
-  imports: [Button, NgClass],
+  imports: [Button, NgClass, DialogModule],
   templateUrl: './board.component.html',
   styleUrl: './board.component.css',
 })
 export class BoardComponent implements OnInit {
   protected tiles: Tile[] = [];
   protected readonly Math = Math;
-  protected allLegalMoves: AllMovesDTO | null = null;
+  protected legalMoves: Move[] | null = null;
+  protected isPromotionMove: boolean = false;
+  protected promotionTile: Tile | null = null;
+  protected promotionPieces: string[] = ['q', 'r', 'b', 'n'];
+  protected winnerFlag: -1 | 0 | 1 = 0;
+  protected isWinnerDialogVisible: boolean = false;
 
   private readonly gameService = inject(GameService);
   private previousSelectedTile: Tile | null = null;
@@ -25,6 +32,10 @@ export class BoardComponent implements OnInit {
 
   ngOnInit(): void {
     this.initGameBoard();
+  }
+
+  getWinner() {
+    return this.winnerFlag === 1 ? 'White' : 'Black';
   }
 
   onTileClicked(tile: Tile): void {
@@ -46,8 +57,8 @@ export class BoardComponent implements OnInit {
       return;
     }
 
-    if (this.allLegalMoves?.allMoves) {
-      for (const move of this.allLegalMoves.allMoves) {
+    if (this.legalMoves) {
+      for (const move of this.legalMoves) {
         if (move.toTileIndex === tile.index) {
           // the destination tile is a valid move, execute move
           this.makeMove(tile);
@@ -69,38 +80,53 @@ export class BoardComponent implements OnInit {
     const styleClass =
       (Math.floor(tile.index / 8) + tile.index) % 2 === 0 ? 'tile light-tile' : 'tile dark-tile';
 
-    if (this.allLegalMoves?.attackMoves) {
-      for (const move of this.allLegalMoves.attackMoves) {
-        if (move.toTileIndex === tile.index) {
-          return styleClass + ' attack-move';
-        }
-      }
-    }
-
-    if (this.allLegalMoves?.allMoves) {
-      for (const move of this.allLegalMoves.allMoves) {
-        if (move.toTileIndex === tile.index) {
-          return styleClass + ' normal-move';
-        }
-      }
+    const move = this.legalMoves?.find((move) => move.toTileIndex === tile.index);
+    if (move) {
+      return styleClass + (isAttack(move.moveType) ? ' attack-move' : ' normal-move');
     }
 
     return styleClass;
   }
 
-  getPieceImageUrl(piece: string): string {
-    const color = piece === piece.toUpperCase() ? 'w' : 'b';
+  getPieceImageUrl(piece: string, color: 'w' | 'b'): string {
     return `assets/pieces/${color}${piece.toLowerCase()}.svg`;
   }
 
-  private makeMove(tile: Tile): void {
+  onPromotedPieceSelection(piecePosition: number, piece: string, pieceColor: 'w' | 'b'): void {
+    this.isPromotionMove = false;
+    this.promotionTile = null;
+    if (pieceColor === 'w') {
+      piece = piece.toUpperCase();
+    }
+
     this.gameService
-      .makeMove(this.previousSelectedTile!.index, tile.index)
+      .promoteToSelectedPiece(piecePosition, piece)
       .pipe(take(1))
       .subscribe((response) => {
         this.updateGameState(response);
       });
-    this.resetMove();
+  }
+
+  private makeMove(tile: Tile): void {
+    const move = this.legalMoves!.find(
+      (m) => m.fromTileIndex === this.previousSelectedTile!.index && m.toTileIndex === tile.index
+    );
+
+    if (move) {
+      this.gameService
+        .makeMove(move)
+        .pipe(take(1))
+        .subscribe((response) => {
+          this.updateGameState(response);
+        });
+
+      if (isPromotion(move.moveType)) {
+        this.isPromotionMove = true;
+        this.promotionTile = this.tiles[move.toTileIndex];
+      }
+
+      this.resetMove();
+    }
   }
 
   private selectTileAndFetchMoves(tile: Tile): void {
@@ -108,7 +134,7 @@ export class BoardComponent implements OnInit {
     this.gameService
       .fetchLegalMoves(tile.index)
       .pipe(take(1))
-      .subscribe((response) => (this.allLegalMoves = response));
+      .subscribe((response) => (this.legalMoves = response.legalMoves));
   }
 
   private isInvalidSelection(tile: Tile): boolean {
@@ -116,6 +142,9 @@ export class BoardComponent implements OnInit {
   }
 
   private selectAnotherPiece(tile: Tile): void {
+    if (this.previousSelectedTile === tile) {
+      return; // avoid recursive call if the tile is already selected
+    }
     this.previousSelectedTile = null;
     this.onTileClicked(tile);
   }
@@ -129,7 +158,7 @@ export class BoardComponent implements OnInit {
 
   private resetMove() {
     this.previousSelectedTile = null;
-    this.allLegalMoves = null;
+    this.legalMoves = null;
   }
 
   private initGameBoard(): void {
@@ -144,6 +173,11 @@ export class BoardComponent implements OnInit {
   }
 
   private updateGameState(boardState: BoardState) {
+    this.winnerFlag = boardState.winnerFlag;
+    this.isWinnerDialogVisible = this.winnerFlag !== 0;
+
+    console.log(boardState.fen);
+
     const fenObject = this.gameService.FENStringToObject(boardState.fen);
     this.tiles = fenObject.tiles;
     this.moveMaker = fenObject.moveMaker;
