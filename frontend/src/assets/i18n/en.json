@@ -1,8 +1,0 @@
-{
-  "exceptions": {
-    "errorTitle": "Error",
-    "unknownError": "An unknown exception occurred.",
-    "noResponse": "No response from the server",
-    "networkError": "Network error"
-  }
-}

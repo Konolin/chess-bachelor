@@ -21,11 +21,7 @@
             "assets": [
               {
                 "glob": "**/*",
-                "input": "public"
-              },
-              {
-                "glob": "**/*",
-                "input": "src/features/game"
+                "input": "src/assets"
               }
             ],
             "styles": ["node_modules/primeicons/primeicons.css", "src/styles.css"],
@@ -78,11 +74,7 @@
             "assets": [
               {
                 "glob": "**/*",
-                "input": "src/core/assets"
-              },
-              {
-                "glob": "**/*",
-                "input": "src/features/game/assets"
+                "input": "src/assets"
               }
             ],
             "styles": ["src/styles.css"],

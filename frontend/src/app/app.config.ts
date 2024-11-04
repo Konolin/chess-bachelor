@@ -10,9 +10,9 @@ import { routes } from './app.routes';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { provideTransloco } from '@jsverse/transloco';
-import { ServerErrorsInterceptor } from '../exceptions/interceptors/server-errors.interceptor';
 import { ToastrModule } from 'ngx-toastr';
 import { TranslocoHttpLoader } from './transloco-loader';
+import { ServerErrorsInterceptor } from '../core/exceptions/interceptors/server-errors.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
