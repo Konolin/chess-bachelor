@@ -13,6 +13,7 @@ import { provideTransloco } from '@jsverse/transloco';
 import { ToastrModule } from 'ngx-toastr';
 import { TranslocoHttpLoader } from './transloco-loader';
 import { ServerErrorsInterceptor } from '../core/exceptions/interceptors/server-errors.interceptor';
+import { MessageService } from 'primeng/api';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -38,5 +39,6 @@ export const appConfig: ApplicationConfig = {
       },
       loader: TranslocoHttpLoader,
     }),
+    MessageService,
   ],
 };

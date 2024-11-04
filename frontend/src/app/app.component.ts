@@ -1,31 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { MenubarModule } from 'primeng/menubar';
-import { MenuItem } from 'primeng/api';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { HeaderComponent } from '../core/header/header.component';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, MenubarModule, TranslocoPipe],
+  imports: [RouterOutlet, MenubarModule, TranslocoPipe, HeaderComponent, ToastModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
-export class AppComponent implements OnInit {
-  protected items: MenuItem[] | undefined;
-
-  ngOnInit(): void {
-    this.items = [
-      {
-        label: 'home',
-        icon: 'pi pi-home',
-        route: '/',
-      },
-      {
-        label: 'play',
-        icon: 'pi pi-play',
-        route: '/play',
-      },
-    ];
-  }
-}
+export class AppComponent {}

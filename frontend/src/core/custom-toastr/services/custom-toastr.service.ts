@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { ToastrService } from 'ngx-toastr';
+import { MessageService } from 'primeng/api';
 
 /**
  * A service to provide customizable toast notifications throughout the application.
@@ -9,21 +9,20 @@ import { ToastrService } from 'ngx-toastr';
   providedIn: 'root',
 })
 export class CustomToastrService {
-  private readonly toastrService = inject(ToastrService);
+  private readonly toastr = inject(MessageService);
 
   /**
    * Displays an informational toast notification with a specified message and title.
    *
    * @param message - The message to display in the toast.
-   * @param title - The title of the toast notification.
    *
    * @example
    * ```typescript
-   * customToastrService.info('Data saved successfully', 'Success');
+   * customToastrService.info('Data saved successfully');
    * ```
    */
-  info(message: string, title: string) {
-    this.toastrService.info(message, title, { timeOut: 3000 });
+  info(message: string): void {
+    this.toastr.add({ summary: message, severity: 'info' });
   }
 
   /**
@@ -31,14 +30,13 @@ export class CustomToastrService {
    * The error toast has no timeout, requiring manual dismissal by the user.
    *
    * @param message - The message to display in the toast.
-   * @param title - The title of the toast notification.
    *
    * @example
    * ```typescript
-   * customToastrService.error('Failed to save data', 'Error');
+   * customToastrService.error('Failed to save data');
    * ```
    */
-  error(message: string, title: string) {
-    this.toastrService.error(message, title, { disableTimeOut: true });
+  error(message: string): void {
+    this.toastr.add({ summary: message, severity: 'error', closable: true, sticky: true });
   }
 }

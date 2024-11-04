@@ -33,10 +33,7 @@ export class ServerErrorsInterceptor implements HttpInterceptor {
         const errorMessage = this.getErrorMessage(error);
 
         // Display the error message using CustomToastrService
-        this.toastr.error(
-          this.translocoService.translate(errorMessage),
-          this.translocoService.translate('exceptions.errorTitle')
-        );
+        this.toastr.error(this.translocoService.translate(errorMessage));
 
         // Return an empty observable since the error has been handled
         return EMPTY;

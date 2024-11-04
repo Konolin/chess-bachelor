@@ -1,13 +1,7 @@
-<header>
-  <p-menubar [model]="items">
-    <ng-template pTemplate="item" let-item>
-      <a [routerLink]="item.route" class="p-menuitem-link">
-        <span [class]="item.icon"></span>
-        <span>{{ 'navbar.' + item.label | transloco }}</span>
-      </a>
-    </ng-template>
-  </p-menubar>
-</header>
-<body>
-  <router-outlet />
-</body>
+<app-header />
+<main class="main">
+  <div class="content">
+    <router-outlet />
+  </div>
+</main>
+<p-toast />
