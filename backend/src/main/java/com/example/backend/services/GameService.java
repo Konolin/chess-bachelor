@@ -12,6 +12,8 @@ import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Pawn;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.Rook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +22,7 @@ import java.util.List;
 
 @Service
 public class GameService {
+    private final Logger logger = LoggerFactory.getLogger(GameService.class);
     private final ChessValidator validator;
     private Board board;
 
@@ -29,6 +32,8 @@ public class GameService {
     }
 
     public BoardStateDTO initializeBoardState() {
+        long startNanos = System.nanoTime();
+
         board = new Board.Builder()
                 .setStandardStartingPosition()
                 .setMoveMaker(Alliance.WHITE)
@@ -38,10 +43,16 @@ public class GameService {
         boardStateDTO.setFen(FenService.createFENFromGame(board));
         boardStateDTO.setWinnerFlag(0);
 
+        long elapsedNanos = System.nanoTime() - startNanos;
+        double elapsedMillis = elapsedNanos / 1_000_000.0;
+        logger.info("Board initialization completed in {} ms", elapsedMillis);
+
         return boardStateDTO;
     }
 
     public LegalMovesDTO getAllMovesForPosition(final int position) {
+        long startNanos = System.nanoTime();
+
         validator.validatePosition(position);
 
         final LegalMovesDTO legalMovesDTO = new LegalMovesDTO();
@@ -60,10 +71,16 @@ public class GameService {
             legalMovesDTO.setLegalMoves(null);
         }
 
+        long elapsedNanos = System.nanoTime() - startNanos;
+        double elapsedMillis = elapsedNanos / 1_000_000.0;
+        logger.info("Legal moves for position {} calculated in {} ms", position, elapsedMillis);
+
         return legalMovesDTO;
     }
 
     public BoardStateDTO promoteToPiece(final PromotionDTO promotionDTO) {
+        long startNanos = System.nanoTime();
+
         final Piece movingPiece = board.getTileAtCoordinate(promotionDTO.getPosition()).getOccupyingPiece();
         final Piece promotedPiece = ChessUtils.createPieceFromCharAndPosition(promotionDTO.getPieceChar(), promotionDTO.getPosition());
 
@@ -76,16 +93,26 @@ public class GameService {
         boardStateDTO.setFen(FenService.createFENFromGame(board));
         boardStateDTO.setWinnerFlag(getWinnerFlag());
 
+        long elapsedNanos = System.nanoTime() - startNanos;
+        double elapsedMillis = elapsedNanos / 1_000_000.0;
+        logger.info("Promotion to {} completed in {} ms", promotedPiece, elapsedMillis);
+
         return boardStateDTO;
     }
 
     public BoardStateDTO makeMove(final Move move) {
+        long startNanos = System.nanoTime();
+
         validator.makeMoveInputValidator(board, move);
 
         board = executeMove(move);
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
         boardStateDTO.setWinnerFlag(getWinnerFlag());
+
+        long elapsedNanos = System.nanoTime() - startNanos;
+        double elapsedMillis = elapsedNanos / 1_000_000.0;
+        logger.info("Move from {} to {} completed in {} ms", move.getFromTileIndex(), move.getToTileIndex(), elapsedMillis);
 
         return boardStateDTO;
     }
