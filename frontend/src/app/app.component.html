@@ -3,7 +3,7 @@
     <ng-template pTemplate="item" let-item>
       <a [routerLink]="item.route" class="p-menuitem-link">
         <span [class]="item.icon"></span>
-        <span>{{ item.label }}</span>
+        <span>{{ 'navbar.' + item.label | transloco }}</span>
       </a>
     </ng-template>
   </p-menubar>
