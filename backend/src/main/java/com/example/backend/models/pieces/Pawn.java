@@ -84,7 +84,7 @@ public class Pawn extends Piece {
     private boolean isContinueCase(final int offset, final int candidatePosition) {
         return !ChessUtils.isValidPosition(candidatePosition) ||
                 isFirstOrEighthColumnExclusion(this.getPosition(), offset) ||
-                offset == 16 && !this.isFirstMove();
+                Math.abs(offset) == 16 && !this.isFirstMove();
     }
 
     private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
