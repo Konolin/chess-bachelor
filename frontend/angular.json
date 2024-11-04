@@ -78,15 +78,11 @@
             "assets": [
               {
                 "glob": "**/*",
-                "input": "public"
+                "input": "src/core/assets"
               },
               {
                 "glob": "**/*",
                 "input": "src/features/game/assets"
-              },
-              {
-                "glob": "**/*",
-                "input": "src/core/assets"
               }
             ],
             "styles": ["src/styles.css"],
