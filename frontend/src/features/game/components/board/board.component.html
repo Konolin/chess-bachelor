@@ -1,21 +1,21 @@
 <div class="board-container">
   @for (tile of this.tiles; track tile.index) {
-    <div [ngClass]="getTileClasses(tile)" (click)="onTileClicked(tile)">
+    <div [ngClass]="calculateTileStyleClasses(tile)" (click)="onTileClicked(tile)">
       @let pieceColor = tile.occupiedByString === tile.occupiedByString.toUpperCase() ? 'w' : 'b';
       @if (tile.index === promotionTile?.index) {
         <span class="promotion-selection">
           @for (piece of promotionPieces; track piece) {
             <div class="promotion-option">
-              <img
+              <p-image
                 [src]="getPieceImageUrl(piece, pieceColor)"
-                (click)="onPromotedPieceSelection(tile.index, piece, pieceColor)"
-                alt="{{ piece }}" />
+                alt="{{ piece }}"
+                (click)="onPromotedPieceSelection(tile.index, piece, pieceColor)" />
             </div>
           }
         </span>
       }
       @if (tile.occupiedByString) {
-        <img
+        <p-image
           [src]="getPieceImageUrl(tile.occupiedByString, pieceColor)"
           alt="{{ tile.occupiedByString }}" />
       }
@@ -25,10 +25,10 @@
 
 <p-dialog
   header="Checkmate"
+  class="winner-dialog"
   [modal]="true"
-  [(visible)]="isWinnerDialogVisible"
-  class="winner-dialog">
-  <span class="winner-text">{{ getWinner() }} is the winner!</span>
+  [(visible)]="isWinnerDialogVisible">
+  <span class="winner-text">{{ winnerFlagToString() }} is the winner!</span>
   <div class="button-container">
     <p-button label="Continue" severity="primary" (onClick)="isWinnerDialogVisible = false" />
   </div>

@@ -8,16 +8,29 @@ import { FenObject } from '../../../shared/types/fen-object';
 import { Move } from '../../../shared/types/move';
 import { PromotionDto } from '../../../shared/types/promotion-dto';
 
+/**
+ * GameService: Manages HTTP requests for game operations and provides helper methods
+ * to convert data formats (e.g., FEN) into objects for use within the Angular application.
+ */
 @Injectable({
   providedIn: 'root',
 })
 export class GameService {
   private readonly http = inject(HttpClient);
 
-  fetchStartingGameBoardFEN(): Observable<BoardState> {
+  /**
+   * Fetches the initial board state from the server.
+   * @returns An Observable containing the initial BoardState object.
+   */
+  fetchStartingBoardState(): Observable<BoardState> {
     return this.http.get<BoardState>('http://localhost:8080/api/game/starting-board-state');
   }
 
+  /**
+   * Fetches legal moves for a specific tile, based on the tile index.
+   * @param tileIndex The index of the tile for which legal moves are requested.
+   * @returns An Observable containing a LegalMovesDto with possible moves for the tile.
+   */
   fetchLegalMoves(tileIndex: number): Observable<LegalMovesDto> {
     const params = new HttpParams().set('tileIndex', tileIndex);
     return this.http.get<LegalMovesDto>('http://localhost:8080/api/game/get-moves-for-position', {
@@ -25,10 +38,21 @@ export class GameService {
     });
   }
 
+  /**
+   * Sends a move to the server to update the game state.
+   * @param move The move to make, including details like the source and destination tile.
+   * @returns An Observable containing the updated BoardState after the move is made.
+   */
   makeMove(move: Move): Observable<BoardState> {
     return this.http.post<BoardState>('http://localhost:8080/api/game/make-move', move);
   }
 
+  /**
+   * Converts a FEN string to a FenObject that represents the board state and the current move maker.
+   * The method parses each segment of the FEN to create an array of tiles and determines the current player.
+   * @param fen The FEN string representing the board layout and game state.
+   * @returns A FenObject with an array of tiles and the current move maker.
+   */
   FENStringToObject(fen: string): FenObject {
     const tileArray: Tile[] = [];
     let moveMaker = '';
@@ -60,11 +84,21 @@ export class GameService {
         moveMaker = char;
         index++;
       }
+
+      if (segmentsRead === 2) {
+        break;
+      }
     }
 
     return { tiles: tileArray, moveMaker: moveMaker };
   }
 
+  /**
+   * Sends a request to promote a pawn to a selected piece type.
+   * @param position The board position where promotion is occurring.
+   * @param piece The piece character ('q', 'r', 'b', 'n') representing the promoted piece.
+   * @returns An Observable containing the updated BoardState after the promotion.
+   */
   promoteToSelectedPiece(position: number, piece: string): Observable<BoardState> {
     const promotionDto: PromotionDto = { position, pieceChar: piece };
     return this.http.post<BoardState>(

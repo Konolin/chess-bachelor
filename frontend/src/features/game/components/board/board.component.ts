@@ -8,17 +8,20 @@ import { BoardState } from '../../../../shared/types/board-state';
 import { Move } from '../../../../shared/types/move';
 import { isAttack, isPromotion } from '../../../../shared/types/move-type';
 import { DialogModule } from 'primeng/dialog';
+import { ImageModule } from 'primeng/image';
 
+/**
+ * BoardComponent: Main UI component for displaying a chess game board and handling game interactions.
+ */
 @Component({
   selector: 'app-board',
   standalone: true,
-  imports: [Button, NgClass, DialogModule],
+  imports: [Button, NgClass, DialogModule, ImageModule],
   templateUrl: './board.component.html',
   styleUrl: './board.component.css',
 })
 export class BoardComponent implements OnInit {
   protected tiles: Tile[] = [];
-  protected readonly Math = Math;
   protected legalMoves: Move[] | null = null;
   protected isPromotionMove: boolean = false;
   protected promotionTile: Tile | null = null;
@@ -30,53 +33,60 @@ export class BoardComponent implements OnInit {
   private previousSelectedTile: Tile | null = null;
   private moveMaker: string | null = null;
 
+  /** Initialize the game board on component load */
   ngOnInit(): void {
     this.initGameBoard();
   }
 
-  getWinner() {
+  /**
+   * Converts the winner flag to a string indicating the winner ("White" or "Black").
+   * @returns The winner as a string.
+   */
+  winnerFlagToString() {
     return this.winnerFlag === 1 ? 'White' : 'Black';
   }
 
-  onTileClicked(tile: Tile): void {
-    // if an empty tile is clicked and no piece was previously selected, do nothing
-    if (this.isInvalidSelection(tile)) {
-      return;
-    }
-
-    // if the current tile is the same as the previous tile, deselect it
-    if (this.previousSelectedTile === tile) {
-      this.resetMove();
-      return;
-    }
-
-    // if no previous tile is selected and the correct alliance is selected,
-    // select the current tile and find all legal moves
-    if (!this.previousSelectedTile && this.isCorrectAlliance(tile)) {
-      this.selectTileAndFetchMoves(tile);
-      return;
-    }
-
-    if (this.legalMoves) {
-      for (const move of this.legalMoves) {
-        if (move.toTileIndex === tile.index) {
-          // the destination tile is a valid move, execute move
-          this.makeMove(tile);
-          return;
-        }
-      }
-      // if another friendly piece is selected, show the legal moves for that piece
-      if (tile.occupiedByString) {
-        this.selectAnotherPiece(tile);
+  /**
+   * Handles tile clicks, selecting or moving a piece as appropriate.
+   * @param currentlySelectedTile The tile that was clicked.
+   */
+  onTileClicked(currentlySelectedTile: Tile): void {
+    if (this.previousSelectedTile) {
+      // check if clicked tile is a friendly piece and fetch its moves
+      if (!!currentlySelectedTile.occupiedByString && this.isFriendlyPiece(currentlySelectedTile)) {
+        this.selectTileAndFetchMoves(currentlySelectedTile);
         return;
       }
 
-      // the destination tile is not a legal move
-      this.resetMove();
+      // attempt to find a valid move from the previously selected tile to the currently selected tile
+      const move = this.legalMoves!.find(
+        (m) =>
+          m.fromTileIndex === this.previousSelectedTile!.index &&
+          m.toTileIndex === currentlySelectedTile.index
+      );
+
+      if (move) {
+        this.makeMove(move);
+      } else {
+        // reset selection if no valid move
+        this.resetSelection();
+      }
+
+      return;
+    }
+
+    // select tile if it contains a friendly piece
+    if (!!currentlySelectedTile.occupiedByString && this.isFriendlyPiece(currentlySelectedTile)) {
+      this.selectTileAndFetchMoves(currentlySelectedTile);
     }
   }
 
-  getTileClasses(tile: Tile): string {
+  /**
+   * Calculates and returns CSS classes for a given tile based on its position and move possibilities.
+   * @param tile The tile to style.
+   * @returns A string with the appropriate CSS classes.
+   */
+  calculateTileStyleClasses(tile: Tile): string {
     const styleClass =
       (Math.floor(tile.index / 8) + tile.index) % 2 === 0 ? 'tile light-tile' : 'tile dark-tile';
 
@@ -88,13 +98,26 @@ export class BoardComponent implements OnInit {
     return styleClass;
   }
 
+  /**
+   * Returns the image URL for a specific piece based on its type and color.
+   * @param piece The piece type (e.g., "q" for queen).
+   * @param color The color of the piece ('w' for white, 'b' for black).
+   * @returns The URL string for the piece image.
+   */
   getPieceImageUrl(piece: string, color: 'w' | 'b'): string {
     return `assets/pieces/${color}${piece.toLowerCase()}.svg`;
   }
 
+  /**
+   * Handles piece selection during promotion, updating the game state with the selected piece.
+   * @param piecePosition The position on the board where promotion is occurring.
+   * @param piece The selected promotion piece type (e.g., "q" for queen).
+   * @param pieceColor The color of the piece ('w' or 'b').
+   */
   onPromotedPieceSelection(piecePosition: number, piece: string, pieceColor: 'w' | 'b'): void {
     this.isPromotionMove = false;
     this.promotionTile = null;
+
     if (pieceColor === 'w') {
       piece = piece.toUpperCase();
     }
@@ -107,28 +130,30 @@ export class BoardComponent implements OnInit {
       });
   }
 
-  private makeMove(tile: Tile): void {
-    const move = this.legalMoves!.find(
-      (m) => m.fromTileIndex === this.previousSelectedTile!.index && m.toTileIndex === tile.index
-    );
+  /**
+   * Makes a move on the board, updating the game state and handling promotions if applicable.
+   * @param move The move to make.
+   */
+  private makeMove(move: Move): void {
+    this.gameService
+      .makeMove(move)
+      .pipe(take(1))
+      .subscribe((response) => {
+        this.updateGameState(response);
+      });
 
-    if (move) {
-      this.gameService
-        .makeMove(move)
-        .pipe(take(1))
-        .subscribe((response) => {
-          this.updateGameState(response);
-        });
-
-      if (isPromotion(move.moveType)) {
-        this.isPromotionMove = true;
-        this.promotionTile = this.tiles[move.toTileIndex];
-      }
-
-      this.resetMove();
+    if (isPromotion(move.moveType)) {
+      this.isPromotionMove = true;
+      this.promotionTile = this.tiles[move.toTileIndex];
     }
+
+    this.resetSelection();
   }
 
+  /**
+   * Selects a tile and fetches legal moves for the piece on that tile.
+   * @param tile The tile to select.
+   */
   private selectTileAndFetchMoves(tile: Tile): void {
     this.previousSelectedTile = tile;
     this.gameService
@@ -137,46 +162,45 @@ export class BoardComponent implements OnInit {
       .subscribe((response) => (this.legalMoves = response.legalMoves));
   }
 
-  private isInvalidSelection(tile: Tile): boolean {
-    return !tile.occupiedByString && !this.previousSelectedTile;
-  }
-
-  private selectAnotherPiece(tile: Tile): void {
-    if (this.previousSelectedTile === tile) {
-      return; // avoid recursive call if the tile is already selected
-    }
-    this.previousSelectedTile = null;
-    this.onTileClicked(tile);
-  }
-
-  private isCorrectAlliance(tile: Tile): boolean {
+  /**
+   * Determines if a tile contains a piece that is friendly to the current player.
+   * @param tile The tile to check.
+   * @returns True if the piece on the tile is friendly; otherwise, false.
+   */
+  private isFriendlyPiece(tile: Tile): boolean {
     const isWhitePiece = /^[A-Z]+$/.test(tile.occupiedByString);
     const isBlackPiece = /^[a-z]+$/.test(tile.occupiedByString);
 
     return (isWhitePiece && this.moveMaker === 'w') || (isBlackPiece && this.moveMaker === 'b');
   }
 
-  private resetMove() {
+  /**
+   * Resets the selected tile and legal moves, clearing any active selection on the board.
+   */
+  private resetSelection() {
     this.previousSelectedTile = null;
     this.legalMoves = null;
   }
 
+  /**
+   * Initializes the game board by fetching the initial BoardState and updating the game state.
+   */
   private initGameBoard(): void {
-    // fetch board FEN
     this.gameService
-      .fetchStartingGameBoardFEN()
+      .fetchStartingBoardState()
       .pipe(take(1))
       .subscribe((response) => {
-        // transform FEN in an array of strings
         this.updateGameState(response);
       });
   }
 
+  /**
+   * Updates the game state with a new board configuration and checks for a winner.
+   * @param boardState The new board state to apply.
+   */
   private updateGameState(boardState: BoardState) {
     this.winnerFlag = boardState.winnerFlag;
     this.isWinnerDialogVisible = this.winnerFlag !== 0;
-
-    console.log(boardState.fen);
 
     const fenObject = this.gameService.FENStringToObject(boardState.fen);
     this.tiles = fenObject.tiles;
