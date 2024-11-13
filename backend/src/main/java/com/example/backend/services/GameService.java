@@ -12,6 +12,7 @@ import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Pawn;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.Rook;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import java.util.List;
 public class GameService {
     private final Logger logger = LoggerFactory.getLogger(GameService.class);
     private final ChessValidator validator;
+    @Setter
     private Board board;
 
     @Autowired
@@ -117,9 +119,13 @@ public class GameService {
         return boardStateDTO;
     }
 
-    private Board executeMove(final Move move) {
+    public Board executeMove(final Move move) {
+//        logger.info("Executing move from {} to {} of type {}", move.getFromTileIndex(), move.getToTileIndex(), move.getMoveType());
+//        logger.info("Current Board: \n{}", board);
+
         // obtain the piece to be moved and its new state after the move
         final Piece movingPiece = board.getTileAtCoordinate(move.getFromTileIndex()).getOccupyingPiece();
+//        logger.info("Moving piece: {}", movingPiece);
         final Piece movedPiece = movingPiece.movePiece(movingPiece.getAlliance(), move.getToTileIndex());
 
         // initialize builder and place all pieces except the one being moved
@@ -129,6 +135,8 @@ public class GameService {
         // handle special moves: en passant, double pawn advance, and castling
         handleEnPassant(move, boardBuilder, movedPiece);
         handleCastleMove(move, boardBuilder);
+
+//        logger.info("------------------------------------------------");
 
         // set the next move maker (switch turns) and return the new board state
         return boardBuilder
