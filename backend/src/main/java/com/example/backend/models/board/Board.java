@@ -143,6 +143,64 @@ public class Board {
         return castleMoves;
     }
 
+    public Board executeMove(final Move move) {
+        // obtain the piece to be moved and its new state after the move
+        final Piece movingPiece = getTileAtCoordinate(move.getFromTileIndex()).getOccupyingPiece();
+        final Piece movedPiece = movingPiece.movePiece(movingPiece.getAlliance(), move.getToTileIndex());
+
+        // initialize builder and place all pieces except the one being moved
+        Board.Builder boardBuilder = placePieces(new Board.Builder(), movingPiece)
+                .setPieceAtPosition(movedPiece);
+
+        // handle special moves: en passant, double pawn advance, and castling
+        handleEnPassant(move, boardBuilder, movedPiece);
+        handleCastleMove(move, boardBuilder);
+
+        // set the next move maker (switch turns) and return the new board state
+        return boardBuilder
+                .setMoveMaker(moveMaker.getOpponent())
+                .build();
+    }
+
+    // helper method to handle en passant logic
+    private void handleEnPassant(final Move move, Board.Builder boardBuilder, final Piece movedPiece) {
+        if (move.getMoveType() == MoveType.EN_PASSANT) {
+            boardBuilder.setEmptyTile(enPassantPawn.getPosition());
+        }
+
+        // set the en passant pawn if this move is a double pawn advance
+        if (move.getMoveType() == MoveType.DOUBLE_PAWN_ADVANCE) {
+            boardBuilder.setEnPassantPawn((Pawn) movedPiece);
+        } else {
+            boardBuilder.setEnPassantPawn(null);
+        }
+    }
+
+    // helper method to handle castling logic
+    private void handleCastleMove(final Move move, Board.Builder boardBuilder) {
+        if (move.getMoveType().isCastleMove()) {
+            if (move.getMoveType() == MoveType.KING_SIDE_CASTLE) {
+                boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() + 1, moveMaker, false))
+                        .setEmptyTile(move.getFromTileIndex() + 3);
+            } else { // Queen-side castle
+                boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() - 1, moveMaker, false))
+                        .setEmptyTile(move.getFromTileIndex() - 4);
+            }
+        }
+    }
+
+    public Board.Builder placePieces(final Board.Builder builder, final Piece movedPiece) {
+        for (final Piece piece : getAlliancesPieces(moveMaker)) {
+            if (!movedPiece.equals(piece)) {
+                builder.setPieceAtPosition(piece);
+            }
+        }
+        for (final Piece piece : getAlliancesPieces(moveMaker.getOpponent())) {
+            builder.setPieceAtPosition(piece);
+        }
+        return builder;
+    }
+
     // helper method to check if the tiles between rook and king are eligible for castling
     private boolean areTilesEligibleForCastle(final int kingPosition, final int[] offsets) {
         for (int offset : offsets) {
@@ -187,7 +245,9 @@ public class Board {
     }
 
     public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
-        return alliance.isWhite() ? whiteLegalMoves : blackLegalMoves;
+        return alliance.isWhite()
+                ? ChessUtils.filterMovesResultingInCheck(whiteLegalMoves, this)
+                : ChessUtils.filterMovesResultingInCheck(blackLegalMoves, this);
     }
 
     private List<Integer> getAlliancesAttackingPositions(final Alliance alliance) {

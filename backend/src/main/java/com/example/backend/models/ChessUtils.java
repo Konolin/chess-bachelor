@@ -3,7 +3,11 @@ package com.example.backend.models;
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.board.Board;
+import com.example.backend.models.moves.Move;
 import com.example.backend.models.pieces.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ChessUtils {
     public static final int TILES_NUMBER = 64;
@@ -108,5 +112,22 @@ public class ChessUtils {
 
         // Set en passant pawn as null for starting position
         builder.setEnPassantPawn(null);
+    }
+
+    public static List<Move> filterMovesResultingInCheck(final List<Move> allMoves, final Board board) {
+        final List<Move> legalMoves = new ArrayList<>();
+
+        for (final Move move : allMoves) {
+            Board transitionBoard = board.executeMove(move);
+
+            // remove moves that cause the current player to be in check.
+            // the opponents alliance is checked because the move maker changes after executeMove(), which means
+            // the current move maker (who's moves are filtered) is considered the opponent in the transitionBoard
+            if (!transitionBoard.isAllianceInCheck(transitionBoard.getMoveMaker().getOpponent())) {
+                legalMoves.add(move);
+            }
+        }
+
+        return legalMoves;
     }
 }
