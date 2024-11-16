@@ -77,28 +77,6 @@ public class GameService {
         return legalMovesDTO;
     }
 
-    public BoardStateDTO promoteToPiece(final PromotionDTO promotionDTO) {
-        long startNanos = System.nanoTime();
-
-        final Piece movingPiece = board.getTileAtCoordinate(promotionDTO.getPosition()).getOccupyingPiece();
-        final Piece promotedPiece = ChessUtils.createPieceFromCharAndPosition(promotionDTO.getPieceChar(), promotionDTO.getPosition());
-
-        Board.Builder builder = board.placePieces(new Board.Builder(), movingPiece)
-                .setPieceAtPosition(promotedPiece)
-                .setMoveMaker(board.getMoveMaker());
-
-        board = builder.build();
-        BoardStateDTO boardStateDTO = new BoardStateDTO();
-        boardStateDTO.setFen(FenService.createFENFromGame(board));
-        boardStateDTO.setWinnerFlag(getWinnerFlag());
-
-        long elapsedNanos = System.nanoTime() - startNanos;
-        double elapsedMillis = elapsedNanos / 1_000_000.0;
-        logger.info("Promotion to {} completed in {} ms", promotedPiece, elapsedMillis);
-
-        return boardStateDTO;
-    }
-
     public BoardStateDTO makeMove(final Move move) {
         long startNanos = System.nanoTime();
 

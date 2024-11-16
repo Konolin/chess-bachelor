@@ -6,7 +6,7 @@ import { Tile } from '../../../../shared/types/tile';
 import { NgClass } from '@angular/common';
 import { BoardState } from '../../../../shared/types/board-state';
 import { Move } from '../../../../shared/types/move';
-import { isAttack, isPromotion } from '../../../../shared/types/move-type';
+import { isAttack, isPromotion, MoveType } from '../../../../shared/types/move-type';
 import { DialogModule } from 'primeng/dialog';
 import { ImageModule } from 'primeng/image';
 
@@ -32,6 +32,7 @@ export class BoardComponent implements OnInit {
   private readonly gameService = inject(GameService);
   private previousSelectedTile: Tile | null = null;
   private moveMaker: string | null = null;
+  private previousMove: Move | null = null;
 
   /** Initialize the game board on component load */
   ngOnInit(): void {
@@ -110,11 +111,10 @@ export class BoardComponent implements OnInit {
 
   /**
    * Handles piece selection during promotion, updating the game state with the selected piece.
-   * @param piecePosition The position on the board where promotion is occurring.
    * @param piece The selected promotion piece type (e.g., "q" for queen).
    * @param pieceColor The color of the piece ('w' or 'b').
    */
-  onPromotedPieceSelection(piecePosition: number, piece: string, pieceColor: 'w' | 'b'): void {
+  onPromotedPieceSelection(piece: string, pieceColor: 'w' | 'b'): void {
     this.isPromotionMove = false;
     this.promotionTile = null;
 
@@ -122,8 +122,15 @@ export class BoardComponent implements OnInit {
       piece = piece.toUpperCase();
     }
 
+    const move: Move = {
+      fromTileIndex: this.previousMove!.fromTileIndex,
+      toTileIndex: this.previousMove!.toTileIndex,
+      moveType: this.previousMove!.moveType,
+      promotedPieceChar: piece,
+    };
+
     this.gameService
-      .promoteToSelectedPiece(piecePosition, piece)
+      .makeMove(move)
       .pipe(take(1))
       .subscribe((response) => {
         this.updateGameState(response);
@@ -131,7 +138,7 @@ export class BoardComponent implements OnInit {
   }
 
   /**
-   * Makes a move on the board, updating the game state and handling promotions if applicable.
+   * Makes a move on the board, updating the game state, handling promotions if applicable.
    * @param move The move to make.
    */
   private makeMove(move: Move): void {
@@ -146,6 +153,9 @@ export class BoardComponent implements OnInit {
       this.isPromotionMove = true;
       this.promotionTile = this.tiles[move.toTileIndex];
     }
+
+    // store the move for later use (promotion function and highlighting of the move on the board)
+    this.previousMove = move;
 
     this.resetSelection();
   }

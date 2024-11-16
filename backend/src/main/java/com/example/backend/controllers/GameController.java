@@ -34,9 +34,4 @@ public class GameController {
     public ResponseEntity<BoardStateDTO> getStartingBoardState() {
         return ResponseEntity.ok(gameService.initializeBoardState());
     }
-
-    @PostMapping("/promote-to-piece")
-    public ResponseEntity<BoardStateDTO> promoteToPiece(@RequestBody PromotionDTO promotionDTO) {
-        return ResponseEntity.ok(gameService.promoteToPiece(promotionDTO));
-    }
 }

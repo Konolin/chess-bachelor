@@ -38,7 +38,9 @@ public class Pawn extends Piece {
                 if (candidateTile.isOccupied() && candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
                     if (this.getAlliance().isPromotionSquare(candidatePosition)) {
                         // promote and attack
-                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION_ATTACK));
+                        for (char promotionChar : getPromotionChars()) {
+                            legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION_ATTACK, String.valueOf(promotionChar)));
+                        }
                     } else {
                         legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
                     }
@@ -49,8 +51,10 @@ public class Pawn extends Piece {
                 // normal 1 tile move
             } else if (offset == 8 && candidateTile.isEmpty()) {
                 if (this.getAlliance().isPromotionSquare(candidatePosition)) {
-                    // promote and attack
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION));
+                    // promote
+                    for (char promotionChar : getPromotionChars()) {
+                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION, String.valueOf(promotionChar)));
+                    }
                 } else {
                     legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
                 }
@@ -90,6 +94,15 @@ public class Pawn extends Piece {
     private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
         return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == 7 || offset == -9) ||
                 ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 9);
+    }
+
+    private List<Character> getPromotionChars() {
+        // Use lowercase for black and uppercase for white
+        if (this.getAlliance().isBlack()) {
+            return List.of('q', 'r', 'b', 'n');
+        } else {
+            return List.of('Q', 'R', 'B', 'N');
+        }
     }
 
     @Override

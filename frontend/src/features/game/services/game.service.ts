@@ -92,18 +92,4 @@ export class GameService {
 
     return { tiles: tileArray, moveMaker: moveMaker };
   }
-
-  /**
-   * Sends a request to promote a pawn to a selected piece type.
-   * @param position The board position where promotion is occurring.
-   * @param piece The piece character ('q', 'r', 'b', 'n') representing the promoted piece.
-   * @returns An Observable containing the updated BoardState after the promotion.
-   */
-  promoteToSelectedPiece(position: number, piece: string): Observable<BoardState> {
-    const promotionDto: PromotionDto = { position, pieceChar: piece };
-    return this.http.post<BoardState>(
-      `http://localhost:8080/api/game/promote-to-piece`,
-      promotionDto
-    );
-  }
 }

@@ -28,7 +28,7 @@ class MoveGenerationTest {
         long numMoves = 0;
 
         for (final Move move : legalMoves) {
-            logger.info("Move: {}", move);
+//            logger.info("Move: {}", move);
             Board newBoard = board.executeMove(move);
             gameService.setBoard(newBoard);
             numMoves += generateMovesTest(newBoard, depth - 1);
@@ -139,19 +139,19 @@ class MoveGenerationTest {
         numMoves = generateMovesTest(board, 1);
         assertEquals(6, numMoves);
 
-        // fails 228
         gameService.setBoard(board);
         numMoves = generateMovesTest(board, 2);
         assertEquals(264, numMoves);
 
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 3);
-//        assertEquals(9467, numMoves);
-//
+        // fails 9863
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 3);
+        assertEquals(9467, numMoves);
+
 //        gameService.setBoard(board);
 //        numMoves = generateMovesTest(board, 4);
 //        assertEquals(422333, numMoves);
-//
+
 //        gameService.setBoard(board);
 //        numMoves = generateMovesTest(board, 5);
 //        assertEquals(15833292, numMoves);
@@ -166,19 +166,19 @@ class MoveGenerationTest {
         Board board = FenService.createGameFromFEN("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -");
         long numMoves;
 
-        // fails 41
         gameService.setBoard(board);
         numMoves = generateMovesTest(board, 1);
         assertEquals(44, numMoves);
 
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 2);
-//        assertEquals(1486, numMoves);
-//
+        // fails 1493
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 2);
+        assertEquals(1486, numMoves);
+
 //        gameService.setBoard(board);
 //        numMoves = generateMovesTest(board, 3);
 //        assertEquals(62379, numMoves);
-//
+
 //        gameService.setBoard(board);
 //        numMoves = generateMovesTest(board, 4);
 //        assertEquals(2103487, numMoves);

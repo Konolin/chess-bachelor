@@ -3,6 +3,7 @@ package com.example.backend.models.board;
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.ChessUtils;
+import com.example.backend.models.dtos.PromotionDTO;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.*;
@@ -144,8 +145,22 @@ public class Board {
     }
 
     public Board executeMove(final Move move) {
-        // obtain the piece to be moved and its new state after the move
+        // obtain the piece that is going to be moved
         final Piece movingPiece = getTileAtCoordinate(move.getFromTileIndex()).getOccupyingPiece();
+
+        // check if this is a promotion move
+        if (move.getMoveType().isPromotion()) {
+            // create the promoted piece on its new position
+            final Piece promotedPiece = ChessUtils.createPieceFromCharAndPosition(move.getPromotedPieceChar(), move.getToTileIndex());
+
+            // build the new board state with the promoted piece
+            return placePieces(new Board.Builder(), movingPiece)
+                    .setPieceAtPosition(promotedPiece)
+                    .setMoveMaker(moveMaker.getOpponent())
+                    .build();
+        }
+
+        // regular move handling
         final Piece movedPiece = movingPiece.movePiece(movingPiece.getAlliance(), move.getToTileIndex());
 
         // initialize builder and place all pieces except the one being moved
