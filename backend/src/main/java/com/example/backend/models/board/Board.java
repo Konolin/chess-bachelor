@@ -130,7 +130,7 @@ public class Board {
         final int kingPosition = getEligibleKingForCastle(alliance).getPosition();
         for (final Rook rook : rooks) {
             if (rook.getPosition() < kingPosition) {
-                if (areTilesEligibleForCastle(kingPosition, new int[]{-1, -2})) {
+                if (areTilesEligibleForCastle(kingPosition, new int[]{-1, -2, -3})) {
                     castleMoves.add(new Move(kingPosition, kingPosition - 2, MoveType.QUEEN_SIDE_CASTLE));
                 }
             } else {
@@ -222,8 +222,8 @@ public class Board {
             if (getTileAtCoordinate(kingPosition + offset).isOccupied()) {
                 return false;
             }
-            // check if tile is attacked by opponent
-            if (getAlliancesAttackingPositions(moveMaker.getOpponent()).contains(kingPosition + offset)) {
+            // check if tile is attacked by opponent (offset -3 does not need to be checked for attacks)
+            if (offset != -3 && getAlliancesAttackingPositions(moveMaker.getOpponent()).contains(kingPosition + offset)) {
                 return false;
             }
         }

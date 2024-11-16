@@ -1,6 +1,6 @@
 package com.example.backend.models.moves;
 
-import com.example.backend.models.pieces.Piece;
+import com.example.backend.models.ChessUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,5 +26,24 @@ public class Move {
     @Override
     public String toString() {
         return fromTileIndex + " - " + toTileIndex + " ( " + moveType.name() + " ) ";
+    }
+
+    public String toAlgebraic() {
+        StringBuilder sb = new StringBuilder();
+
+        if (moveType.isCastleMove()) {
+            sb.append(moveType.isKingSideCastle() ? "O-O" : "O-O-O");
+        } else {
+            if (!moveType.isPromotion()) {
+                sb.append(ChessUtils.getAlgebraicNotationAtCoordinate(fromTileIndex));
+            }
+            sb.append(ChessUtils.getAlgebraicNotationAtCoordinate(toTileIndex));
+
+            if (moveType.isPromotion()) {
+                sb.append("=").append(promotedPieceChar.toUpperCase());
+            }
+        }
+
+        return sb.toString();
     }
 }
