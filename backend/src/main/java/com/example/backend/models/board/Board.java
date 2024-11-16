@@ -3,7 +3,6 @@ package com.example.backend.models.board;
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.ChessUtils;
-import com.example.backend.models.dtos.PromotionDTO;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.*;
@@ -131,7 +130,7 @@ public class Board {
         final int kingPosition = getEligibleKingForCastle(alliance).getPosition();
         for (final Rook rook : rooks) {
             if (rook.getPosition() < kingPosition) {
-                if (areTilesEligibleForCastle(kingPosition, new int[]{-1, -2, -3})) {
+                if (areTilesEligibleForCastle(kingPosition, new int[]{-1, -2})) {
                     castleMoves.add(new Move(kingPosition, kingPosition - 2, MoveType.QUEEN_SIDE_CASTLE));
                 }
             } else {
@@ -271,7 +270,8 @@ public class Board {
 
     private King getEligibleKingForCastle(final Alliance alliance) {
         return getAlliancesPieces(alliance).stream()
-                .filter(piece -> piece.isKing() && piece.isFirstMove())
+                .filter(piece -> piece.isKing() && piece.isFirstMove() &&
+                        !getAlliancesAttackingPositions(alliance.getOpponent()).contains(piece.getPosition()))
                 .map(King.class::cast)
                 .findFirst()
                 .orElse(null);
