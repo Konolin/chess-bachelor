@@ -78,17 +78,17 @@ class MoveGenerationTest {
          numMoves = generateMovesTest(board, 2);
          assertEquals(2039, numMoves);
 
-//         gameService.setBoard(board);
-//         numMoves = generateMovesTest(board, 3);
-//         assertEquals(97862, numMoves);
-//
-//         gameService.setBoard(board);
-//         numMoves = generateMovesTest(board, 4);
-//         assertEquals(4085603, numMoves);
-//
-//         gameService.setBoard(board);
-//         numMoves = generateMovesTest(board, 5);
-//         assertEquals(193690690, numMoves);
+         gameService.setBoard(board);
+         numMoves = generateMovesTest(board, 3);
+         assertEquals(97862, numMoves);
+
+         gameService.setBoard(board);
+         numMoves = generateMovesTest(board, 4);
+         assertEquals(4085603, numMoves);
+
+         gameService.setBoard(board);
+         numMoves = generateMovesTest(board, 5);
+         assertEquals(193690690, numMoves);
     }
 
     @Test
@@ -100,34 +100,25 @@ class MoveGenerationTest {
         numMoves = generateMovesTest(board, 1);
         assertEquals(14, numMoves);
 
-        // fails 207
         gameService.setBoard(board);
         numMoves = generateMovesTest(board, 2);
         assertEquals(191, numMoves);
 
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 3);
-//        assertEquals(2812, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 4);
-//        assertEquals(43238, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 5);
-//        assertEquals(674624, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 6);
-//        assertEquals(11030083, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 7);
-//        assertEquals(178633661, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 8);
-//        assertEquals(3009794393L, numMoves);
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 3);
+        assertEquals(2812, numMoves);
+
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 4);
+        assertEquals(43238, numMoves);
+
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 5);
+        assertEquals(674624, numMoves);
+
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 6);
+        assertEquals(11030083, numMoves);
     }
 
     @Test
@@ -143,22 +134,18 @@ class MoveGenerationTest {
         numMoves = generateMovesTest(board, 2);
         assertEquals(264, numMoves);
 
-        // fails 9863
         gameService.setBoard(board);
         numMoves = generateMovesTest(board, 3);
         assertEquals(9467, numMoves);
 
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 4);
-//        assertEquals(422333, numMoves);
+        // fails 422328
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 4);
+        assertEquals(422333, numMoves);
 
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 5);
-//        assertEquals(15833292, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 6);
-//        assertEquals(706045033, numMoves);
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 5);
+        assertEquals(15833292, numMoves);
     }
 
     @Test
@@ -170,22 +157,22 @@ class MoveGenerationTest {
         numMoves = generateMovesTest(board, 1);
         assertEquals(44, numMoves);
 
-        // fails 1493
         gameService.setBoard(board);
         numMoves = generateMovesTest(board, 2);
         assertEquals(1486, numMoves);
 
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 3);
-//        assertEquals(62379, numMoves);
+        // fails 62478
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 3);
+        assertEquals(62379, numMoves);
 
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 4);
-//        assertEquals(2103487, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 5);
-//        assertEquals(89941194, numMoves);
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 4);
+        assertEquals(2103487, numMoves);
+
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 5);
+        assertEquals(89941194, numMoves);
     }
 
     @Test
@@ -193,25 +180,20 @@ class MoveGenerationTest {
         Board board = FenService.createGameFromFEN("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - -");
         long numMoves;
 
-        // fails 48
         gameService.setBoard(board);
         numMoves = generateMovesTest(board, 1);
         assertEquals(46, numMoves);
 
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 2);
-//        assertEquals(2079, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 3);
-//        assertEquals(89890, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 4);
-//        assertEquals(3894594, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesTest(board, 5);
-//        assertEquals(164075551, numMoves);
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 2);
+        assertEquals(2079, numMoves);
+
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 3);
+        assertEquals(89890, numMoves);
+
+        gameService.setBoard(board);
+        numMoves = generateMovesTest(board, 4);
+        assertEquals(3894594, numMoves);
     }
 }

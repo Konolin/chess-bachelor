@@ -32,10 +32,13 @@ public class GameService {
     public BoardStateDTO initializeBoardState() {
         long startNanos = System.nanoTime();
 
-        board = new Board.Builder()
-                .setStandardStartingPosition()
-                .setMoveMaker(Alliance.WHITE)
-                .build();
+//        board = new Board.Builder()
+//                .setStandardStartingPosition()
+//                .setMoveMaker(Alliance.WHITE)
+//                .build();
+
+
+        board = FenService.createGameFromFEN("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - -");
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));

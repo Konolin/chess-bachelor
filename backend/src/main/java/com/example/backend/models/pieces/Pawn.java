@@ -59,7 +59,8 @@ public class Pawn extends Piece {
                     legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
                 }
                 // normal 2 tile move
-            } else if (offset == 16 && candidateTile.isEmpty() && board.getTileAtCoordinate(candidatePosition - 8 * this.getAlliance().getDirection()).isEmpty()) {
+            } else if (isFirstMove() && offset == 16 && candidateTile.isEmpty() &&
+                    board.getTileAtCoordinate(candidatePosition - 8 * this.getAlliance().getDirection()).isEmpty()) {
                 legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.DOUBLE_PAWN_ADVANCE));
             }
         }
