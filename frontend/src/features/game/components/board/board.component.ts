@@ -6,7 +6,7 @@ import { Tile } from '../../../../shared/types/tile';
 import { NgClass } from '@angular/common';
 import { BoardState } from '../../../../shared/types/board-state';
 import { Move } from '../../../../shared/types/move';
-import { isAttack, isPromotion, MoveType } from '../../../../shared/types/move-type';
+import { isAttack, isPromotion } from '../../../../shared/types/move-type';
 import { DialogModule } from 'primeng/dialog';
 import { ImageModule } from 'primeng/image';
 
@@ -28,6 +28,8 @@ export class BoardComponent implements OnInit {
   protected promotionPieces: string[] = ['q', 'r', 'b', 'n'];
   protected winnerFlag: -1 | 0 | 1 = 0;
   protected isWinnerDialogVisible: boolean = false;
+  protected rowNames = ['8', '7', '6', '5', '4', '3', '2', '1'];
+  protected columnNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
   private readonly gameService = inject(GameService);
   private previousSelectedTile: Tile | null = null;
