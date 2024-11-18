@@ -90,8 +90,14 @@ export class BoardComponent implements OnInit {
    * @returns A string with the appropriate CSS classes.
    */
   calculateTileStyleClasses(tile: Tile): string {
-    const styleClass =
-      (Math.floor(tile.index / 8) + tile.index) % 2 === 0 ? 'tile light-tile' : 'tile dark-tile';
+    let styleClass: string = 'tile';
+
+    styleClass +=
+      tile.index === this.previousMove?.toTileIndex ||
+      tile.index === this.previousMove?.fromTileIndex
+        ? ' previous-'
+        : ' ';
+    styleClass += (Math.floor(tile.index / 8) + tile.index) % 2 === 0 ? 'light-tile' : 'dark-tile';
 
     const move = this.legalMoves?.find((move) => move.toTileIndex === tile.index);
     if (move) {

@@ -1,7 +1,7 @@
 <div class="chess-board-container">
   <!-- Column Names -->
   <span class="column-names top-column-names">
-    @for (col of this.columnNames; track columnNames) {
+    @for (col of this.columnNames; track columnNames.indexOf(col)) {
       <span class="column-name">{{ col }}</span>
     }
   </span>
@@ -10,7 +10,7 @@
   <div class="board-with-rows">
     <!-- Row Names -->
     <div class="row-names left-row-names">
-      @for (row of this.rowNames; track rowNames) {
+      @for (row of this.rowNames; track rowNames.indexOf(row)) {
         <span class="row-name">{{ row }}</span>
       }
     </div>
@@ -43,7 +43,7 @@
     </div>
     <!-- Right Row Names -->
     <div class="row-names right-row-names">
-      @for (row of this.rowNames; track rowNames) {
+      @for (row of this.rowNames; track rowNames.indexOf(row)) {
         <span class="row-name">{{ row }}</span>
       }
     </div>
@@ -51,7 +51,7 @@
 
   <!-- Bottom Column Names -->
   <span class="column-names bottom-column-names">
-    @for (col of this.columnNames; track columnNames) {
+    @for (col of this.columnNames; track columnNames.indexOf(col)) {
       <span class="column-name">{{ col }}</span>
     }
   </span>
