@@ -1,27 +1,29 @@
 <div class="chess-board-container">
-  <!-- Column Names -->
+  <!-- column Names -->
   <span class="column-names top-column-names">
     @for (col of this.columnNames; track columnNames.indexOf(col)) {
       <span class="column-name">{{ col }}</span>
     }
   </span>
 
-  <!-- Board with Rows -->
+  <!-- board with Rows -->
   <div class="board-with-rows">
-    <!-- Row Names -->
+    <!-- row Names -->
     <div class="row-names left-row-names">
       @for (row of this.rowNames; track rowNames.indexOf(row)) {
         <span class="row-name">{{ row }}</span>
       }
     </div>
 
-    <!-- Board -->
+    <!-- board -->
     <div class="board-container">
       @for (tile of this.tiles; track tile.index) {
         <div [ngClass]="calculateTileStyleClasses(tile)" (click)="onTileClicked(tile)">
-          @let pieceColor =
-            tile.occupiedByString === tile.occupiedByString.toUpperCase() ? 'w' : 'b';
           @if (tile.index === promotionTile?.index) {
+            <!-- the color needs to be inverted because the tile where the promotion is happening is
+            still considered to be occupied by a piece of the promoters opponent -->
+            @let pieceColor =
+              tile.occupiedByString === tile.occupiedByString.toUpperCase() ? 'b' : 'w';
             <span class="promotion-selection">
               @for (piece of promotionPieces; track piece) {
                 <div class="promotion-option">
@@ -34,6 +36,8 @@
             </span>
           }
           @if (tile.occupiedByString) {
+            @let pieceColor =
+              tile.occupiedByString === tile.occupiedByString.toUpperCase() ? 'w' : 'b';
             <p-image
               [src]="getPieceImageUrl(tile.occupiedByString, pieceColor)"
               alt="{{ tile.occupiedByString }}" />
@@ -41,7 +45,7 @@
         </div>
       }
     </div>
-    <!-- Right Row Names -->
+    <!-- right row names -->
     <div class="row-names right-row-names">
       @for (row of this.rowNames; track rowNames.indexOf(row)) {
         <span class="row-name">{{ row }}</span>
@@ -49,7 +53,7 @@
     </div>
   </div>
 
-  <!-- Bottom Column Names -->
+  <!-- bottom column names -->
   <span class="column-names bottom-column-names">
     @for (col of this.columnNames; track columnNames.indexOf(col)) {
       <span class="column-name">{{ col }}</span>

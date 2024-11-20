@@ -1,12 +1,13 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
 import com.example.backend.models.moves.Move;
 import com.example.backend.services.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/game")
@@ -20,7 +21,7 @@ public class GameController {
     }
 
     @GetMapping("/get-moves-for-position")
-    public ResponseEntity<LegalMovesDTO> getAllMovesForPosition(@RequestParam Integer tileIndex) {
+    public ResponseEntity<List<Move>> getAllMovesForPosition(@RequestParam Integer tileIndex) {
         return ResponseEntity.ok(gameService.getAllMovesForPosition(tileIndex));
     }
 

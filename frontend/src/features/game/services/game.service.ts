@@ -3,7 +3,6 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { BoardState } from '../../../shared/types/board-state';
 import { Tile } from '../../../shared/types/tile';
-import { LegalMovesDto } from '../../../shared/types/legal-moves-dto';
 import { FenObject } from '../../../shared/types/fen-object';
 import { Move } from '../../../shared/types/move';
 
@@ -30,9 +29,9 @@ export class GameService {
    * @param tileIndex The index of the tile for which legal moves are requested.
    * @returns An Observable containing a LegalMovesDto with possible moves for the tile.
    */
-  fetchLegalMoves(tileIndex: number): Observable<LegalMovesDto> {
+  fetchLegalMoves(tileIndex: number): Observable<Move[]> {
     const params = new HttpParams().set('tileIndex', tileIndex);
-    return this.http.get<LegalMovesDto>('http://localhost:8080/api/game/get-moves-for-position', {
+    return this.http.get<Move[]>('http://localhost:8080/api/game/get-moves-for-position', {
       params,
     });
   }

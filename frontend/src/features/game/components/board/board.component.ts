@@ -190,7 +190,7 @@ export class BoardComponent implements OnInit {
     this.gameService
       .fetchLegalMoves(tile.index)
       .pipe(take(1))
-      .subscribe((response) => (this.legalMoves = response.legalMoves));
+      .subscribe((response) => (this.legalMoves = response));
   }
 
   /**
