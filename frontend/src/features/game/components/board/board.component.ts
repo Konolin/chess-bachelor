@@ -118,7 +118,7 @@ export class BoardComponent implements OnInit {
   }
 
   /**
-   * Handles piece selection during promotion, updating the game state with the selected piece.
+   * Handles piece selection during promotion, completing the saved move.
    * @param piece The selected promotion piece type (e.g., "q" for queen).
    * @param pieceColor The color of the piece ('w' or 'b').
    */
@@ -130,26 +130,39 @@ export class BoardComponent implements OnInit {
       piece = piece.toUpperCase();
     }
 
-    const move: Move = {
-      fromTileIndex: this.previousMove!.fromTileIndex,
-      toTileIndex: this.previousMove!.toTileIndex,
-      moveType: this.previousMove!.moveType,
-      promotedPieceChar: piece,
-    };
+    // Complete the promotion move by adding the selected piece
+    this.previousMove!.promotedPieceChar = piece;
 
     this.gameService
-      .makeMove(move)
+      .makeMove(this.previousMove!)
       .pipe(take(1))
       .subscribe((response) => {
         this.updateGameState(response);
       });
+
+    this.resetSelection();
   }
 
   /**
    * Makes a move on the board, updating the game state, handling promotions if applicable.
+   * Promotion moves DO NOT executed an api call to the engine in this method. The onPromotedPiece
+   * function needs to be called right after this one, to receive a piece to promote to and to
+   * execute the call that updates the game state.
+   *
    * @param move The move to make.
    */
   private makeMove(move: Move): void {
+    if (isPromotion(move.moveType)) {
+      // the UI for the promotion will be shown
+      this.isPromotionMove = true;
+      this.promotionTile = this.tiles[move.toTileIndex];
+      this.previousMove = move;
+      // returns without completing the move. This allows the onPromotedPieceSelection to receive
+      // the desired promotion piece as input and execute the api call itself
+      return;
+    }
+
+    // perform the move without promotion
     this.gameService
       .makeMove(move)
       .pipe(take(1))
@@ -157,14 +170,7 @@ export class BoardComponent implements OnInit {
         this.updateGameState(response);
       });
 
-    if (isPromotion(move.moveType)) {
-      this.isPromotionMove = true;
-      this.promotionTile = this.tiles[move.toTileIndex];
-    }
-
-    // store the move for later use (promotion function and highlighting of the move on the board)
     this.previousMove = move;
-
     this.resetSelection();
   }
 

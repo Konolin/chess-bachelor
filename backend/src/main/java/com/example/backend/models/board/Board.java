@@ -350,11 +350,6 @@ public class Board {
             return this;
         }
 
-        public Builder setStandardStartingPosition() {
-            ChessUtils.initializeStandardPosition(this);
-            return this;
-        }
-
         public Builder setEnPassantPawn(Pawn enPassantPawn) {
             this.enPassantPawn = enPassantPawn;
             return this;
