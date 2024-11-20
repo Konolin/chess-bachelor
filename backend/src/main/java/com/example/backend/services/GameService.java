@@ -5,7 +5,6 @@ import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
 import com.example.backend.models.dtos.BoardStateDTO;
 import com.example.backend.models.dtos.LegalMovesDTO;
-import com.example.backend.models.dtos.PromotionDTO;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
@@ -32,13 +31,13 @@ public class GameService {
     public BoardStateDTO initializeBoardState() {
         long startNanos = System.nanoTime();
 
-//        board = new Board.Builder()
-//                .setStandardStartingPosition()
-//                .setMoveMaker(Alliance.WHITE)
-//                .build();
+        board = new Board.Builder()
+                .setStandardStartingPosition()
+                .setMoveMaker(Alliance.WHITE)
+                .build();
 
-
-        board = FenService.createGameFromFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
+        // for testing purposes
+//        board = FenService.createGameFromFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));

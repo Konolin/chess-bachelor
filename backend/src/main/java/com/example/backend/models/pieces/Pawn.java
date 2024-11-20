@@ -110,4 +110,9 @@ public class Pawn extends Piece {
     public String toString() {
         return this.getAlliance().isWhite() ? "P" : "p";
     }
+
+    @Override
+    public boolean isPawn() {
+        return true;
+    }
 }

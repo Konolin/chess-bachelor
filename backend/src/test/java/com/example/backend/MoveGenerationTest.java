@@ -58,7 +58,7 @@ class MoveGenerationTest {
 
 
     @Test
-    void testMoveGenerationStandardBoard() {
+    void testMoveGenerationPosition1() {
         Board board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
         long numMoves;
 
@@ -88,22 +88,21 @@ class MoveGenerationTest {
         Board board = FenService.createGameFromFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
         long numMoves;
 
-//        gameService.setBoard(board);
-//        numMoves = generateMovesCount(board, 1);
-//        assertEquals(48, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesCount(board, 2);
-//        assertEquals(2039, numMoves);
-//
-//        gameService.setBoard(board);
-//        numMoves = generateMovesCount(board, 3);
-//        assertEquals(97862, numMoves);
-//
-//        // fails 4085662
-//        gameService.setBoard(board);
-//        numMoves = generateMovesCount(board, 4);
-//        assertEquals(4085603, numMoves);
+        gameService.setBoard(board);
+        numMoves = generateMovesCount(board, 1);
+        assertEquals(48, numMoves);
+
+        gameService.setBoard(board);
+        numMoves = generateMovesCount(board, 2);
+        assertEquals(2039, numMoves);
+
+        gameService.setBoard(board);
+        numMoves = generateMovesCount(board, 3);
+        assertEquals(97862, numMoves);
+
+        gameService.setBoard(board);
+        numMoves = generateMovesCount(board, 4);
+        assertEquals(4085603, numMoves);
     }
 
     @Test
@@ -137,7 +136,7 @@ class MoveGenerationTest {
     }
 
     @Test
-    void testMoveGenerationPosition4() {
+    void  testMoveGenerationPosition4() {
         Board board = FenService.createGameFromFEN("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq -");
         long numMoves;
 

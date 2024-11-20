@@ -2,7 +2,6 @@ package com.example.backend.controllers;
 
 import com.example.backend.models.dtos.LegalMovesDTO;
 import com.example.backend.models.dtos.BoardStateDTO;
-import com.example.backend.models.dtos.PromotionDTO;
 import com.example.backend.models.moves.Move;
 import com.example.backend.services.GameService;
 import org.springframework.beans.factory.annotation.Autowired;

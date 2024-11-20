@@ -7,6 +7,8 @@ import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.*;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +17,8 @@ import java.util.Map;
 
 @Getter
 public class Board {
+    private final Logger logger = LoggerFactory.getLogger(Board.class);
+
     private final List<Tile> tiles;
     private final Alliance moveMaker;
 
@@ -76,11 +80,36 @@ public class Board {
     }
 
     private List<Integer> calculateAttackingPositions(final Alliance alliance) {
-        return (alliance.isWhite() ? whiteLegalMoves : blackLegalMoves)
-                .stream()
-                .map(Move::getToTileIndex)
-                .toList();
+        List<Integer> attackingPositions = new ArrayList<>();
+
+        // calculate pawn attacks
+        for (final Piece piece : (alliance.isWhite() ? whitePieces : blackPieces)) {
+            if (piece.isPawn()) {
+                int pos = piece.getPosition();
+                int attack1 = alliance.isWhite() ? pos - 7 : pos + 7;
+                int attack2 = alliance.isWhite() ? pos - 9 : pos + 9;
+                int column = pos % 8;
+
+                // check attack1 (right diagonal for white, left diagonal for black)
+                if (ChessUtils.isValidPosition(attack1) && column != 7) {
+                    attackingPositions.add(attack1);
+                }
+
+                // check attack2 (left diagonal for white, right diagonal for black)
+                if (ChessUtils.isValidPosition(attack2) && column != 0) {
+                    attackingPositions.add(attack2);
+                }
+            }
+        }
+
+        // calculate legal move attacks for all pieces
+        for (final Move move : (alliance.isWhite() ? whiteLegalMoves : blackLegalMoves)) {
+            attackingPositions.add(move.getToTileIndex());
+        }
+
+        return attackingPositions.stream().distinct().toList();
     }
+
 
     private void calculateCastleCapabilities() {
         isBlackKingSideCastleCapable = false;
