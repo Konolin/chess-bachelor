@@ -6,7 +6,6 @@ import { Tile } from '../../../shared/types/tile';
 import { LegalMovesDto } from '../../../shared/types/legal-moves-dto';
 import { FenObject } from '../../../shared/types/fen-object';
 import { Move } from '../../../shared/types/move';
-import { PromotionDto } from '../../../shared/types/promotion-dto';
 
 /**
  * GameService: Manages HTTP requests for game operations and provides helper methods

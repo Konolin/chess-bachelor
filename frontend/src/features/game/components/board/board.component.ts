@@ -6,7 +6,7 @@ import { Tile } from '../../../../shared/types/tile';
 import { NgClass } from '@angular/common';
 import { BoardState } from '../../../../shared/types/board-state';
 import { Move } from '../../../../shared/types/move';
-import { isAttack, isPromotion } from '../../../../shared/types/move-type';
+import { isAttack, isCastle, isPromotion } from '../../../../shared/types/move-type';
 import { DialogModule } from 'primeng/dialog';
 import { ImageModule } from 'primeng/image';
 
@@ -171,6 +171,13 @@ export class BoardComponent implements OnInit {
       });
 
     this.previousMove = move;
+
+    // edit some attributes to have a different highlight of previous castle moves
+    if (isCastle(move.moveType)) {
+      this.previousMove.toTileIndex =
+        move.toTileIndex + (move.toTileIndex > move.fromTileIndex ? 1 : -2);
+    }
+
     this.resetSelection();
   }
 
