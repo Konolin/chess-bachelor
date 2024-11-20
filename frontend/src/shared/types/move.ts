@@ -4,4 +4,5 @@ export type Move = {
   fromTileIndex: number;
   toTileIndex: number;
   moveType: MoveType;
+  promotedPieceChar: string | null;
 };

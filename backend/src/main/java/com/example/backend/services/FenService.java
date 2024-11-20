@@ -54,7 +54,7 @@ public class FenService {
                     i++;
                     break;
                 case 'p':
-                    builder.setPieceAtPosition(new Pawn(i, Alliance.BLACK, true));
+                    builder.setPieceAtPosition(new Pawn(i, Alliance.BLACK, ChessUtils.SECOND_ROW[i]));
                     if (!enPassantString.equals("-") &&
                             ChessUtils.getAlgebraicNotationAtCoordinate(i - 8).equals(enPassantString)) {
                         builder.setEnPassantPawn(new Pawn(i, Alliance.BLACK, false));
@@ -82,7 +82,7 @@ public class FenService {
                     i++;
                     break;
                 case 'P':
-                    builder.setPieceAtPosition(new Pawn(i, Alliance.WHITE, true));
+                    builder.setPieceAtPosition(new Pawn(i, Alliance.WHITE, ChessUtils.SEVENTH_ROW[i]));
                     if (!enPassantString.equals("-") &&
                             ChessUtils.getAlgebraicNotationAtCoordinate(i + 8).equals(enPassantString)) {
                         builder.setEnPassantPawn(new Pawn(i, Alliance.WHITE, false));

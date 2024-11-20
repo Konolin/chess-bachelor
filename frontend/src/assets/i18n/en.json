@@ -1,0 +1,11 @@
+{
+  "navbar" : {
+    "home" : "Home",
+    "play": "Play"
+  },
+  "exceptions": {
+    "errorTitle": "Error",
+    "unknownException": "An unknown exception occurred.",
+    "noResponse": "No response from the server"
+  }
+}

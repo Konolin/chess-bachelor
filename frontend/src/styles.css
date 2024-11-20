@@ -4,14 +4,20 @@
 :root {
   --dark-square-color: #769656;
   --light-square-color: #eeeed2;
+  --previous-dark-square-color: #b9ca43;
+  --previous-light-square-color: #f5f682;
   --legal-move-color: #afafaf;
   --text-color: #000000;
 }
 
-html, body, header {
-  height: 100%;
-  margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+body {
+  padding: 0.5rem;
+  max-width: 80%;
+  margin: auto;
+}
+
+body,
+input[text] {
+  color: #333;
+  font-family: Cambria, Georgia, serif;
 }

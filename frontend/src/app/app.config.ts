@@ -8,11 +8,12 @@ import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { provideTransloco } from '@jsverse/transloco';
-import { TranslocoHttpLoader } from '../transloco/transloco.loader';
-import { ServerErrorsInterceptor } from '../exceptions/interceptors/server-errors.interceptor';
 import { ToastrModule } from 'ngx-toastr';
+import { TranslocoHttpLoader } from './transloco-loader';
+import { ServerErrorsInterceptor } from '../core/exceptions/interceptors/server-errors.interceptor';
+import { MessageService } from 'primeng/api';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -22,15 +23,22 @@ export const appConfig: ApplicationConfig = {
       BrowserAnimationsModule,
       ToastrModule.forRoot({ positionClass: 'toast-top-right' })
     ),
-    provideHttpClient(withInterceptors([ServerErrorsInterceptor])),
+    provideHttpClient(withInterceptorsFromDi()),
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: ServerErrorsInterceptor,
+      multi: true,
+    },
     provideTransloco({
       config: {
         availableLangs: ['en'],
         defaultLang: 'en',
+        // Remove this option if your application doesn't support changing language in runtime.
         reRenderOnLangChange: true,
         prodMode: !isDevMode(),
       },
       loader: TranslocoHttpLoader,
     }),
+    MessageService,
   ],
 };

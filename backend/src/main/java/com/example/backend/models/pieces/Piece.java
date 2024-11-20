@@ -58,5 +58,9 @@ public abstract class Piece {
         return false;
     }
 
+    public boolean isPawn() {
+        return false;
+    }
+
     public abstract Piece movePiece(final Alliance alliance, final int toTilePosition);
 }

@@ -38,7 +38,9 @@ public class Pawn extends Piece {
                 if (candidateTile.isOccupied() && candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
                     if (this.getAlliance().isPromotionSquare(candidatePosition)) {
                         // promote and attack
-                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION_ATTACK));
+                        for (char promotionChar : getPromotionChars()) {
+                            legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION_ATTACK, String.valueOf(promotionChar)));
+                        }
                     } else {
                         legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
                     }
@@ -49,13 +51,16 @@ public class Pawn extends Piece {
                 // normal 1 tile move
             } else if (offset == 8 && candidateTile.isEmpty()) {
                 if (this.getAlliance().isPromotionSquare(candidatePosition)) {
-                    // promote and attack
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION));
+                    // promote
+                    for (char promotionChar : getPromotionChars()) {
+                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION, String.valueOf(promotionChar)));
+                    }
                 } else {
                     legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
                 }
                 // normal 2 tile move
-            } else if (offset == 16 && candidateTile.isEmpty() && board.getTileAtCoordinate(candidatePosition - 8 * this.getAlliance().getDirection()).isEmpty()) {
+            } else if (isFirstMove() && offset == 16 && candidateTile.isEmpty() &&
+                    board.getTileAtCoordinate(candidatePosition - 8 * this.getAlliance().getDirection()).isEmpty()) {
                 legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.DOUBLE_PAWN_ADVANCE));
             }
         }
@@ -84,7 +89,7 @@ public class Pawn extends Piece {
     private boolean isContinueCase(final int offset, final int candidatePosition) {
         return !ChessUtils.isValidPosition(candidatePosition) ||
                 isFirstOrEighthColumnExclusion(this.getPosition(), offset) ||
-                offset == 16 && !this.isFirstMove();
+                Math.abs(offset) == 16 && !this.isFirstMove();
     }
 
     private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
@@ -92,8 +97,22 @@ public class Pawn extends Piece {
                 ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 9);
     }
 
+    private List<Character> getPromotionChars() {
+        // Use lowercase for black and uppercase for white
+        if (this.getAlliance().isBlack()) {
+            return List.of('q', 'r', 'b', 'n');
+        } else {
+            return List.of('Q', 'R', 'B', 'N');
+        }
+    }
+
     @Override
     public String toString() {
         return this.getAlliance().isWhite() ? "P" : "p";
+    }
+
+    @Override
+    public boolean isPawn() {
+        return true;
     }
 }

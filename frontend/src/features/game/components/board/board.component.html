@@ -1,34 +1,72 @@
-<div class="board-container">
-  @for (tile of this.tiles; track tile.index) {
-    <div [ngClass]="getTileClasses(tile)" (click)="onTileClicked(tile)">
-      @let pieceColor = tile.occupiedByString === tile.occupiedByString.toUpperCase() ? 'w' : 'b';
-      @if (tile.index === promotionTile?.index) {
-        <span class="promotion-selection">
-          @for (piece of promotionPieces; track piece) {
-            <div class="promotion-option">
-              <img
-                [src]="getPieceImageUrl(piece, pieceColor)"
-                (click)="onPromotedPieceSelection(tile.index, piece, pieceColor)"
-                alt="{{ piece }}" />
-            </div>
-          }
-        </span>
-      }
-      @if (tile.occupiedByString) {
-        <img
-          [src]="getPieceImageUrl(tile.occupiedByString, pieceColor)"
-          alt="{{ tile.occupiedByString }}" />
+<div class="chess-board-container">
+  <!-- column Names -->
+  <span class="column-names top-column-names">
+    @for (col of this.columnNames; track columnNames.indexOf(col)) {
+      <span class="column-name">{{ col }}</span>
+    }
+  </span>
+
+  <!-- board with Rows -->
+  <div class="board-with-rows">
+    <!-- row Names -->
+    <div class="row-names left-row-names">
+      @for (row of this.rowNames; track rowNames.indexOf(row)) {
+        <span class="row-name">{{ row }}</span>
       }
     </div>
-  }
+
+    <!-- board -->
+    <div class="board-container">
+      @for (tile of this.tiles; track tile.index) {
+        <div [ngClass]="calculateTileStyleClasses(tile)" (click)="onTileClicked(tile)">
+          @if (tile.index === promotionTile?.index) {
+            <!-- the color needs to be inverted because the tile where the promotion is happening is
+            still considered to be occupied by a piece of the promoters opponent -->
+            @let pieceColor =
+              tile.occupiedByString === tile.occupiedByString.toUpperCase() ? 'b' : 'w';
+            <span class="promotion-selection">
+              @for (piece of promotionPieces; track piece) {
+                <div class="promotion-option">
+                  <p-image
+                    [src]="getPieceImageUrl(piece, pieceColor)"
+                    alt="{{ piece }}"
+                    (click)="onPromotedPieceSelection(piece, pieceColor)" />
+                </div>
+              }
+            </span>
+          }
+          @if (tile.occupiedByString) {
+            @let pieceColor =
+              tile.occupiedByString === tile.occupiedByString.toUpperCase() ? 'w' : 'b';
+            <p-image
+              [src]="getPieceImageUrl(tile.occupiedByString, pieceColor)"
+              alt="{{ tile.occupiedByString }}" />
+          }
+        </div>
+      }
+    </div>
+    <!-- right row names -->
+    <div class="row-names right-row-names">
+      @for (row of this.rowNames; track rowNames.indexOf(row)) {
+        <span class="row-name">{{ row }}</span>
+      }
+    </div>
+  </div>
+
+  <!-- bottom column names -->
+  <span class="column-names bottom-column-names">
+    @for (col of this.columnNames; track columnNames.indexOf(col)) {
+      <span class="column-name">{{ col }}</span>
+    }
+  </span>
 </div>
 
 <p-dialog
   header="Checkmate"
+  class="winner-dialog"
   [modal]="true"
-  [(visible)]="isWinnerDialogVisible"
-  class="winner-dialog">
-  <span class="winner-text">{{ getWinner() }} is the winner!</span>
+  [(visible)]="isWinnerDialogVisible">
+  <span class="winner-text">{{ winnerFlagToString() }} is the winner!</span>
   <div class="button-container">
     <p-button label="Continue" severity="primary" (onClick)="isWinnerDialogVisible = false" />
   </div>
