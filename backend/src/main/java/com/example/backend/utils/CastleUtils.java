@@ -19,20 +19,31 @@ public class CastleUtils {
 
     public static List<Move> calculateCastleMoves(Board board, Alliance alliance) {
         List<Move> castleMoves = new ArrayList<>();
+
+        // no need to check if fen tells us that the alliance is not capable of castling
         if (!board.isAllianceCastleCapable(alliance)) {
             return castleMoves;
         }
 
         int kingPosition = alliance.isWhite() ? 60 : 4;
-        int[] rookPositions = alliance.isWhite() ? new int[]{56, 63} : new int[]{0, 7};
 
+        // check if king is not in check
+        if (board.getAlliancesAttackingPositions(alliance.getOpponent()).contains(kingPosition)) {
+            return castleMoves;
+        }
+
+        int[] rookPositions = alliance.isWhite() ? new int[]{56, 63} : new int[]{0, 7};
         for (int rookPosition : rookPositions) {
-            if (isRookEligibleForCastle(board, rookPosition, alliance)) {
-                if (rookPosition < kingPosition && areTilesSafeForCastle(board, kingPosition, new int[]{-1, -2, -3})) {
-                    castleMoves.add(new Move(kingPosition, kingPosition - 2, MoveType.QUEEN_SIDE_CASTLE));
-                } else if (areTilesSafeForCastle(board, kingPosition, new int[]{1, 2})) {
-                    castleMoves.add(new Move(kingPosition, kingPosition + 2, MoveType.KING_SIDE_CASTLE));
-                }
+            if (!isRookEligibleForCastle(board, rookPosition, alliance)) {
+                continue;
+            }
+
+            int[] offsets = rookPosition < kingPosition ? new int[]{-1, -2, -3} : new int[]{1, 2};
+            MoveType moveType = rookPosition < kingPosition ? MoveType.QUEEN_SIDE_CASTLE : MoveType.KING_SIDE_CASTLE;
+            int kingDestination = rookPosition < kingPosition ? kingPosition - 2 : kingPosition + 2;
+
+            if (areTilesSafeForCastle(board, kingPosition, offsets, alliance)) {
+                castleMoves.add(new Move(kingPosition, kingDestination, moveType));
             }
         }
         return castleMoves;
@@ -46,10 +57,14 @@ public class CastleUtils {
                 tile.getOccupyingPiece().getAlliance() == alliance;
     }
 
-    private static boolean areTilesSafeForCastle(Board board, int kingPosition, int[] offsets) {
+    private static boolean areTilesSafeForCastle(Board board, int kingPosition, int[] offsets, Alliance alliance) {
         for (int offset : offsets) {
-            Tile tile = board.getTileAtCoordinate(kingPosition + offset);
-            if (tile.isOccupied() || board.getAlliancesAttackingPositions(board.getMoveMaker().getOpponent()).contains(tile.getPosition())) {
+            // check if tile is occupied
+            if (board.getTileAtCoordinate(kingPosition + offset).isOccupied()) {
+                return false;
+            }
+            // check if tile is attacked by opponent (offset -3 does not need to be checked for attacks)
+            if (offset != -3 && board.getAlliancesAttackingPositions(alliance.getOpponent()).contains(kingPosition + offset)) {
                 return false;
             }
         }

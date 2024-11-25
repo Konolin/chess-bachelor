@@ -56,7 +56,7 @@ public class Board {
         this.blackAttackingPositions = calculateAttackingPositions(Alliance.BLACK);
 
         this.whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.WHITE));
-        this.whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
+        this.blackLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
     }
 
     private List<Tile> createTiles(final Builder builder) {
@@ -80,7 +80,7 @@ public class Board {
         return tiles.stream()
                 .filter(Tile::isOccupied)
                 .map(Tile::getOccupyingPiece)
-                .filter(piece -> piece != null && piece.getAlliance() == alliance)
+                .filter(piece -> piece.getAlliance() == alliance)
                 .toList();
     }
 
@@ -90,20 +90,7 @@ public class Board {
         // calculate pawn attacks
         for (final Piece piece : (alliance.isWhite() ? whitePieces : blackPieces)) {
             if (piece.isPawn()) {
-                int pos = piece.getPosition();
-                int attack1 = alliance.isWhite() ? pos - 7 : pos + 7;
-                int attack2 = alliance.isWhite() ? pos - 9 : pos + 9;
-                int column = pos % 8;
-
-                // check attack1 (right diagonal for white, left diagonal for black)
-                if (ChessUtils.isValidPosition(attack1) && column != 7) {
-                    attackingPositions.add(attack1);
-                }
-
-                // check attack2 (left diagonal for white, right diagonal for black)
-                if (ChessUtils.isValidPosition(attack2) && column != 0) {
-                    attackingPositions.add(attack2);
-                }
+                attackingPositions.addAll(calculatePawnAttackingPositions(piece, alliance));
             }
         }
 
@@ -113,6 +100,27 @@ public class Board {
         }
 
         return attackingPositions.stream().distinct().toList();
+    }
+
+    private List<Integer> calculatePawnAttackingPositions(Piece pawn, Alliance alliance) {
+        List<Integer> attacks = new ArrayList<>();
+
+        int pos = pawn.getPosition();
+        int attack1 = alliance.isWhite() ? pos - 7 : pos + 7;
+        int attack2 = alliance.isWhite() ? pos - 9 : pos + 9;
+        int column = pos % 8;
+
+        // check attack1 (right diagonal for white, left diagonal for black)
+        if (ChessUtils.isValidPosition(attack1) && column != 7) {
+            attacks.add(attack1);
+        }
+
+        // check attack2 (left diagonal for white, right diagonal for black)
+        if (ChessUtils.isValidPosition(attack2) && column != 0) {
+            attacks.add(attack2);
+        }
+
+        return attacks;
     }
 
     private void calculateCastleCapabilities() {

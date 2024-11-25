@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
@@ -30,7 +31,8 @@ public class GameService {
     public BoardStateDTO initializeBoardState() {
         long startNanos = System.nanoTime();
 
-        board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+        board = FenService.createGameFromFEN("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -");
+//        board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
@@ -56,6 +58,10 @@ public class GameService {
             final Piece piece = candidateTile.getOccupyingPiece();
             // get the legal moves that do not result in check
             legalMoves = ChessUtils.filterMovesResultingInCheck(piece.generateLegalMoves(board), board);
+            // add the castle moves if the piece is king
+            if (piece.isKing()) {
+                legalMoves.addAll(CastleUtils.calculateCastleMoves(board, board.getMoveMaker()));
+            }
         } else {
             legalMoves = null;
         }
