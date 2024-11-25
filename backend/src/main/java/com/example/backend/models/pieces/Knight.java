@@ -12,7 +12,7 @@ public class Knight extends Piece {
     private static final int[] MOVE_OFFSETS = {-17, -15, -10, -6, 6, 10, 15, 17};
 
     public Knight(final int position, final Alliance alliance) {
-        super(position, alliance, false);
+        super(position, alliance, false, PieceType.KNIGHT);
     }
 
     @Override

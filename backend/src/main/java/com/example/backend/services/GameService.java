@@ -31,12 +31,12 @@ public class GameService {
     public BoardStateDTO initializeBoardState() {
         long startNanos = System.nanoTime();
 
-        board = FenService.createGameFromFEN("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -");
-//        board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+        board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
         boardStateDTO.setWinnerFlag(0);
+        boardStateDTO.setBitBoards(board.getBitBoards());
 
         long elapsedNanos = System.nanoTime() - startNanos;
         double elapsedMillis = elapsedNanos / 1_000_000.0;
@@ -82,6 +82,7 @@ public class GameService {
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
         boardStateDTO.setWinnerFlag(getWinnerFlag());
+        boardStateDTO.setBitBoards(board.getBitBoards());
 
         long elapsedNanos = System.nanoTime() - startNanos;
         double elapsedMillis = elapsedNanos / 1_000_000.0;

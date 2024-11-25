@@ -2,6 +2,7 @@ package com.example.backend.models.board;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
+import com.example.backend.models.BitBoards;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.moves.Move;
@@ -38,6 +39,8 @@ public class Board {
     private boolean isWhiteKingSideCastleCapable;
     private boolean isWhiteQueenSideCastleCapable;
 
+    private BitBoards bitBoards;
+
     private Board(Builder builder) {
         this.tiles = this.createTiles(builder);
         this.moveMaker = builder.moveMaker;
@@ -45,6 +48,9 @@ public class Board {
         this.whitePieces = calculatePieces(Alliance.WHITE);
         this.blackPieces = calculatePieces(Alliance.BLACK);
         this.enPassantPawn = builder.enPassantPawn;
+
+        // initialize the BitBoards object
+        this.bitBoards = new BitBoards(this.whitePieces, this.blackPieces);
 
         // calculate castle capabilities for both sides (used for fen string generation)
         calculateCastleCapabilities();

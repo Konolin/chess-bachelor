@@ -13,7 +13,7 @@ public class Pawn extends Piece {
     private static final int[] MOVE_OFFSETS = {7, 8, 9, 16};
 
     public Pawn(final int position, final Alliance alliance, final boolean isFirstMove) {
-        super(position, alliance, isFirstMove);
+        super(position, alliance, isFirstMove, PieceType.PAWN);
     }
 
     @Override

@@ -13,7 +13,7 @@ public class Bishop extends Piece {
     private static final int[] MOVE_OFFSETS = {-9, -7, 7, 9};
 
     public Bishop(final int position, final Alliance alliance) {
-        super(position, alliance, false);
+        super(position, alliance, false, PieceType.BISHOP);
     }
 
     @Override

@@ -13,7 +13,7 @@ public class Queen extends Piece {
     private static final int[] MOVE_OFFSETS = {-9, -8, -7, -1, 1, 7, 8, 9};
 
     public Queen(final int position, final Alliance alliance) {
-        super(position, alliance, false);
+        super(position, alliance, false, PieceType.QUEEN);
     }
 
     @Override

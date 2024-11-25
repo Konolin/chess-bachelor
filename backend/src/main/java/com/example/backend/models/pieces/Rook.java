@@ -13,7 +13,7 @@ public class Rook extends Piece {
     private static final int[] MOVE_OFFSETS = {-8, -1, 1, 8};
 
     public Rook(final int position, final Alliance alliance, final boolean isFirstMove) {
-        super(position, alliance, isFirstMove);
+        super(position, alliance, isFirstMove, PieceType.ROOK);
     }
 
     @Override
