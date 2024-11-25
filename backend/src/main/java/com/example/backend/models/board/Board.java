@@ -2,7 +2,8 @@ package com.example.backend.models.board;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
-import com.example.backend.models.ChessUtils;
+import com.example.backend.utils.CastleUtils;
+import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.*;
@@ -31,6 +32,7 @@ public class Board {
     private final List<Piece> blackPieces;
     private final Pawn enPassantPawn;
 
+    // castle capabilities used for fen string generation
     private boolean isBlackKingSideCastleCapable;
     private boolean isBlackQueenSideCastleCapable;
     private boolean isWhiteKingSideCastleCapable;
@@ -38,10 +40,14 @@ public class Board {
 
     private Board(Builder builder) {
         this.tiles = this.createTiles(builder);
+        this.moveMaker = builder.moveMaker;
 
         this.whitePieces = calculatePieces(Alliance.WHITE);
         this.blackPieces = calculatePieces(Alliance.BLACK);
         this.enPassantPawn = builder.enPassantPawn;
+
+        // calculate castle capabilities for both sides (used for fen string generation)
+        calculateCastleCapabilities();
 
         this.whiteLegalMoves = calculateLegalMoves(Alliance.WHITE);
         this.blackLegalMoves = calculateLegalMoves(Alliance.BLACK);
@@ -49,9 +55,8 @@ public class Board {
         this.whiteAttackingPositions = calculateAttackingPositions(Alliance.WHITE);
         this.blackAttackingPositions = calculateAttackingPositions(Alliance.BLACK);
 
-        this.moveMaker = builder.moveMaker;
-
-        calculateCastleCapabilities();
+        this.whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.WHITE));
+        this.whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
     }
 
     private List<Tile> createTiles(final Builder builder) {
@@ -110,66 +115,31 @@ public class Board {
         return attackingPositions.stream().distinct().toList();
     }
 
-
     private void calculateCastleCapabilities() {
         isBlackKingSideCastleCapable = false;
         isBlackQueenSideCastleCapable = false;
         isWhiteKingSideCastleCapable = false;
         isWhiteQueenSideCastleCapable = false;
 
-        if (getEligibleKingForCastle(Alliance.WHITE) != null) {
-            for (final Rook rook : getEligibleRooksForCastle(Alliance.WHITE)) {
-                if (rook.getPosition() == 63) {
-                    isWhiteKingSideCastleCapable = true;
-                } else {
-                    isWhiteQueenSideCastleCapable = true;
-                }
+        // calculate castle capabilities for white
+        if (CastleUtils.calculateAlliancesKingEligibleForCastle(Alliance.WHITE, tiles)) {
+            if (CastleUtils.calculateAlliancesRookEligibleForCastle(Alliance.WHITE, tiles, 3)) {
+                isWhiteKingSideCastleCapable = true;
+            }
+            if (CastleUtils.calculateAlliancesRookEligibleForCastle(Alliance.WHITE, tiles, -4)) {
+                isWhiteQueenSideCastleCapable = true;
             }
         }
 
-        if (getEligibleKingForCastle(Alliance.BLACK) != null) {
-            for (final Rook rook : getEligibleRooksForCastle(Alliance.BLACK)) {
-                if (rook.getPosition() == 7) {
-                    isBlackKingSideCastleCapable = true;
-                } else {
-                    isBlackQueenSideCastleCapable = true;
-                }
+        // calculate castle capabilities for black
+        if (CastleUtils.calculateAlliancesKingEligibleForCastle(Alliance.BLACK, tiles)) {
+            if (CastleUtils.calculateAlliancesRookEligibleForCastle(Alliance.BLACK, tiles, 3)) {
+                isBlackKingSideCastleCapable = true;
+            }
+            if (CastleUtils.calculateAlliancesRookEligibleForCastle(Alliance.BLACK, tiles, -4)) {
+                isBlackQueenSideCastleCapable = true;
             }
         }
-    }
-
-    private boolean isAllianceCastleCapable(final Alliance alliance) {
-        if (alliance.isWhite()) {
-            return isWhiteKingSideCastleCapable || isWhiteQueenSideCastleCapable;
-        }
-        return isBlackKingSideCastleCapable || isBlackQueenSideCastleCapable;
-    }
-
-    public List<Move> calculateAlliancesCastleMoves(final Alliance alliance) {
-        final List<Move> castleMoves = new ArrayList<>();
-
-        // return early if the move maker is not castle eligible
-        if (!isAllianceCastleCapable(alliance)) {
-            return castleMoves;
-        }
-
-        final List<Rook> rooks = getEligibleRooksForCastle(alliance);
-
-        // check if the squares between the rook and king are safe
-        final int kingPosition = getEligibleKingForCastle(alliance).getPosition();
-        for (final Rook rook : rooks) {
-            if (rook.getPosition() < kingPosition) {
-                if (areTilesEligibleForCastle(kingPosition, new int[]{-1, -2, -3})) {
-                    castleMoves.add(new Move(kingPosition, kingPosition - 2, MoveType.QUEEN_SIDE_CASTLE));
-                }
-            } else {
-                if (areTilesEligibleForCastle(kingPosition, new int[]{1, 2})) {
-                    castleMoves.add(new Move(kingPosition, kingPosition + 2, MoveType.KING_SIDE_CASTLE));
-                }
-            }
-        }
-
-        return castleMoves;
     }
 
     public Board executeMove(final Move move) {
@@ -197,7 +167,7 @@ public class Board {
 
         // handle special moves: en passant, double pawn advance, and castling
         handleEnPassant(move, boardBuilder, movedPiece);
-        handleCastleMove(move, boardBuilder);
+        CastleUtils.handleCastleMove(move, boardBuilder, moveMaker);
 
         // set the next move maker (switch turns) and return the new board state
         return boardBuilder
@@ -219,19 +189,6 @@ public class Board {
         }
     }
 
-    // helper method to handle castling logic
-    private void handleCastleMove(final Move move, Board.Builder boardBuilder) {
-        if (move.getMoveType().isCastleMove()) {
-            if (move.getMoveType() == MoveType.KING_SIDE_CASTLE) {
-                boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() + 1, moveMaker, false))
-                        .setEmptyTile(move.getFromTileIndex() + 3);
-            } else { // Queen-side castle
-                boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() - 1, moveMaker, false))
-                        .setEmptyTile(move.getFromTileIndex() - 4);
-            }
-        }
-    }
-
     public Board.Builder placePieces(final Board.Builder builder, final Piece movedPiece) {
         for (final Piece piece : getAlliancesPieces(moveMaker)) {
             if (!movedPiece.equals(piece)) {
@@ -242,21 +199,6 @@ public class Board {
             builder.setPieceAtPosition(piece);
         }
         return builder;
-    }
-
-    // helper method to check if the tiles between rook and king are eligible for castling
-    private boolean areTilesEligibleForCastle(final int kingPosition, final int[] offsets) {
-        for (int offset : offsets) {
-            // check if tile is occupied
-            if (getTileAtCoordinate(kingPosition + offset).isOccupied()) {
-                return false;
-            }
-            // check if tile is attacked by opponent (offset -3 does not need to be checked for attacks)
-            if (offset != -3 && getAlliancesAttackingPositions(moveMaker.getOpponent()).contains(kingPosition + offset)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     public List<Piece> getAlliancesPieces(final Alliance alliance) {
@@ -283,6 +225,13 @@ public class Board {
                 .orElse(false);
     }
 
+    public boolean isAllianceCastleCapable(final Alliance alliance) {
+        if (alliance.isWhite()) {
+            return isWhiteKingSideCastleCapable || isWhiteQueenSideCastleCapable;
+        }
+        return isBlackKingSideCastleCapable || isBlackQueenSideCastleCapable;
+    }
+
     public Tile getTileAtCoordinate(final int tileCoordinate) {
         return this.tiles.get(tileCoordinate);
     }
@@ -293,24 +242,8 @@ public class Board {
                 : ChessUtils.filterMovesResultingInCheck(blackLegalMoves, this);
     }
 
-    private List<Integer> getAlliancesAttackingPositions(final Alliance alliance) {
+    public List<Integer> getAlliancesAttackingPositions(final Alliance alliance) {
         return alliance.isWhite() ? whiteAttackingPositions : blackAttackingPositions;
-    }
-
-    private King getEligibleKingForCastle(final Alliance alliance) {
-        return getAlliancesPieces(alliance).stream()
-                .filter(piece -> piece.isKing() && piece.isFirstMove() &&
-                        !getAlliancesAttackingPositions(alliance.getOpponent()).contains(piece.getPosition()))
-                .map(King.class::cast)
-                .findFirst()
-                .orElse(null);
-    }
-
-    private List<Rook> getEligibleRooksForCastle(final Alliance alliance) {
-        return getAlliancesPieces(alliance).stream()
-                .filter(piece -> piece.isRook() && piece.isFirstMove())
-                .map(Rook.class::cast)
-                .toList();
     }
 
     @Override

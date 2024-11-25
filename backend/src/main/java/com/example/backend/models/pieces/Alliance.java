@@ -1,6 +1,6 @@
 package com.example.backend.models.pieces;
 
-import com.example.backend.models.ChessUtils;
+import com.example.backend.utils.ChessUtils;
 
 public enum Alliance {
     BLACK {

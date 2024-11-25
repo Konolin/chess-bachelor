@@ -1,6 +1,6 @@
 package com.example.backend.services;
 
-import com.example.backend.models.ChessUtils;
+import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
 import com.example.backend.models.dtos.BoardStateDTO;
@@ -56,10 +56,6 @@ public class GameService {
             final Piece piece = candidateTile.getOccupyingPiece();
             // get the legal moves that do not result in check
             legalMoves = ChessUtils.filterMovesResultingInCheck(piece.generateLegalMoves(board), board);
-            // add the castle moves if the piece is king
-            if (piece.isKing()) {
-                legalMoves.addAll(board.calculateAlliancesCastleMoves(board.getMoveMaker()));
-            }
         } else {
             legalMoves = null;
         }

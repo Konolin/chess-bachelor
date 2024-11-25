@@ -1,6 +1,6 @@
 package com.example.backend.models.pieces;
 
-import com.example.backend.models.ChessUtils;
+import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.MoveType;
