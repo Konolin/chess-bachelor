@@ -1,6 +1,6 @@
 package com.example.backend.models.board;
 
-import com.example.backend.models.ChessUtils;
+import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.pieces.Piece;
 import lombok.Getter;
 

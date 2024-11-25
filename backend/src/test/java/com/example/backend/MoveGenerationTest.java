@@ -20,7 +20,6 @@ class MoveGenerationTest {
 
     long generateMovesCount(Board board, final long depth) {
         List<Move> legalMoves = board.getAlliancesLegalMoves(board.getMoveMaker());
-        legalMoves.addAll(board.calculateAlliancesCastleMoves(board.getMoveMaker()));
 
         long numMoves = 0;
         for (final Move move : legalMoves) {
@@ -43,7 +42,6 @@ class MoveGenerationTest {
         }
 
         List<Move> legalMoves = board.getAlliancesLegalMoves(board.getMoveMaker());
-        legalMoves.addAll(board.calculateAlliancesCastleMoves(board.getMoveMaker()));
 
         long numMoves = 0;
         for (final Move move : legalMoves) {

@@ -1,4 +1,4 @@
-package com.example.backend.models;
+package com.example.backend.utils;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
@@ -79,41 +79,6 @@ public class ChessUtils {
 
     public static String getAlgebraicNotationAtCoordinate(final int coordinate) {
         return ALGEBRAIC_NOTATION[coordinate];
-    }
-
-    public static void initializeStandardPosition(Board.Builder builder) {
-        // Set up black pawns
-        for (int i = 8; i < 16; i++) {
-            builder.setPieceAtPosition(new Pawn(i, Alliance.BLACK, true));
-        }
-
-        // Set up white pawns
-        for (int i = 48; i < 56; i++) {
-            builder.setPieceAtPosition(new Pawn(i, Alliance.WHITE, true));
-        }
-
-        // Set up black pieces
-        builder.setPieceAtPosition(new Rook(0, Alliance.BLACK, true))
-                .setPieceAtPosition(new Knight(1, Alliance.BLACK))
-                .setPieceAtPosition(new Bishop(2, Alliance.BLACK))
-                .setPieceAtPosition(new Queen(3, Alliance.BLACK))
-                .setPieceAtPosition(new King(4, Alliance.BLACK, true))
-                .setPieceAtPosition(new Bishop(5, Alliance.BLACK))
-                .setPieceAtPosition(new Knight(6, Alliance.BLACK))
-                .setPieceAtPosition(new Rook(7, Alliance.BLACK, true));
-
-        // Set up white pieces
-        builder.setPieceAtPosition(new Rook(56, Alliance.WHITE, true))
-                .setPieceAtPosition(new Knight(57, Alliance.WHITE))
-                .setPieceAtPosition(new Bishop(58, Alliance.WHITE))
-                .setPieceAtPosition(new Queen(59, Alliance.WHITE))
-                .setPieceAtPosition(new King(60, Alliance.WHITE, true))
-                .setPieceAtPosition(new Bishop(61, Alliance.WHITE))
-                .setPieceAtPosition(new Knight(62, Alliance.WHITE))
-                .setPieceAtPosition(new Rook(63, Alliance.WHITE, true));
-
-        // Set en passant pawn as null for starting position
-        builder.setEnPassantPawn(null);
     }
 
     public static List<Move> filterMovesResultingInCheck(final List<Move> allMoves, final Board board) {

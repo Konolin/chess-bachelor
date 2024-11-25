@@ -1,6 +1,6 @@
 package com.example.backend.models.moves;
 
-import com.example.backend.models.ChessUtils;
+import com.example.backend.utils.ChessUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

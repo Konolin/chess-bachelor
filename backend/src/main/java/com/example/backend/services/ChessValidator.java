@@ -2,7 +2,7 @@ package com.example.backend.services;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
-import com.example.backend.models.ChessUtils;
+import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.Move;
 import org.springframework.stereotype.Service;
