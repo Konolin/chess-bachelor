@@ -48,6 +48,17 @@ public class ChessUtils {
         };
     }
 
+    public static Piece createPieceFromTypeAndPosition(final PieceType type, final Alliance alliance, final int position) {
+        return switch (type) {
+            case QUEEN -> new Queen(position, alliance);
+            case ROOK -> new Rook(position, alliance, false);
+            case KNIGHT -> new Knight(position, alliance);
+            case BISHOP -> new Bishop(position, alliance);
+            case PAWN -> new Pawn(position, alliance, false);
+            case KING -> new King(position, alliance, false);
+        };
+    }
+
     private static boolean[] initColumn(final int columnNumber) {
         final boolean[] column = new boolean[TILES_NUMBER];
         for (int i = columnNumber; i < TILES_NUMBER; i += TILES_PER_ROW) {

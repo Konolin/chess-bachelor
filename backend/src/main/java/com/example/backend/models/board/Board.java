@@ -50,7 +50,7 @@ public class Board {
         this.enPassantPawn = builder.enPassantPawn;
 
         // initialize the BitBoards object
-        this.bitBoards = new BitBoards(this.whitePieces, this.blackPieces);
+        this.bitBoards = new BitBoards(builder.boardConfig);
 
         // calculate castle capabilities for both sides (used for fen string generation)
         calculateCastleCapabilities();
@@ -160,10 +160,16 @@ public class Board {
         // obtain the piece that is going to be moved
         final Piece movingPiece = getTileAtCoordinate(move.getFromTileIndex()).getOccupyingPiece();
 
+        // prepare a new BitBoards instance to update the board state
+        final BitBoards newBitBoards = new BitBoards(this.bitBoards);
+
         // check if this is a promotion move
         if (move.getMoveType().isPromotion()) {
             // create the promoted piece on its new position
             final Piece promotedPiece = ChessUtils.createPieceFromCharAndPosition(move.getPromotedPieceChar(), move.getToTileIndex());
+
+            // update the bitboards with the promoted piece
+            newBitBoards.updatePromotion(movingPiece, promotedPiece, move.getFromTileIndex(), move.getToTileIndex());
 
             // build the new board state with the promoted piece
             return placePieces(new Board.Builder(), movingPiece)
@@ -175,12 +181,20 @@ public class Board {
         // regular move handling
         final Piece movedPiece = movingPiece.movePiece(movingPiece.getAlliance(), move.getToTileIndex());
 
+        // update the bitboards for the move
+        newBitBoards.updateMove(movingPiece, move.getFromTileIndex(), move.getToTileIndex());
+
+        // Handle captures
+        if (move.getMoveType().isAttack()) {
+            newBitBoards.updateCapture(move.getToTileIndex(), moveMaker.getOpponent());
+        }
+
         // initialize builder and place all pieces except the one being moved
         Board.Builder boardBuilder = placePieces(new Board.Builder(), movingPiece)
                 .setPieceAtPosition(movedPiece);
 
         // handle special moves: en passant, double pawn advance, and castling
-        handleEnPassant(move, boardBuilder, movedPiece);
+        handleEnPassant(move, boardBuilder, movedPiece, newBitBoards);
         CastleUtils.handleCastleMove(move, boardBuilder, moveMaker);
 
         // set the next move maker (switch turns) and return the new board state
@@ -190,9 +204,10 @@ public class Board {
     }
 
     // helper method to handle en passant logic
-    private void handleEnPassant(final Move move, Board.Builder boardBuilder, final Piece movedPiece) {
+    private void handleEnPassant(final Move move, Board.Builder boardBuilder, final Piece movedPiece, final BitBoards newBitBoards) {
         if (move.getMoveType() == MoveType.EN_PASSANT) {
             boardBuilder.setEmptyTile(enPassantPawn.getPosition());
+            newBitBoards.updateCapture(enPassantPawn.getPosition(), moveMaker.getOpponent());
         }
 
         // set the en passant pawn if this move is a double pawn advance
