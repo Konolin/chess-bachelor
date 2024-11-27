@@ -1,6 +1,6 @@
 package com.example.backend.models.dtos;
 
-import com.example.backend.models.BitBoards;
+import com.example.backend.models.bitboards.BitBoards;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

@@ -2,7 +2,7 @@ package com.example.backend.models.board;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
-import com.example.backend.models.BitBoards;
+import com.example.backend.models.bitboards.BitBoards;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.moves.Move;

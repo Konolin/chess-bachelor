@@ -1,10 +1,11 @@
-package com.example.backend.models;
+package com.example.backend.models.bitboards;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.PieceType;
+import com.example.backend.utils.ChessUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,20 +17,22 @@ import java.util.Map;
 @Getter
 @Setter
 public class BitBoards {
+    private static final long[] rookMoveMaskTable = computeRookMoveTable();
+    private static final long[] bishopMoveMaskTable = computeBishopMoveTable();
+    private static final long[] queenMoveMaskTable = computeQueenMoveTable();
+
     @JsonIgnore
     private final Logger logger = LoggerFactory.getLogger(BitBoards.class);
 
     private long allPieces;
     private long whitePieces;
     private long blackPieces;
-
     private long whitePawns;
     private long whiteKnights;
     private long whiteBishops;
     private long whiteRooks;
     private long whiteQueens;
     private long whiteKing;
-
     private long blackPawns;
     private long blackKnights;
     private long blackBishops;
@@ -65,6 +68,83 @@ public class BitBoards {
         this.blackRooks = other.blackRooks;
         this.blackQueens = other.blackQueens;
         this.blackKing = other.blackKing;
+    }
+
+    private static long[] computeRookMoveTable() {
+        long[] table = new long[ChessUtils.TILES_NUMBER];
+        // iterate over all the squares on the board
+        for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
+            long mask = 0L;
+            int row = i / ChessUtils.TILES_PER_ROW;
+            int col = i % ChessUtils.TILES_PER_ROW;
+
+            // mask all the squares in the same row as the rook
+            for (int j = 0; j < ChessUtils.TILES_PER_ROW; j++) {
+                if (j != col) { // exclude the square the rook is on
+                    mask |= 1L << (row * ChessUtils.TILES_PER_ROW + j);
+                }
+            }
+
+            // mask all the squares in the same column as the rook
+            for (int j = 0; j < ChessUtils.TILES_PER_ROW; j++) {
+                if (j != row) { // exclude the square the rook is on
+                    mask |= 1L << (j * ChessUtils.TILES_PER_ROW + col);
+                }
+            }
+            table[i] = mask;
+        }
+        return table;
+    }
+
+    private static long[] computeBishopMoveTable() {
+        long[] table = new long[ChessUtils.TILES_NUMBER];
+        for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
+            long mask = 0L;
+            int row = i / ChessUtils.TILES_PER_ROW;
+            int col = i % ChessUtils.TILES_PER_ROW;
+            // calculate the mask for the bottom-left to top-right diagonal
+            int r = row + 1;
+            int c = col - 1;
+            while (r < ChessUtils.TILES_PER_ROW && c >= 0) {
+                mask |= (1L << (r * ChessUtils.TILES_PER_ROW + c));
+                r++;
+                c--;
+            }
+            // calculate the mask for the top-right to bottom-left diagonal
+            r = row - 1;
+            c = col + 1;
+            while (r >= 0 && c < ChessUtils.TILES_PER_ROW) {
+                mask |= (1L << (r * ChessUtils.TILES_PER_ROW + c));
+                r--;
+                c++;
+            }
+            // calculate the mask for the bottom-right to top-left diagonal
+            r = row + 1;
+            c = col + 1;
+            while (r < ChessUtils.TILES_PER_ROW && c < ChessUtils.TILES_PER_ROW) {
+                mask |= (1L << (r * ChessUtils.TILES_PER_ROW + c));
+                r++;
+                c++;
+            }
+            // calculate the mask for the top-left to bottom-right diagonal
+            r = row - 1;
+            c = col - 1;
+            while (r >= 0 && c >= 0) {
+                mask |= (1L << (r * ChessUtils.TILES_PER_ROW + c));
+                r--;
+                c--;
+            }
+            table[i] = mask;
+        }
+        return table;
+    }
+
+    private static long[] computeQueenMoveTable() {
+        long[] table = new long[ChessUtils.TILES_NUMBER];
+        for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
+            table[i] = rookMoveMaskTable[i] | bishopMoveMaskTable[i];
+        }
+        return table;
     }
 
     public void updateMove(Piece movingPiece, int fromIndex, int toIndex) {
@@ -212,7 +292,7 @@ public class BitBoards {
                 sb.append("\n");
             }
         }
-        return sb.toString();
+        return sb.reverse().toString();
     }
 
     private void logBitboards() {
