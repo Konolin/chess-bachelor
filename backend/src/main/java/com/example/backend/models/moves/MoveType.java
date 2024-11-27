@@ -21,4 +21,8 @@ public enum MoveType {
     public boolean isKingSideCastle() {
         return this == KING_SIDE_CASTLE;
     }
+
+    public boolean isAttack() {
+        return this == ATTACK || this == PROMOTION_ATTACK;
+    }
 }

@@ -1,5 +1,8 @@
 package com.example.backend.models;
 
+import com.example.backend.exceptions.ChessException;
+import com.example.backend.exceptions.ChessExceptionCodes;
+import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.PieceType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -8,7 +11,7 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -34,41 +37,170 @@ public class BitBoards {
     private long blackQueens;
     private long blackKing;
 
-    public BitBoards(final List<Piece> whitePieces, final List<Piece> blackPieces) {
-        this.whitePawns = calculatePieceBitboard(whitePieces, PieceType.PAWN);
-        this.blackPawns = calculatePieceBitboard(blackPieces, PieceType.PAWN);
-        this.whiteRooks = calculatePieceBitboard(whitePieces, PieceType.ROOK);
-        this.blackRooks = calculatePieceBitboard(blackPieces, PieceType.ROOK);
-        this.whiteKnights = calculatePieceBitboard(whitePieces, PieceType.KNIGHT);
-        this.blackKnights = calculatePieceBitboard(blackPieces, PieceType.KNIGHT);
-        this.whiteBishops = calculatePieceBitboard(whitePieces, PieceType.BISHOP);
-        this.blackBishops = calculatePieceBitboard(blackPieces, PieceType.BISHOP);
-        this.whiteQueens = calculatePieceBitboard(whitePieces, PieceType.QUEEN);
-        this.blackQueens = calculatePieceBitboard(blackPieces, PieceType.QUEEN);
-        this.whiteKing = calculatePieceBitboard(whitePieces, PieceType.KING);
-        this.blackKing = calculatePieceBitboard(blackPieces, PieceType.KING);
-
-        // combine all pieces into a single occupied bitboard
-        this.allPieces = whitePawns | blackPawns | whiteRooks | blackRooks |
-                whiteKnights | blackKnights | whiteBishops | blackBishops |
-                whiteQueens | blackQueens | whiteKing | blackKing;
-
-        // combine white and black pieces into separate bitboards
-        this.whitePieces = whitePawns | whiteRooks | whiteKnights | whiteBishops | whiteQueens | whiteKing;
-        this.blackPieces = blackPawns | blackRooks | blackKnights | blackBishops | blackQueens | blackKing;
-
+    public BitBoards(final Map<Integer, Piece> boardConfig) {
+        for (Map.Entry<Integer, Piece> entry : boardConfig.entrySet()) {
+            int position = entry.getKey();
+            Piece piece = entry.getValue();
+            if (piece != null) {
+                setBitboardForPiece(piece, position);
+            }
+        }
+        allPieces = whitePieces | blackPieces;
         logBitboards();
     }
 
-    // helper method to calculate the bitboard for a specific piece type
-    private long calculatePieceBitboard(List<Piece> pieces, PieceType pieceType) {
-        long bitboard = 0L;
-        for (Piece piece : pieces) {
-            if (piece.getType() == pieceType) {
-                bitboard |= 1L << piece.getPosition();
+    public BitBoards(final BitBoards other) {
+        this.allPieces = other.allPieces;
+        this.whitePieces = other.whitePieces;
+        this.blackPieces = other.blackPieces;
+        this.whitePawns = other.whitePawns;
+        this.whiteKnights = other.whiteKnights;
+        this.whiteBishops = other.whiteBishops;
+        this.whiteRooks = other.whiteRooks;
+        this.whiteQueens = other.whiteQueens;
+        this.whiteKing = other.whiteKing;
+        this.blackPawns = other.blackPawns;
+        this.blackKnights = other.blackKnights;
+        this.blackBishops = other.blackBishops;
+        this.blackRooks = other.blackRooks;
+        this.blackQueens = other.blackQueens;
+        this.blackKing = other.blackKing;
+    }
+
+    public void updateMove(Piece movingPiece, int fromIndex, int toIndex) {
+        long fromMask = ~(1L << fromIndex);
+        long toMask = 1L << toIndex;
+
+        // Update the specific piece's bitboard
+        updateBitboardForPiece(movingPiece, fromMask, toMask);
+
+        // Update all pieces and alliance-specific bitboards
+        if (movingPiece.getAlliance().isWhite()) {
+            whitePieces = (whitePieces & fromMask) | toMask;
+        } else {
+            blackPieces = (blackPieces & fromMask) | toMask;
+        }
+        allPieces = whitePieces | blackPieces;
+    }
+
+    public void updateCapture(int captureIndex, Alliance opponentAlliance) {
+        long captureMask = ~(1L << captureIndex);
+
+        if (opponentAlliance.isWhite()) {
+            whitePieces &= captureMask;
+            whitePawns &= captureMask;
+            whiteKnights &= captureMask;
+            whiteBishops &= captureMask;
+            whiteRooks &= captureMask;
+            whiteQueens &= captureMask;
+            whiteKing &= captureMask;
+        } else {
+            blackPieces &= captureMask;
+            blackPawns &= captureMask;
+            blackKnights &= captureMask;
+            blackBishops &= captureMask;
+            blackRooks &= captureMask;
+            blackQueens &= captureMask;
+            blackKing &= captureMask;
+        }
+    }
+
+    public void updatePromotion(final Piece pawn, final Piece promotedPiece, final int fromPosition, final int toPosition) {
+        // create a mask with the bit at the fromIndex to 0 and set the bit at the toIndex to 1
+        long fromMask = ~(1L << fromPosition);
+        long toMask = 1L << toPosition;
+
+        // clear the pawn bitboard using the mask
+        if (pawn.getAlliance().isWhite()) {
+            whitePawns &= fromMask;
+            whitePieces &= fromMask;
+        } else {
+            blackPawns &= fromMask;
+            blackPieces &= fromMask;
+        }
+
+        // update the promoted piece's bitboard
+        setBitboardForPiece(promotedPiece, toPosition);
+
+        // update alliance-specific bitboards
+        if (promotedPiece.getAlliance().isWhite()) {
+            whitePieces = (whitePieces & fromMask) | toMask;
+        } else {
+            blackPieces = (blackPieces & fromMask) | toMask;
+        }
+        allPieces = whitePieces | blackPieces;
+    }
+
+    private void updateBitboardForPiece(final Piece piece, long fromMask, long toMask) {
+        if (piece.getAlliance().isWhite()) {
+            switch (piece.getType()) {
+                case PAWN -> whitePawns = (whitePawns & fromMask) | toMask;
+                case KNIGHT -> whiteKnights = (whiteKnights & fromMask) | toMask;
+                case BISHOP -> whiteBishops = (whiteBishops & fromMask) | toMask;
+                case ROOK -> whiteRooks = (whiteRooks & fromMask) | toMask;
+                case QUEEN -> whiteQueens = (whiteQueens & fromMask) | toMask;
+                case KING -> whiteKing = (whiteKing & fromMask) | toMask;
+            }
+        } else {
+            switch (piece.getType()) {
+                case PAWN -> blackPawns = (blackPawns & fromMask) | toMask;
+                case KNIGHT -> blackKnights = (blackKnights & fromMask) | toMask;
+                case BISHOP -> blackBishops = (blackBishops & fromMask) | toMask;
+                case ROOK -> blackRooks = (blackRooks & fromMask) | toMask;
+                case QUEEN -> blackQueens = (blackQueens & fromMask) | toMask;
+                case KING -> blackKing = (blackKing & fromMask) | toMask;
             }
         }
-        return bitboard;
+    }
+
+    private void setBitboardForPiece(Piece piece, int position) {
+        long positionMask = 1L << position;
+
+        if (piece.getAlliance().isWhite()) {
+            whitePieces |= positionMask;
+            switch (piece.getType()) {
+                case PAWN -> whitePawns |= positionMask;
+                case KNIGHT -> whiteKnights |= positionMask;
+                case BISHOP -> whiteBishops |= positionMask;
+                case ROOK -> whiteRooks |= positionMask;
+                case QUEEN -> whiteQueens |= positionMask;
+                case KING -> whiteKing |= positionMask;
+            }
+        } else {
+            blackPieces |= positionMask;
+            switch (piece.getType()) {
+                case PAWN -> blackPawns |= positionMask;
+                case KNIGHT -> blackKnights |= positionMask;
+                case BISHOP -> blackBishops |= positionMask;
+                case ROOK -> blackRooks |= positionMask;
+                case QUEEN -> blackQueens |= positionMask;
+                case KING -> blackKing |= positionMask;
+            }
+        }
+    }
+
+    public long getPieceBitboard(final PieceType pieceType, final Alliance alliance) {
+        switch (pieceType) {
+            case PAWN -> {
+                return alliance.isWhite() ? whitePawns : blackPawns;
+            }
+            case KNIGHT -> {
+                return alliance.isWhite() ? whiteKnights : blackKnights;
+            }
+            case BISHOP -> {
+                return alliance.isWhite() ? whiteBishops : blackBishops;
+            }
+            case ROOK -> {
+                return alliance.isWhite() ? whiteRooks : blackRooks;
+            }
+            case QUEEN -> {
+                return alliance.isWhite() ? whiteQueens : blackQueens;
+            }
+            case KING -> {
+                return alliance.isWhite() ? whiteKing : blackKing;
+            }
+            default -> throw new ChessException("Invalid piece type", ChessExceptionCodes.INVALID_PIECE_TYPE);
+        }
     }
 
     public String bitboardFormatedString(long bitboard) {
