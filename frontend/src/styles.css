@@ -7,13 +7,16 @@
   --previous-dark-square-color: #b9ca43;
   --previous-light-square-color: #f5f682;
   --legal-move-color: #afafaf;
-  --text-color: #000000;
+  --dark-text-color: #000000;
+  --light-text-color: #ffffff;
+  --background-color: #3d3d3d;
 }
 
 body {
   padding: 0.5rem;
   max-width: 80%;
   margin: auto;
+  background-color: var(--background-color);
 }
 
 body,

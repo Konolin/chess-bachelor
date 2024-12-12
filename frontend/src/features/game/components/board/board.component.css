@@ -5,23 +5,23 @@
   position: relative;
 }
 
-.column-names {
+.row-names, .column-names {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
   gap: 0;
-  width: 36rem;
-  text-align: center;
   font-weight: bold;
   font-size: 1rem;
+  color: var(--light-text-color);
+}
+
+.column-names {
+  grid-template-columns: repeat(8, 1fr);
+  width: 36rem;
+  text-align: center;
 }
 
 .row-names {
-  display: grid;
   grid-template-rows: repeat(8, 1fr);
-  gap: 0;
   height: 36rem;
-  font-weight: bold;
-  font-size: 1rem;
   align-items: center;
   justify-items: center;
 }
@@ -137,7 +137,7 @@
 
 .winner-text {
   display: block;
-  color: var(--text-color);
+  color: var(--dark-text-color);
   font-size: 1.2rem;
   font-weight: bold;
   text-align: center;
