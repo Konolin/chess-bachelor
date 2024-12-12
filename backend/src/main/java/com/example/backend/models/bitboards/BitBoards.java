@@ -17,9 +17,33 @@ import java.util.Map;
 @Getter
 @Setter
 public class BitBoards {
-    private static final long[] rookMoveMaskTable = computeRookMoveTable();
-    private static final long[] bishopMoveMaskTable = computeBishopMoveTable();
-    private static final long[] queenMoveMaskTable = computeQueenMoveTable();
+    public static final long[] rookAttackMask = computeRookAttackMask();
+    public static final long[] bishopAttackMask = computeBishopAttackMask();
+    public static final long[] queenAttackMask = computeQueenAttackMask();
+
+    // bishop relevant attack mask bit count for every square on board
+    public static final int[] bishopRelevantBits = {
+            6, 5, 5, 5, 5, 5, 5, 6,
+            5, 5, 5, 5, 5, 5, 5, 5,
+            5, 5, 7, 7, 7, 7, 5, 5,
+            5, 5, 7, 9, 9, 7, 5, 5,
+            5, 5, 7, 9, 9, 7, 5, 5,
+            5, 5, 7, 7, 7, 7, 5, 5,
+            5, 5, 5, 5, 5, 5, 5, 5,
+            6, 5, 5, 5, 5, 5, 5, 6
+    };
+
+    // rook relevant attack mask bit count for every square on board
+    public static final int[] rookRelevantBits = {
+            12, 11, 11, 11, 11, 11, 11, 12,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            12, 11, 11, 11, 11, 11, 11, 12
+    };
 
     @JsonIgnore
     private final Logger logger = LoggerFactory.getLogger(BitBoards.class);
@@ -70,79 +94,104 @@ public class BitBoards {
         this.blackKing = other.blackKing;
     }
 
-    private static long[] computeRookMoveTable() {
+    /**
+     * Computes the relevant occupancy masks for rook moves on a chessboard.
+     * <p>
+     * This method generates a lookup table where each entry represents the relevant
+     * occupancy mask for a specific square on the board. The relevant occupancy mask
+     * includes all squares in the same row and column as the rook, excluding edge squares
+     * and the square where the rook is currently located.
+     * <p>
+     * For example:
+     * - For a rook on `a1`, the mask will include `a2` to `a7` (vertical) and `b1` to `g1` (horizontal).
+     * - For a rook on `d4`, the mask will include `d2` to `d7`, `b4` to `c4`, and `e4` to `g4`, excluding `d1` and `d8`.
+     *
+     * @return a long array of size 64, where each entry corresponds to the relevant
+     *         occupancy mask for the rook at a specific square (indexed from 0 for `a1`
+     *         to 63 for `h8`).
+     */
+    private static long[] computeRookAttackMask() {
         long[] table = new long[ChessUtils.TILES_NUMBER];
-        // iterate over all the squares on the board
+
+        // iterate over all squares of the board, creating a mask for every tile
         for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
             long mask = 0L;
-            int row = i / ChessUtils.TILES_PER_ROW;
-            int col = i % ChessUtils.TILES_PER_ROW;
+            int row = i / 8;
+            int col = i % 8;
 
-            // mask all the squares in the same row as the rook
-            for (int j = 0; j < ChessUtils.TILES_PER_ROW; j++) {
-                if (j != col) { // exclude the square the rook is on
-                    mask |= 1L << (row * ChessUtils.TILES_PER_ROW + j);
-                }
+            // generate relevant occupancy for the row
+            for (int j = col + 1; j < 7; j++) { // exclude edges
+                mask |= 1L << (row * 8 + j);
+            }
+            for (int j = col - 1; j > 0; j--) { // exclude edges
+                mask |= 1L << (row * 8 + j);
             }
 
-            // mask all the squares in the same column as the rook
-            for (int j = 0; j < ChessUtils.TILES_PER_ROW; j++) {
-                if (j != row) { // exclude the square the rook is on
-                    mask |= 1L << (j * ChessUtils.TILES_PER_ROW + col);
-                }
+            // Generate relevant occupancy for the column
+            for (int j = row + 1; j < 7; j++) { // exclude edges
+                mask |= 1L << (j * 8 + col);
             }
+            for (int j = row - 1; j > 0; j--) { // exclude edges
+                mask |= 1L << (j * 8 + col);
+            }
+
             table[i] = mask;
         }
+
         return table;
     }
 
-    private static long[] computeBishopMoveTable() {
+    /**
+     * Computes the relevant occupancy masks for bishop moves on a chessboard.
+     * <p>
+     * This method generates a lookup table where each entry represents the relevant
+     * occupancy mask for a specific square on the board. The relevant occupancy mask
+     * includes all squares along the diagonals originating from the bishop's position,
+     * excluding edge squares and the square where the bishop is currently located.
+     * <p>
+     * For example:
+     * - For a bishop on `a1`, the mask will include `b2` to `g7` (top-right diagonal).
+     * - For a bishop on `d4`, the mask will include squares such as `c3`, `b2`, `e5`, `f6`, etc.,
+     *   excluding edge squares and those not part of the diagonals.
+     *
+     * @return a long array of size 64, where each entry corresponds to the relevant
+     *         occupancy mask for the bishop at a specific square (indexed from 0 for `a1`
+     *         to 63 for `h8`).
+     */
+    private static long[] computeBishopAttackMask() {
         long[] table = new long[ChessUtils.TILES_NUMBER];
+
         for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
             long mask = 0L;
-            int row = i / ChessUtils.TILES_PER_ROW;
-            int col = i % ChessUtils.TILES_PER_ROW;
-            // calculate the mask for the bottom-left to top-right diagonal
-            int r = row + 1;
-            int c = col - 1;
-            while (r < ChessUtils.TILES_PER_ROW && c >= 0) {
-                mask |= (1L << (r * ChessUtils.TILES_PER_ROW + c));
-                r++;
-                c--;
+            int row = i / 8;
+            int col = i % 8;
+
+            // Calculate relevant squares for the top-left to bottom-right diagonal
+            for (int r = row + 1, c = col + 1; r < 7 && c < 7; r++, c++) {
+                mask |= (1L << (r * 8 + c));
             }
-            // calculate the mask for the top-right to bottom-left diagonal
-            r = row - 1;
-            c = col + 1;
-            while (r >= 0 && c < ChessUtils.TILES_PER_ROW) {
-                mask |= (1L << (r * ChessUtils.TILES_PER_ROW + c));
-                r--;
-                c++;
+            for (int r = row - 1, c = col - 1; r > 0 && c > 0; r--, c--) {
+                mask |= (1L << (r * 8 + c));
             }
-            // calculate the mask for the bottom-right to top-left diagonal
-            r = row + 1;
-            c = col + 1;
-            while (r < ChessUtils.TILES_PER_ROW && c < ChessUtils.TILES_PER_ROW) {
-                mask |= (1L << (r * ChessUtils.TILES_PER_ROW + c));
-                r++;
-                c++;
+
+            // Calculate relevant squares for the top-right to bottom-left diagonal
+            for (int r = row + 1, c = col - 1; r < 7 && c > 0; r++, c--) {
+                mask |= (1L << (r * 8 + c));
             }
-            // calculate the mask for the top-left to bottom-right diagonal
-            r = row - 1;
-            c = col - 1;
-            while (r >= 0 && c >= 0) {
-                mask |= (1L << (r * ChessUtils.TILES_PER_ROW + c));
-                r--;
-                c--;
+            for (int r = row - 1, c = col + 1; r > 0 && c < 7; r--, c++) {
+                mask |= (1L << (r * 8 + c));
             }
+
             table[i] = mask;
         }
+
         return table;
     }
 
-    private static long[] computeQueenMoveTable() {
+    private static long[] computeQueenAttackMask() {
         long[] table = new long[ChessUtils.TILES_NUMBER];
         for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
-            table[i] = rookMoveMaskTable[i] | bishopMoveMaskTable[i];
+            table[i] = rookAttackMask[i] | bishopAttackMask[i];
         }
         return table;
     }
