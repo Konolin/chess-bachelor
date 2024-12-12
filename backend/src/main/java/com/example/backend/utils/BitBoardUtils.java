@@ -1,6 +1,30 @@
 package com.example.backend.utils;
 
 public class BitBoardUtils {
+    // bishop relevant attack mask bit count for every square on board
+    public static final int[] bishopRelevantBits = {
+            6, 5, 5, 5, 5, 5, 5, 6,
+            5, 5, 5, 5, 5, 5, 5, 5,
+            5, 5, 7, 7, 7, 7, 5, 5,
+            5, 5, 7, 9, 9, 7, 5, 5,
+            5, 5, 7, 9, 9, 7, 5, 5,
+            5, 5, 7, 7, 7, 7, 5, 5,
+            5, 5, 5, 5, 5, 5, 5, 5,
+            6, 5, 5, 5, 5, 5, 5, 6
+    };
+
+    // rook relevant attack mask bit count for every square on board
+    public static final int[] rookRelevantBits = {
+            12, 11, 11, 11, 11, 11, 11, 12,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            11, 10, 10, 10, 10, 10, 10, 11,
+            12, 11, 11, 11, 11, 11, 11, 12
+    };
+
     /**
      * Constructs an occupancy bitboard for a given index by setting bits at positions
      * specified by the relevant bits in the attack mask.

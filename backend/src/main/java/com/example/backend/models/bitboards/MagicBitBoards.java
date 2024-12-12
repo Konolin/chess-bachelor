@@ -9,9 +9,6 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.IntStream;
 
-import static com.example.backend.models.bitboards.BitBoards.bishopAttackMask;
-import static com.example.backend.models.bitboards.BitBoards.rookAttackMask;
-
 public class MagicBitBoards {
     public static final long[] rookMagicNumbers = {
             324259724000241684L, 1170938170995376706L, 4647723680334356480L, 1224996690898460928L,
@@ -62,8 +59,8 @@ public class MagicBitBoards {
         long[] newBishopMagicNumbers = new long[64];
 
         IntStream.range(0, ChessUtils.TILES_NUMBER).parallel().forEach(square -> {
-            newRookMagicNumbers[square] = findMagicNumber(square, BitBoards.rookRelevantBits[square], true);
-            newBishopMagicNumbers[square] = findMagicNumber(square, BitBoards.bishopRelevantBits[square], false);
+            newRookMagicNumbers[square] = findMagicNumber(square, BitBoardUtils.rookRelevantBits[square], true);
+            newBishopMagicNumbers[square] = findMagicNumber(square, BitBoardUtils.bishopRelevantBits[square], false);
         });
 
         logger.info("Rook magic numbers: {}", Arrays.toString(newRookMagicNumbers));
@@ -81,7 +78,7 @@ public class MagicBitBoards {
         long[] usedAttacks = new long[4096];
 
         // get the attackMask for the current piece type (these are the relevant tiles)
-        long attackMask = isRook ? rookAttackMask[tileIndex] : bishopAttackMask[tileIndex];
+        long attackMask = isRook ? BitBoards.rookAttackMask[tileIndex] : BitBoards.bishopAttackMask[tileIndex];
 
         // the number of possible ways to occupy the relevant tiles: (2^relevantBits)
         int numberOfOccupancies = 1 << relevantBits;

@@ -21,30 +21,6 @@ public class BitBoards {
     public static final long[] bishopAttackMask = computeBishopAttackMask();
     public static final long[] queenAttackMask = computeQueenAttackMask();
 
-    // bishop relevant attack mask bit count for every square on board
-    public static final int[] bishopRelevantBits = {
-            6, 5, 5, 5, 5, 5, 5, 6,
-            5, 5, 5, 5, 5, 5, 5, 5,
-            5, 5, 7, 7, 7, 7, 5, 5,
-            5, 5, 7, 9, 9, 7, 5, 5,
-            5, 5, 7, 9, 9, 7, 5, 5,
-            5, 5, 7, 7, 7, 7, 5, 5,
-            5, 5, 5, 5, 5, 5, 5, 5,
-            6, 5, 5, 5, 5, 5, 5, 6
-    };
-
-    // rook relevant attack mask bit count for every square on board
-    public static final int[] rookRelevantBits = {
-            12, 11, 11, 11, 11, 11, 11, 12,
-            11, 10, 10, 10, 10, 10, 10, 11,
-            11, 10, 10, 10, 10, 10, 10, 11,
-            11, 10, 10, 10, 10, 10, 10, 11,
-            11, 10, 10, 10, 10, 10, 10, 11,
-            11, 10, 10, 10, 10, 10, 10, 11,
-            11, 10, 10, 10, 10, 10, 10, 11,
-            12, 11, 11, 11, 11, 11, 11, 12
-    };
-
     @JsonIgnore
     private final Logger logger = LoggerFactory.getLogger(BitBoards.class);
 
@@ -73,7 +49,7 @@ public class BitBoards {
             }
         }
         allPieces = whitePieces | blackPieces;
-        logBitboards();
+//        logBitboards();
     }
 
     public BitBoards(final BitBoards other) {
