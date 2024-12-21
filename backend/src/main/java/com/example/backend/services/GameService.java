@@ -38,7 +38,7 @@ public class GameService {
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
         boardStateDTO.setWinnerFlag(0);
-        boardStateDTO.setBitBoards(board.getBitBoards());
+        boardStateDTO.setPiecesBitBoards(board.getPiecesBitBoards());
 
         long elapsedNanos = System.nanoTime() - startNanos;
         double elapsedMillis = elapsedNanos / 1_000_000.0;
@@ -84,7 +84,7 @@ public class GameService {
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
         boardStateDTO.setWinnerFlag(getWinnerFlag());
-        boardStateDTO.setBitBoards(board.getBitBoards());
+        boardStateDTO.setPiecesBitBoards(board.getPiecesBitBoards());
 
         long elapsedNanos = System.nanoTime() - startNanos;
         double elapsedMillis = elapsedNanos / 1_000_000.0;

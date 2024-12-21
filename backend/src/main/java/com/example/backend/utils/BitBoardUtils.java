@@ -289,4 +289,16 @@ public class BitBoardUtils {
 
         return table;
     }
+
+    public static String bitBoardFormatedString(long bitboard) {
+        String bitboardString = String.format("%64s", Long.toBinaryString(bitboard)).replace(' ', '0');
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < bitboardString.length(); i++) {
+            sb.append(bitboardString.charAt(i));
+            if ((i + 1) % 8 == 0) {
+                sb.append("\n");
+            }
+        }
+        return sb.reverse().toString();
+    }
 }

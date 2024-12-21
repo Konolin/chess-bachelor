@@ -1,12 +1,7 @@
 package com.example.backend.models.pieces;
 
 import com.example.backend.models.bitboards.MagicBitBoards;
-import com.example.backend.models.moves.MoveType;
-import com.example.backend.models.moves.Move;
 import com.example.backend.models.board.Board;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class Rook extends Piece {
 
@@ -16,9 +11,9 @@ public class Rook extends Piece {
 
     @Override
     public long generateLegalMovesBitBoard(final Board board) {
-        long occupancyBitBoard = board.getBitBoards().getAllPieces();
+        long occupancyBitBoard = board.getPiecesBitBoards().getAllPieces();
         long allMovesBitBoard = MagicBitBoards.getRookAttacks(this.getPosition(), occupancyBitBoard);
-        long friendlyPiecesBitBoard = board.getBitBoards().getAllianceBitBoard(this.getAlliance());
+        long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(this.getAlliance());
         return allMovesBitBoard & ~friendlyPiecesBitBoard;
     }
 

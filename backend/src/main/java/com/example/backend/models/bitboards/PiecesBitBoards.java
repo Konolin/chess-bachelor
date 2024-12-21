@@ -5,6 +5,7 @@ import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.PieceType;
+import com.example.backend.utils.BitBoardUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,9 +16,9 @@ import java.util.Map;
 
 @Getter
 @Setter
-public class BitBoards {
+public class PiecesBitBoards {
     @JsonIgnore
-    private final Logger logger = LoggerFactory.getLogger(BitBoards.class);
+    private final Logger logger = LoggerFactory.getLogger(PiecesBitBoards.class);
 
     private long allPieces;
     private long whitePieces;
@@ -35,11 +36,12 @@ public class BitBoards {
     private long blackQueens;
     private long blackKing;
 
-    public BitBoards(final Map<Integer, Piece> boardConfig) {
+    public PiecesBitBoards(final Map<Integer, Piece> boardConfig) {
         for (Map.Entry<Integer, Piece> entry : boardConfig.entrySet()) {
             int position = entry.getKey();
             Piece piece = entry.getValue();
             if (piece != null) {
+                // set the corresponding bitboard for the piece
                 setBitBoardForPiece(piece, position);
             }
         }
@@ -47,7 +49,8 @@ public class BitBoards {
 //        logBitboards();
     }
 
-    public BitBoards(final BitBoards other) {
+    // copy constructor
+    public PiecesBitBoards(final PiecesBitBoards other) {
         this.allPieces = other.allPieces;
         this.whitePieces = other.whitePieces;
         this.blackPieces = other.blackPieces;
@@ -205,33 +208,21 @@ public class BitBoards {
         return alliance.isWhite() ? whitePieces : blackPieces;
     }
 
-    public String bitBoardFormatedString(long bitboard) {
-        String bitboardString = String.format("%64s", Long.toBinaryString(bitboard)).replace(' ', '0');
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < bitboardString.length(); i++) {
-            sb.append(bitboardString.charAt(i));
-            if ((i + 1) % 8 == 0) {
-                sb.append("\n");
-            }
-        }
-        return sb.reverse().toString();
-    }
-
     private void logBitBoards() {
-        logger.info("\nWhite pieces bitboard:\n{}", bitBoardFormatedString(this.whitePieces));
-        logger.info("\nBlack pieces bitboard:\n{}", bitBoardFormatedString(this.blackPieces));
-        logger.info("\nAll pieces bitboard:\n{}", bitBoardFormatedString(this.allPieces));
-        logger.info("\nWhite pawns bitboard:\n{}", bitBoardFormatedString(this.whitePawns));
-        logger.info("\nBlack pawns bitboard:\n{}", bitBoardFormatedString(this.blackPawns));
-        logger.info("\nWhite rooks bitboard:\n{}", bitBoardFormatedString(this.whiteRooks));
-        logger.info("\nBlack rooks bitboard:\n{}", bitBoardFormatedString(this.blackRooks));
-        logger.info("\nWhite knights bitboard:\n{}", bitBoardFormatedString(this.whiteKnights));
-        logger.info("\nBlack knights bitboard:\n{}", bitBoardFormatedString(this.blackKnights));
-        logger.info("\nWhite bishops bitboard:\n{}", bitBoardFormatedString(this.whiteBishops));
-        logger.info("\nBlack bishops bitboard:\n{}", bitBoardFormatedString(this.blackBishops));
-        logger.info("\nWhite queens bitboard:\n{}", bitBoardFormatedString(this.whiteQueens));
-        logger.info("\nBlack queens bitboard:\n{}", bitBoardFormatedString(this.blackQueens));
-        logger.info("\nWhite king bitboard:\n{}", bitBoardFormatedString(this.whiteKing));
-        logger.info("\nBlack king bitboard:\n{}", bitBoardFormatedString(this.blackKing));
+        logger.info("\nWhite pieces bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whitePieces));
+        logger.info("\nBlack pieces bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackPieces));
+        logger.info("\nAll pieces bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.allPieces));
+        logger.info("\nWhite pawns bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whitePawns));
+        logger.info("\nBlack pawns bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackPawns));
+        logger.info("\nWhite rooks bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whiteRooks));
+        logger.info("\nBlack rooks bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackRooks));
+        logger.info("\nWhite knights bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whiteKnights));
+        logger.info("\nBlack knights bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackKnights));
+        logger.info("\nWhite bishops bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whiteBishops));
+        logger.info("\nBlack bishops bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackBishops));
+        logger.info("\nWhite queens bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whiteQueens));
+        logger.info("\nBlack queens bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackQueens));
+        logger.info("\nWhite king bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whiteKing));
+        logger.info("\nBlack king bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackKing));
     }
 }

@@ -28,7 +28,7 @@ public abstract class Piece {
         List<Move> legalMoves = new ArrayList<>();
 
         long legalMovesBitBoard = generateLegalMovesBitBoard(board);
-        long opponentPiecesBitBoard = board.getBitBoards().getAllianceBitBoard(this.getAlliance().getOpponent());
+        long opponentPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(this.getAlliance().getOpponent());
 
         long attackMoves = legalMovesBitBoard & opponentPiecesBitBoard;
         long normalMoves = legalMovesBitBoard & ~opponentPiecesBitBoard;

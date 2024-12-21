@@ -10,9 +10,9 @@ public class Bishop extends Piece {
 
     @Override
     public long generateLegalMovesBitBoard(final Board board) {
-        long occupancyBitBoard = board.getBitBoards().getAllPieces();
+        long occupancyBitBoard = board.getPiecesBitBoards().getAllPieces();
         long allMovesBitBoard = MagicBitBoards.getBishopAttacks(this.getPosition(), occupancyBitBoard);
-        long friendlyPiecesBitBoard = board.getBitBoards().getAllianceBitBoard(this.getAlliance());
+        long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(this.getAlliance());
         return allMovesBitBoard & ~friendlyPiecesBitBoard;
     }
 
