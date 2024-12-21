@@ -77,7 +77,7 @@ public class Board {
         List<Move> legalMoves = new ArrayList<>();
         List<Piece> pieces = alliance.isWhite() ? whitePieces : blackPieces;
         for (final Piece piece : pieces) {
-            legalMoves.addAll(piece.generateLegalMoves(this));
+            legalMoves.addAll(piece.generateLegalMovesList(this));
         }
         return legalMoves;
     }

@@ -2,8 +2,10 @@ package com.example.backend.models.pieces;
 
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.board.Board;
+import com.example.backend.models.moves.MoveType;
 import lombok.Getter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -22,7 +24,33 @@ public abstract class Piece {
         this.cachedHashCode = computeHashCode();
     }
 
-    public abstract List<Move> generateLegalMoves(final Board board);
+    public List<Move> generateLegalMovesList(final Board board) {
+        List<Move> legalMoves = new ArrayList<>();
+
+        long legalMovesBitBoard = generateLegalMovesBitBoard(board);
+        long opponentPiecesBitBoard = board.getBitBoards().getAllianceBitBoard(this.getAlliance().getOpponent());
+
+        long attackMoves = legalMovesBitBoard & opponentPiecesBitBoard;
+        long normalMoves = legalMovesBitBoard & ~opponentPiecesBitBoard;
+
+        legalMoves.addAll(bitBoardToMoveList(normalMoves, MoveType.NORMAL));
+        legalMoves.addAll(bitBoardToMoveList(attackMoves, MoveType.ATTACK));
+
+        return legalMoves;
+    }
+
+    public abstract long generateLegalMovesBitBoard(final Board board);
+
+    protected List<Move> bitBoardToMoveList(long bitBoard, final MoveType moveType) {
+        int bitCount = Long.bitCount(bitBoard);
+        List<Move> legalMoves = new ArrayList<>(bitCount);
+        while (bitBoard != 0) {
+            int destination = Long.numberOfTrailingZeros(bitBoard);
+            bitBoard &= bitBoard - 1;
+            legalMoves.add(new Move(this.getPosition(), destination, moveType));
+        }
+        return legalMoves;
+    }
 
     @Override
     public boolean equals(final Object other) {

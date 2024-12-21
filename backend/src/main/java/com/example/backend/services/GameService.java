@@ -59,7 +59,7 @@ public class GameService {
         if (candidateTile.isOccupied()) {
             final Piece piece = candidateTile.getOccupyingPiece();
             // get the legal moves that do not result in check
-            legalMoves = ChessUtils.filterMovesResultingInCheck(piece.generateLegalMoves(board), board);
+            legalMoves = ChessUtils.filterMovesResultingInCheck(piece.generateLegalMovesList(board), board);
             // add the castle moves if the piece is king
             if (piece.isKing()) {
                 legalMoves.addAll(CastleUtils.calculateCastleMoves(board, board.getMoveMaker()));

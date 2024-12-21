@@ -113,23 +113,6 @@ public class BitBoardUtils {
         // return the original bitboard if the bit is not set
         return bitboard;
     }
-    /**
-     * Counts the number of set bits (1s) in a 64-bit long integer (bitboard).
-     *
-     * @param bitboard the 64-bit long integer to count the set bits in.
-     * @return the number of set bits in the bitboard.
-     */
-    public static int countBits(long bitboard) {
-        int count = 0;
-
-        while (bitboard != 0) {
-            count++;
-            // clear the least significant 1 bit
-            bitboard &= (bitboard - 1);
-        }
-
-        return count;
-    }
 
     /**
      * Generates the rook attack pattern for a given square, considering blocked squares.

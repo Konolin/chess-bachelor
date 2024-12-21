@@ -1,12 +1,7 @@
 package com.example.backend.models.pieces;
 
 import com.example.backend.utils.ChessUtils;
-import com.example.backend.models.moves.Move;
 import com.example.backend.models.board.Board;
-import com.example.backend.models.moves.MoveType;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class Knight extends Piece {
     private static final int[] MOVE_OFFSETS = {-17, -15, -10, -6, 6, 10, 15, 17};
@@ -16,22 +11,22 @@ public class Knight extends Piece {
     }
 
     @Override
-    public List<Move> generateLegalMoves(final Board board) {
-        List<Move> legalMoves = new ArrayList<>();
+    public long generateLegalMovesBitBoard(final Board board) {
+        long legalMovesBitboard = 0L;
         for (final int offset : MOVE_OFFSETS) {
             int candidatePosition = this.getPosition() + offset;
             if (!ChessUtils.isValidPosition(candidatePosition) || isColumnExceptions(this.getPosition(), offset)) {
                 continue;
             }
-            if (board.getTileAtCoordinate(candidatePosition).isEmpty()){
-                legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
+            if (board.getTileAtCoordinate(candidatePosition).isEmpty()) {
+                legalMovesBitboard |= (1L << candidatePosition);
             } else {
                 if (board.getAllianceOfPieceAtPosition(candidatePosition) != this.getAlliance()) {
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
+                    legalMovesBitboard |= (1L << candidatePosition);
                 }
             }
         }
-        return legalMoves;
+        return legalMovesBitboard;
     }
 
     @Override

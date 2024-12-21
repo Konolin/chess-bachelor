@@ -67,7 +67,7 @@ public class MagicNumberGenerator {
             // of the result from multiplying the attack mask and the magic number is less than 6.
             // This ensures that the candidate magic number has sufficient bit spread in the masked portion,
             // which helps in generating a good lookup table for attack patterns.
-            if (BitBoardUtils.countBits((attackMask * magicNumberCandidate) & 0xFF00000000000000L) < 6) {
+            if (Long.bitCount((attackMask * magicNumberCandidate) & 0xFF00000000000000L) < 6) {
                 continue;
             }
 
