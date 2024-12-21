@@ -28,7 +28,7 @@ public class CastleUtils {
         int kingPosition = alliance.isWhite() ? 60 : 4;
 
         // check if king is not in check
-        if (board.getAlliancesAttackingPositions(alliance.getOpponent()).contains(kingPosition)) {
+        if ((board.getAlliancesAttackingPositionsBitBoard(alliance.getOpponent()) & (1L << kingPosition)) != 0) {
             return castleMoves;
         }
 
@@ -63,10 +63,12 @@ public class CastleUtils {
             if (board.getTileAtCoordinate(kingPosition + offset).isOccupied()) {
                 return false;
             }
-            // check if tile is attacked by opponent (offset -3 does not need to be checked for attacks)
-            if (offset != -3 && board.getAlliancesAttackingPositions(alliance.getOpponent()).contains(kingPosition + offset)) {
+            // Check if the tile is attacked by the opponent (offset -3 does not need to be checked for attacks)
+            if (offset != -3 &&
+                    (board.getAlliancesAttackingPositionsBitBoard(alliance.getOpponent()) & (1L << (kingPosition + offset))) != 0) {
                 return false;
             }
+
         }
         return true;
     }

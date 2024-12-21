@@ -31,9 +31,7 @@ public class GameService {
     public BoardStateDTO initializeBoardState() {
         long startNanos = System.nanoTime();
 
-//        board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
-//        board = FenService.createGameFromFEN("8/4p3/8/p3R1p1/4p3/8/8/8 w KQkq -");
-        board = FenService.createGameFromFEN("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ");
+        board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));

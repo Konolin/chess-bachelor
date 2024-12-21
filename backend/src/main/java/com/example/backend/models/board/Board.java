@@ -3,11 +3,14 @@ package com.example.backend.models.board;
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.bitboards.PiecesBitBoards;
-import com.example.backend.utils.CastleUtils;
-import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
-import com.example.backend.models.pieces.*;
+import com.example.backend.models.pieces.Alliance;
+import com.example.backend.models.pieces.Pawn;
+import com.example.backend.models.pieces.Piece;
+import com.example.backend.utils.BitBoardUtils;
+import com.example.backend.utils.CastleUtils;
+import com.example.backend.utils.ChessUtils;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,8 +29,9 @@ public class Board {
 
     private final List<Move> whiteLegalMoves;
     private final List<Move> blackLegalMoves;
-    private final List<Integer> whiteAttackingPositions;
-    private final List<Integer> blackAttackingPositions;
+
+    private final long whiteAttackingPositionsBitBoard;
+    private final long blackAttackingPositionsBitBoard;
 
     private final List<Piece> whitePieces;
     private final List<Piece> blackPieces;
@@ -39,7 +43,7 @@ public class Board {
     private boolean isWhiteKingSideCastleCapable;
     private boolean isWhiteQueenSideCastleCapable;
 
-    private PiecesBitBoards piecesBitBoards;
+    private final PiecesBitBoards piecesBitBoards;
 
     private Board(Builder builder) {
         this.tiles = this.createTiles(builder);
@@ -58,8 +62,8 @@ public class Board {
         this.whiteLegalMoves = calculateLegalMoves(Alliance.WHITE);
         this.blackLegalMoves = calculateLegalMoves(Alliance.BLACK);
 
-        this.whiteAttackingPositions = calculateAttackingPositions(Alliance.WHITE);
-        this.blackAttackingPositions = calculateAttackingPositions(Alliance.BLACK);
+        this.whiteAttackingPositionsBitBoard = calculateAttackingPositionsBitBoard(Alliance.WHITE);
+        this.blackAttackingPositionsBitBoard = calculateAttackingPositionsBitBoard(Alliance.BLACK);
 
         this.whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.WHITE));
         this.blackLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
@@ -90,43 +94,24 @@ public class Board {
                 .toList();
     }
 
-    private List<Integer> calculateAttackingPositions(final Alliance alliance) {
-        List<Integer> attackingPositions = new ArrayList<>();
-
-        // calculate pawn attacks
-        for (final Piece piece : (alliance.isWhite() ? whitePieces : blackPieces)) {
+    private long calculateAttackingPositionsBitBoard(final Alliance alliance) {
+        long attackingPositionsBitBoard = 0L;
+        // add all the tiles that are attacked
+        for (final Piece piece : getAlliancesPieces(alliance)) {
             if (piece.isPawn()) {
-                attackingPositions.addAll(calculatePawnAttackingPositions(piece, alliance));
+                long pawnBitboard = alliance.isWhite() ? piecesBitBoards.getWhitePawns() : piecesBitBoards.getBlackPawns();
+                attackingPositionsBitBoard |= calculatePawnAttackingBitboard(pawnBitboard, alliance);
+            } else {
+                attackingPositionsBitBoard |= piece.generateLegalMovesBitBoard(this);
             }
         }
-
-        // calculate legal move attacks for all pieces
-        for (final Move move : (alliance.isWhite() ? whiteLegalMoves : blackLegalMoves)) {
-            attackingPositions.add(move.getToTileIndex());
-        }
-
-        return attackingPositions.stream().distinct().toList();
+        return attackingPositionsBitBoard;
     }
 
-    private List<Integer> calculatePawnAttackingPositions(Piece pawn, Alliance alliance) {
-        List<Integer> attacks = new ArrayList<>();
-
-        int pos = pawn.getPosition();
-        int attack1 = alliance.isWhite() ? pos - 7 : pos + 7;
-        int attack2 = alliance.isWhite() ? pos - 9 : pos + 9;
-        int column = pos % 8;
-
-        // check attack1 (right diagonal for white, left diagonal for black)
-        if (ChessUtils.isValidPosition(attack1) && column != 7) {
-            attacks.add(attack1);
-        }
-
-        // check attack2 (left diagonal for white, right diagonal for black)
-        if (ChessUtils.isValidPosition(attack2) && column != 0) {
-            attacks.add(attack2);
-        }
-
-        return attacks;
+    private long calculatePawnAttackingBitboard(long pawnBitboard, Alliance alliance) {
+        return alliance.isWhite()
+                ? ((pawnBitboard >>> 7) & ~BitBoardUtils.FIRST_COLUMN_BITBOARD) | ((pawnBitboard >>> 9) & ~BitBoardUtils.EIGHTH_COLUMN_BITBOARD)
+                : ((pawnBitboard << 7) & ~BitBoardUtils.EIGHTH_COLUMN_BITBOARD) | ((pawnBitboard << 9) & ~BitBoardUtils.FIRST_COLUMN_BITBOARD);
     }
 
     private void calculateCastleCapabilities() {
@@ -245,14 +230,20 @@ public class Board {
     }
 
     public boolean isAllianceInCheck(final Alliance alliance) {
-        return getAlliancesPieces(alliance)
-                .stream()
+        // find the position of the king for the given alliance
+        int kingPosition = getAlliancesPieces(alliance).stream()
                 .filter(Piece::isKing)
                 .findFirst()
                 .map(Piece::getPosition)
-                .map(position -> getAlliancesAttackingPositions(alliance.getOpponent()).contains(position))
-                .orElse(false);
+                .orElseThrow(() -> new ChessException("King not found for alliance " + alliance, ChessExceptionCodes.KING_NOT_FOUND));
+
+        // get the attacking positions bitboard for the opponent
+        long opponentAttackBitboard = getAlliancesAttackingPositionsBitBoard(alliance.getOpponent());
+
+        // check if the king's position is attacked by the opponent
+        return (opponentAttackBitboard & (1L << kingPosition)) != 0;
     }
+
 
     public boolean isAllianceCastleCapable(final Alliance alliance) {
         if (alliance.isWhite()) {
@@ -271,8 +262,8 @@ public class Board {
                 : ChessUtils.filterMovesResultingInCheck(blackLegalMoves, this);
     }
 
-    public List<Integer> getAlliancesAttackingPositions(final Alliance alliance) {
-        return alliance.isWhite() ? whiteAttackingPositions : blackAttackingPositions;
+    public long getAlliancesAttackingPositionsBitBoard(final Alliance alliance) {
+        return alliance.isWhite() ? whiteAttackingPositionsBitBoard : blackAttackingPositionsBitBoard;
     }
 
     @Override

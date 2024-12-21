@@ -12,7 +12,8 @@ public enum ChessExceptionCodes {
     INVALID_POSITION("invalid_position"),
     INVALID_FEN_STRING("invalid_fen_string"),
     INVALID_PIECE_CHARACTER("invalid_piece_character"),
-    INVALID_PIECE_TYPE("invalid_piece_type"),;
+    INVALID_PIECE_TYPE("invalid_piece_type"),
+    KING_NOT_FOUND("king_not_found"),;
 
     private final String code;
 }

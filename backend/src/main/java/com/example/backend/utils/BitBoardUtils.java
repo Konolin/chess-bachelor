@@ -1,5 +1,8 @@
 package com.example.backend.utils;
 
+import com.example.backend.exceptions.ChessException;
+import com.example.backend.exceptions.ChessExceptionCodes;
+
 public class BitBoardUtils {
     // bishop relevant attack mask bit count for every square on board
     public static final int[] bishopRelevantBits = {
@@ -63,8 +66,15 @@ public class BitBoardUtils {
             3247095537765319176L, 437212286227579016L, 4521263119204416L, 199584518938592002L
     };
 
+    public static final long FIRST_COLUMN_BITBOARD = 0x0101010101010101L;
+    public static final long EIGHTH_COLUMN_BITBOARD = 0x8080808080808080L;
+
     public static final long[] rookAttackMask = computeRookAttackMask();
     public static final long[] bishopAttackMask = computeBishopAttackMask();
+
+    private BitBoardUtils() {
+        throw new ChessException("Illegal state", ChessExceptionCodes.ILLEGAL_STATE);
+    }
 
     /**
      * Constructs an occupancy bitboard for a given index by setting bits at positions
