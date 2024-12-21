@@ -30,20 +30,18 @@ public class Board {
     private final List<Move> whiteLegalMoves;
     private final List<Move> blackLegalMoves;
 
-    private final long whiteAttackingPositionsBitBoard;
-    private final long blackAttackingPositionsBitBoard;
+    private final long whiteLegalMovesBitBoard;
+    private final long blackLegalMovesBitBoard;
 
     private final List<Piece> whitePieces;
     private final List<Piece> blackPieces;
     private final Pawn enPassantPawn;
-
+    private final PiecesBitBoards piecesBitBoards;
     // castle capabilities used for fen string generation
     private boolean isBlackKingSideCastleCapable;
     private boolean isBlackQueenSideCastleCapable;
     private boolean isWhiteKingSideCastleCapable;
     private boolean isWhiteQueenSideCastleCapable;
-
-    private final PiecesBitBoards piecesBitBoards;
 
     private Board(Builder builder) {
         this.tiles = this.createTiles(builder);
@@ -62,8 +60,8 @@ public class Board {
         this.whiteLegalMoves = calculateLegalMoves(Alliance.WHITE);
         this.blackLegalMoves = calculateLegalMoves(Alliance.BLACK);
 
-        this.whiteAttackingPositionsBitBoard = calculateAttackingPositionsBitBoard(Alliance.WHITE);
-        this.blackAttackingPositionsBitBoard = calculateAttackingPositionsBitBoard(Alliance.BLACK);
+        this.whiteLegalMovesBitBoard = calculateLegalMovesBitBoard(Alliance.WHITE);
+        this.blackLegalMovesBitBoard = calculateLegalMovesBitBoard(Alliance.BLACK);
 
         this.whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.WHITE));
         this.blackLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
@@ -87,14 +85,18 @@ public class Board {
     }
 
     private List<Piece> calculatePieces(final Alliance alliance) {
-        return tiles.stream()
-                .filter(Tile::isOccupied)
-                .map(Tile::getOccupyingPiece)
-                .filter(piece -> piece.getAlliance() == alliance)
-                .toList();
+        final List<Piece> pieces = new ArrayList<>(64);
+        for (final Tile tile : tiles) {
+            final Piece occupyingPiece = tile.getOccupyingPiece();
+            if (tile.isOccupied() && occupyingPiece.getAlliance() == alliance) {
+                pieces.add(occupyingPiece);
+            }
+        }
+        return pieces;
     }
 
-    private long calculateAttackingPositionsBitBoard(final Alliance alliance) {
+
+    private long calculateLegalMovesBitBoard(final Alliance alliance) {
         long attackingPositionsBitBoard = 0L;
         // add all the tiles that are attacked
         for (final Piece piece : getAlliancesPieces(alliance)) {
@@ -231,14 +233,12 @@ public class Board {
 
     public boolean isAllianceInCheck(final Alliance alliance) {
         // find the position of the king for the given alliance
-        int kingPosition = getAlliancesPieces(alliance).stream()
-                .filter(Piece::isKing)
-                .findFirst()
-                .map(Piece::getPosition)
-                .orElseThrow(() -> new ChessException("King not found for alliance " + alliance, ChessExceptionCodes.KING_NOT_FOUND));
+        int kingPosition = alliance.isWhite()
+                ? BitBoardUtils.getLs1bIndex(piecesBitBoards.getWhiteKing())
+                : BitBoardUtils.getLs1bIndex(piecesBitBoards.getBlackKing());
 
         // get the attacking positions bitboard for the opponent
-        long opponentAttackBitboard = getAlliancesAttackingPositionsBitBoard(alliance.getOpponent());
+        long opponentAttackBitboard = getAlliancesLegalMovesBitBoard(alliance.getOpponent());
 
         // check if the king's position is attacked by the opponent
         return (opponentAttackBitboard & (1L << kingPosition)) != 0;
@@ -262,8 +262,8 @@ public class Board {
                 : ChessUtils.filterMovesResultingInCheck(blackLegalMoves, this);
     }
 
-    public long getAlliancesAttackingPositionsBitBoard(final Alliance alliance) {
-        return alliance.isWhite() ? whiteAttackingPositionsBitBoard : blackAttackingPositionsBitBoard;
+    public long getAlliancesLegalMovesBitBoard(final Alliance alliance) {
+        return alliance.isWhite() ? whiteLegalMovesBitBoard : blackLegalMovesBitBoard;
     }
 
     @Override
