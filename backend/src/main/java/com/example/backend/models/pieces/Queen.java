@@ -1,5 +1,6 @@
 package com.example.backend.models.pieces;
 
+import com.example.backend.models.bitboards.MagicBitBoards;
 import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.board.Board;
@@ -10,8 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Queen extends Piece {
-    private static final int[] MOVE_OFFSETS = {-9, -8, -7, -1, 1, 7, 8, 9};
-
     public Queen(final int position, final Alliance alliance) {
         super(position, alliance, false, PieceType.QUEEN);
     }
@@ -20,43 +19,33 @@ public class Queen extends Piece {
     public List<Move> generateLegalMoves(final Board board) {
         List<Move> legalMoves = new ArrayList<>();
 
-        for (final int offset: MOVE_OFFSETS) {
-            int currentIterationPosition = this.getPosition();
-            while (ChessUtils.isValidPosition(currentIterationPosition)) {
-                final int candidatePosition = currentIterationPosition + offset;
+        long occupancyBitBoard = board.getBitBoards().getAllPieces();
+        long allMovesBitBoard = MagicBitBoards.getRookAttacks(this.getPosition(), occupancyBitBoard)
+                | MagicBitBoards.getBishopAttacks(this.getPosition(), occupancyBitBoard);
+        long opponentPiecesBitBoard = board.getBitBoards().getAllianceBitBoard(this.getAlliance().getOpponent());
+        long friendlyPiecesBitBoard = board.getBitBoards().getAllianceBitBoard(this.getAlliance());
 
-                // reached board limits
-                if (!ChessUtils.isValidPosition(candidatePosition) ||
-                        isFirstOrEighthColumnExclusion(currentIterationPosition, offset)) {
-                    break;
-                }
+        long attackMoves = allMovesBitBoard & opponentPiecesBitBoard & ~friendlyPiecesBitBoard;
+        long normalMoves = allMovesBitBoard & ~opponentPiecesBitBoard & ~friendlyPiecesBitBoard;
 
-                final Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
-                if (candidateTile.isEmpty()) {
-                    // make normal move
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
-                } else if (candidateTile.isOccupied()) {
-                    if (candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
-                        // make attack move
-                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
-                    }
-                    break;
-                }
-
-                currentIterationPosition = candidatePosition;
-            }
+        while (attackMoves != 0) {
+            int destination = Long.numberOfTrailingZeros(attackMoves);
+            attackMoves &= attackMoves - 1;
+            legalMoves.add(new Move(this.getPosition(), destination, MoveType.ATTACK));
         }
+
+        while (normalMoves != 0) {
+            int destination = Long.numberOfTrailingZeros(normalMoves);
+            normalMoves &= normalMoves - 1;
+            legalMoves.add(new Move(this.getPosition(), destination, MoveType.NORMAL));
+        }
+
         return legalMoves;
     }
 
     @Override
     public Queen movePiece(final Alliance alliance, final int toTilePosition) {
         return new Queen(toTilePosition, alliance);
-    }
-
-    private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
-        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == -9 || offset == -1 || offset == 7) ||
-                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 1 || offset == 9);
     }
 
     @Override

@@ -40,7 +40,7 @@ public class BitBoards {
             int position = entry.getKey();
             Piece piece = entry.getValue();
             if (piece != null) {
-                setBitboardForPiece(piece, position);
+                setBitBoardForPiece(piece, position);
             }
         }
         allPieces = whitePieces | blackPieces;
@@ -70,7 +70,7 @@ public class BitBoards {
         long toMask = 1L << toIndex;
 
         // Update the specific piece's bitboard
-        updateBitboardForPiece(movingPiece, fromMask, toMask);
+        updateBitBoardForPiece(movingPiece, fromMask, toMask);
 
         // Update all pieces and alliance-specific bitboards
         if (movingPiece.getAlliance().isWhite()) {
@@ -118,7 +118,7 @@ public class BitBoards {
         }
 
         // update the promoted piece's bitboard
-        setBitboardForPiece(promotedPiece, toPosition);
+        setBitBoardForPiece(promotedPiece, toPosition);
 
         // update alliance-specific bitboards
         if (promotedPiece.getAlliance().isWhite()) {
@@ -129,7 +129,7 @@ public class BitBoards {
         allPieces = whitePieces | blackPieces;
     }
 
-    private void updateBitboardForPiece(final Piece piece, long fromMask, long toMask) {
+    private void updateBitBoardForPiece(final Piece piece, long fromMask, long toMask) {
         if (piece.getAlliance().isWhite()) {
             switch (piece.getType()) {
                 case PAWN -> whitePawns = (whitePawns & fromMask) | toMask;
@@ -151,7 +151,7 @@ public class BitBoards {
         }
     }
 
-    private void setBitboardForPiece(Piece piece, int position) {
+    private void setBitBoardForPiece(Piece piece, int position) {
         long positionMask = 1L << position;
 
         if (piece.getAlliance().isWhite()) {
@@ -177,7 +177,7 @@ public class BitBoards {
         }
     }
 
-    public long getPieceBitboard(final PieceType pieceType, final Alliance alliance) {
+    public long getPieceBitBoard(final PieceType pieceType, final Alliance alliance) {
         switch (pieceType) {
             case PAWN -> {
                 return alliance.isWhite() ? whitePawns : blackPawns;
@@ -201,7 +201,11 @@ public class BitBoards {
         }
     }
 
-    public String bitboardFormatedString(long bitboard) {
+    public long getAllianceBitBoard(final Alliance alliance) {
+        return alliance.isWhite() ? whitePieces : blackPieces;
+    }
+
+    public String bitBoardFormatedString(long bitboard) {
         String bitboardString = String.format("%64s", Long.toBinaryString(bitboard)).replace(' ', '0');
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < bitboardString.length(); i++) {
@@ -213,21 +217,21 @@ public class BitBoards {
         return sb.reverse().toString();
     }
 
-    private void logBitboards() {
-        logger.info("\nWhite pieces bitboard:\n{}", bitboardFormatedString(this.whitePieces));
-        logger.info("\nBlack pieces bitboard:\n{}", bitboardFormatedString(this.blackPieces));
-        logger.info("\nAll pieces bitboard:\n{}", bitboardFormatedString(this.allPieces));
-        logger.info("\nWhite pawns bitboard:\n{}", bitboardFormatedString(this.whitePawns));
-        logger.info("\nBlack pawns bitboard:\n{}", bitboardFormatedString(this.blackPawns));
-        logger.info("\nWhite rooks bitboard:\n{}", bitboardFormatedString(this.whiteRooks));
-        logger.info("\nBlack rooks bitboard:\n{}", bitboardFormatedString(this.blackRooks));
-        logger.info("\nWhite knights bitboard:\n{}", bitboardFormatedString(this.whiteKnights));
-        logger.info("\nBlack knights bitboard:\n{}", bitboardFormatedString(this.blackKnights));
-        logger.info("\nWhite bishops bitboard:\n{}", bitboardFormatedString(this.whiteBishops));
-        logger.info("\nBlack bishops bitboard:\n{}", bitboardFormatedString(this.blackBishops));
-        logger.info("\nWhite queens bitboard:\n{}", bitboardFormatedString(this.whiteQueens));
-        logger.info("\nBlack queens bitboard:\n{}", bitboardFormatedString(this.blackQueens));
-        logger.info("\nWhite king bitboard:\n{}", bitboardFormatedString(this.whiteKing));
-        logger.info("\nBlack king bitboard:\n{}", bitboardFormatedString(this.blackKing));
+    private void logBitBoards() {
+        logger.info("\nWhite pieces bitboard:\n{}", bitBoardFormatedString(this.whitePieces));
+        logger.info("\nBlack pieces bitboard:\n{}", bitBoardFormatedString(this.blackPieces));
+        logger.info("\nAll pieces bitboard:\n{}", bitBoardFormatedString(this.allPieces));
+        logger.info("\nWhite pawns bitboard:\n{}", bitBoardFormatedString(this.whitePawns));
+        logger.info("\nBlack pawns bitboard:\n{}", bitBoardFormatedString(this.blackPawns));
+        logger.info("\nWhite rooks bitboard:\n{}", bitBoardFormatedString(this.whiteRooks));
+        logger.info("\nBlack rooks bitboard:\n{}", bitBoardFormatedString(this.blackRooks));
+        logger.info("\nWhite knights bitboard:\n{}", bitBoardFormatedString(this.whiteKnights));
+        logger.info("\nBlack knights bitboard:\n{}", bitBoardFormatedString(this.blackKnights));
+        logger.info("\nWhite bishops bitboard:\n{}", bitBoardFormatedString(this.whiteBishops));
+        logger.info("\nBlack bishops bitboard:\n{}", bitBoardFormatedString(this.blackBishops));
+        logger.info("\nWhite queens bitboard:\n{}", bitBoardFormatedString(this.whiteQueens));
+        logger.info("\nBlack queens bitboard:\n{}", bitBoardFormatedString(this.blackQueens));
+        logger.info("\nWhite king bitboard:\n{}", bitBoardFormatedString(this.whiteKing));
+        logger.info("\nBlack king bitboard:\n{}", bitBoardFormatedString(this.blackKing));
     }
 }
