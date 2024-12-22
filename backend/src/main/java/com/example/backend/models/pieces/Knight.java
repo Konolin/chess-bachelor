@@ -4,6 +4,7 @@ import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
 
 public class Knight extends Piece {
+    // TODO: use bitboardutils mask
     private static final int[] MOVE_OFFSETS = {-17, -15, -10, -6, 6, 10, 15, 17};
 
     public Knight(final int position, final Alliance alliance) {

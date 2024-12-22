@@ -2,6 +2,8 @@ package com.example.backend.utils;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
+import com.example.backend.models.bitboards.MagicBitBoards;
+import com.example.backend.models.bitboards.PiecesBitBoards;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.pieces.*;
@@ -93,19 +95,101 @@ public class ChessUtils {
     }
 
     public static List<Move> filterMovesResultingInCheck(final List<Move> allMoves, final Board board) {
-        final List<Move> legalMoves = new ArrayList<>();
+        final List<Move> validMoves = new ArrayList<>();
 
         for (final Move move : allMoves) {
-            Board transitionBoard = board.executeMove(move);
+            // temporarily update the bitboards
+            long fromTileMask = 1L << move.getFromTileIndex();
+            long toTileMask = 1L << move.getToTileIndex();
 
-            // remove moves that cause the current player to be in check.
-            // the opponents alliance is checked because the move maker changes after executeMove(), which means
-            // the current move maker (who's moves are filtered) is considered the opponent in the transitionBoard
-            if (!transitionBoard.isAllianceInCheck(transitionBoard.getMoveMaker().getOpponent())) {
-                legalMoves.add(move);
+            // check if the move leaves the opponent's king in check
+            if (!isSquareAttacked(board, fromTileMask, toTileMask, move.getMoveType().isEnPassant())) {
+                validMoves.add(move);
             }
         }
 
-        return legalMoves;
+        return validMoves;
+    }
+
+    // Check if a given square is attacked
+    private static boolean isSquareAttacked(
+            final Board board,
+            final long fromTileMask,
+            final long toTileMask,
+            final boolean isEnPassant)
+    {
+        final PiecesBitBoards piecesBitBoards = board.getPiecesBitBoards();
+        final Alliance opponentAlliance = board.getMoveMaker().getOpponent();
+        // get the mask of all the attacks from the opponent
+        long allAttacksMask = 0L;
+        // get the occupancy mask for the current move
+        long occupancyMask = piecesBitBoards.getAllPieces() & ~fromTileMask | toTileMask;
+        // remove the enPassant pawn if the move is enPassant
+        if (isEnPassant) {
+            final int enPassantPawnPosition = board.getEnPassantPawn().getPosition();
+            occupancyMask &= ~(1L << enPassantPawnPosition);
+        }
+
+        // add the attacks from knights
+        // get the bitboard for the knight before the move was made
+        long knightBitboard = piecesBitBoards.getPieceBitBoard(PieceType.KNIGHT, opponentAlliance);
+        // update the bitmask if a knight was captured
+        knightBitboard &= ~toTileMask;
+        // loop over all the knights and get the attacks
+        while (knightBitboard != 0L) {
+            final int knightPosition = BitBoardUtils.getLs1bIndex(knightBitboard);
+            allAttacksMask |= BitBoardUtils.KNIGHT_ATTACK_MASK[knightPosition];
+            knightBitboard &= knightBitboard - 1;
+        }
+
+        // add the attacks from bishops
+        long bishopBitboard = piecesBitBoards.getPieceBitBoard(PieceType.BISHOP, opponentAlliance);
+        bishopBitboard &= ~toTileMask;
+        while (bishopBitboard != 0L) {
+            final int bishopPosition = BitBoardUtils.getLs1bIndex(bishopBitboard);
+            allAttacksMask |= MagicBitBoards.getBishopAttacks(bishopPosition, occupancyMask);
+            bishopBitboard &= bishopBitboard - 1;
+        }
+
+        // add the attacks from rooks
+        long rookBitboard = piecesBitBoards.getPieceBitBoard(PieceType.ROOK, opponentAlliance);
+        rookBitboard &= ~toTileMask;
+        while (rookBitboard != 0L) {
+            final int rookPosition = BitBoardUtils.getLs1bIndex(rookBitboard);
+            allAttacksMask |= MagicBitBoards.getRookAttacks(rookPosition, occupancyMask);
+            rookBitboard &= rookBitboard - 1;
+        }
+
+        // add the attacks from queens
+        long queenBitboard = piecesBitBoards.getPieceBitBoard(PieceType.QUEEN, opponentAlliance);
+        queenBitboard &= ~toTileMask;
+        while (queenBitboard != 0L) {
+            final int queenPosition = BitBoardUtils.getLs1bIndex(queenBitboard);
+            allAttacksMask |= MagicBitBoards.getRookAttacks(queenPosition, occupancyMask);
+            allAttacksMask |= MagicBitBoards.getBishopAttacks(queenPosition, occupancyMask);
+            queenBitboard &= queenBitboard - 1;
+        }
+
+        // add the attacks from pawns
+        long pawnBitboard = piecesBitBoards.getPieceBitBoard(PieceType.PAWN, opponentAlliance);
+        // update the bitmask if a pawn was captured
+        pawnBitboard &= isEnPassant ? ~(1L << board.getEnPassantPawn().getPosition()) : ~toTileMask;
+        // get the mask of all the attacks from the opponent's pawns
+        pawnBitboard = BitBoardUtils.calculatePawnAttackingBitboard(pawnBitboard, opponentAlliance);
+        allAttacksMask |= pawnBitboard;
+
+        // add the attacks from the king
+        long kingBitboard = piecesBitBoards.getPieceBitBoard(PieceType.KING, opponentAlliance);
+        final int kingPosition = BitBoardUtils.getLs1bIndex(kingBitboard);
+        allAttacksMask |= BitBoardUtils.KING_ATTACK_MASK[kingPosition];
+
+        // get the bitboard of friendly king
+        long friendlyKingBitboard = piecesBitBoards.getPieceBitBoard(PieceType.KING, board.getMoveMaker());
+        // update the bitmask if the king made the move
+        if ((friendlyKingBitboard & ~fromTileMask) == 0L) {
+            friendlyKingBitboard = toTileMask;
+        }
+        // return if the king is on the attack mask
+        return (friendlyKingBitboard & allAttacksMask) != 0L;
     }
 }

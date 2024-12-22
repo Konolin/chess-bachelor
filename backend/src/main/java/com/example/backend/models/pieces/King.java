@@ -4,6 +4,7 @@ import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
 
 public class King extends Piece {
+    // TODO: use bitboardutils mask
     private static final int[] MOVE_OFFSETS = {-9, -8, -7, -1, 1, 7, 8, 9};
 
     public King(final int position, final Alliance alliance, final boolean isFirstMove) {

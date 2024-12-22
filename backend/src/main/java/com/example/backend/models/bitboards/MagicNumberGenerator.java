@@ -42,8 +42,8 @@ public class MagicNumberGenerator {
 
         // get the attackMask for the current piece type (these are the relevant tiles)
         long attackMask = isRook
-                ? BitBoardUtils.rookAttackMask[tileIndex]
-                : BitBoardUtils.bishopAttackMask[tileIndex];
+                ? BitBoardUtils.ROOK_ATTACK_MASK[tileIndex]
+                : BitBoardUtils.BISHOP_ATTACK_MASK[tileIndex];
 
         // the number of possible ways to occupy the relevant tiles: (2^relevantBits)
         int numberOfOccupancies = 1 << relevantBits;

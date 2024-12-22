@@ -2,6 +2,7 @@ package com.example.backend.utils;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
+import com.example.backend.models.pieces.Alliance;
 
 public class BitBoardUtils {
     // bishop relevant attack mask bit count for every square on board
@@ -69,8 +70,10 @@ public class BitBoardUtils {
     public static final long FIRST_COLUMN_BITBOARD = 0x0101010101010101L;
     public static final long EIGHTH_COLUMN_BITBOARD = 0x8080808080808080L;
 
-    public static final long[] rookAttackMask = computeRookAttackMask();
-    public static final long[] bishopAttackMask = computeBishopAttackMask();
+    public static final long[] ROOK_ATTACK_MASK = computeRookAttackMask();
+    public static final long[] BISHOP_ATTACK_MASK = computeBishopAttackMask();
+    public static final long[] KNIGHT_ATTACK_MASK = computeKnightAttackMask();
+    public static final long[] KING_ATTACK_MASK = computeKingAttackMask();
 
     private BitBoardUtils() {
         throw new ChessException("Illegal state", ChessExceptionCodes.ILLEGAL_STATE);
@@ -206,6 +209,12 @@ public class BitBoardUtils {
         return attacks;
     }
 
+    public static long calculatePawnAttackingBitboard(long pawnBitboard, Alliance alliance) {
+        return alliance.isWhite()
+                ? ((pawnBitboard >>> 7) & ~BitBoardUtils.FIRST_COLUMN_BITBOARD) | ((pawnBitboard >>> 9) & ~BitBoardUtils.EIGHTH_COLUMN_BITBOARD)
+                : ((pawnBitboard << 7) & ~BitBoardUtils.EIGHTH_COLUMN_BITBOARD) | ((pawnBitboard << 9) & ~BitBoardUtils.FIRST_COLUMN_BITBOARD);
+    }
+
     /**
      * Computes the relevant occupancy masks for rook moves on a chessboard.
      * <p>
@@ -297,6 +306,68 @@ public class BitBoardUtils {
             table[i] = mask;
         }
 
+        return table;
+    }
+
+    private static long[] computeKnightAttackMask() {
+        long[] table = new long[ChessUtils.TILES_NUMBER];
+
+        for (int tileIndex = 0; tileIndex < ChessUtils.TILES_NUMBER; tileIndex++) {
+            long attacks = 0L;
+
+            // possible knight moves relative to the current position
+            int[] rowOffsets = {-2, -1, 1, 2, 2, 1, -1, -2};
+            int[] colOffsets = {-1, -2, -2, -1, 1, 2, 2, 1};
+
+            // current position
+            int row = tileIndex / 8;
+            int col = tileIndex % 8;
+
+            // iterate through all possible knight moves
+            for (int i = 0; i < 8; i++) {
+                int newRow = row + rowOffsets[i];
+                int newCol = col + colOffsets[i];
+
+                // check if the new position is within board boundaries
+                if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                    int newSquare = newRow * 8 + newCol;
+                    attacks |= (1L << newSquare);
+                }
+            }
+
+            table[tileIndex] = attacks;
+        }
+        return table;
+    }
+
+    private static long[] computeKingAttackMask() {
+        long[] table = new long[ChessUtils.TILES_NUMBER];
+
+        for (int tileIndex = 0; tileIndex < ChessUtils.TILES_NUMBER; tileIndex++) {
+            long attacks = 0L;
+
+            // possible king moves relative to the current position
+            int[] rowOffsets = {-1, -1, -1, 0, 0, 1, 1, 1};
+            int[] colOffsets = {-1, 0, 1, -1, 1, -1, 0, 1};
+
+            // current position
+            int row = tileIndex / 8;
+            int col = tileIndex % 8;
+
+            // iterate through all possible king moves
+            for (int i = 0; i < 8; i++) {
+                int newRow = row + rowOffsets[i];
+                int newCol = col + colOffsets[i];
+
+                // check if the new position is within board boundaries
+                if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                    int newSquare = newRow * 8 + newCol;
+                    attacks |= (1L << newSquare);
+                }
+            }
+
+            table[tileIndex] = attacks;
+        }
         return table;
     }
 

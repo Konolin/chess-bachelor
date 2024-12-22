@@ -102,18 +102,12 @@ public class Board {
         for (final Piece piece : getAlliancesPieces(alliance)) {
             if (piece.isPawn()) {
                 long pawnBitboard = alliance.isWhite() ? piecesBitBoards.getWhitePawns() : piecesBitBoards.getBlackPawns();
-                attackingPositionsBitBoard |= calculatePawnAttackingBitboard(pawnBitboard, alliance);
+                attackingPositionsBitBoard |= BitBoardUtils.calculatePawnAttackingBitboard(pawnBitboard, alliance);
             } else {
                 attackingPositionsBitBoard |= piece.generateLegalMovesBitBoard(this);
             }
         }
         return attackingPositionsBitBoard;
-    }
-
-    private long calculatePawnAttackingBitboard(long pawnBitboard, Alliance alliance) {
-        return alliance.isWhite()
-                ? ((pawnBitboard >>> 7) & ~BitBoardUtils.FIRST_COLUMN_BITBOARD) | ((pawnBitboard >>> 9) & ~BitBoardUtils.EIGHTH_COLUMN_BITBOARD)
-                : ((pawnBitboard << 7) & ~BitBoardUtils.EIGHTH_COLUMN_BITBOARD) | ((pawnBitboard << 9) & ~BitBoardUtils.FIRST_COLUMN_BITBOARD);
     }
 
     private void calculateCastleCapabilities() {

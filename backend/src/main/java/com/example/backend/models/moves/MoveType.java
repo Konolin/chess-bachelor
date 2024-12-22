@@ -25,4 +25,8 @@ public enum MoveType {
     public boolean isAttack() {
         return this == ATTACK || this == PROMOTION_ATTACK;
     }
+
+    public boolean isEnPassant() {
+        return this == EN_PASSANT;
+    }
 }

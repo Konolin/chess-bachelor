@@ -16,7 +16,7 @@ public class MagicBitBoards {
     public static long getRookAttacks(int square, long occupancy) {
         // get the magic index for the current occupancy
         // bitwise AND to only keep the relevant bits
-        occupancy &= BitBoardUtils.rookAttackMask[square];
+        occupancy &= BitBoardUtils.ROOK_ATTACK_MASK[square];
         // multiply the occupancy by the magic number for the current square
         occupancy *= BitBoardUtils.rookMagicNumbers[square];
         // shift the occupancy to the right by 64 - relevantBits to remove the "trash" bits
@@ -26,7 +26,7 @@ public class MagicBitBoards {
     }
 
     public static long getBishopAttacks(int square, long occupancy) {
-        occupancy &= BitBoardUtils.bishopAttackMask[square];
+        occupancy &= BitBoardUtils.BISHOP_ATTACK_MASK[square];
         occupancy *= BitBoardUtils.bishopMagicNumbers[square];
         int magicIndex = (int) (occupancy >>> (64 - BitBoardUtils.bishopRelevantBits[square]));
         return bishopMagicBitBoards[square][magicIndex];
@@ -38,8 +38,8 @@ public class MagicBitBoards {
         for (int square = 0; square < ChessUtils.TILES_NUMBER; square++) {
             // get the attackMask for the current piece type (these are the relevant tiles)
             long attackMask = isRook
-                    ? BitBoardUtils.rookAttackMask[square]
-                    : BitBoardUtils.bishopAttackMask[square];
+                    ? BitBoardUtils.ROOK_ATTACK_MASK[square]
+                    : BitBoardUtils.BISHOP_ATTACK_MASK[square];
 
             // the number of relevant bits for the current piece type and tile
             int relevantBits = isRook
