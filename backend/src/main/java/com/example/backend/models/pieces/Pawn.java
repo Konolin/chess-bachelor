@@ -1,10 +1,10 @@
 package com.example.backend.models.pieces;
 
-import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
+import com.example.backend.utils.ChessUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,11 +13,11 @@ public class Pawn extends Piece {
     private static final int[] MOVE_OFFSETS = {7, 8, 9, 16};
 
     public Pawn(final int position, final Alliance alliance, final boolean isFirstMove) {
-        super(position, alliance, isFirstMove);
+        super(position, alliance, isFirstMove, PieceType.PAWN);
     }
 
     @Override
-    public List<Move> generateLegalMoves(final Board board) {
+    public List<Move> generateLegalMovesList(final Board board) {
         List<Move> legalMoves = new ArrayList<>();
 
         for (final int offset : MOVE_OFFSETS) {
@@ -68,6 +68,44 @@ public class Pawn extends Piece {
         return legalMoves;
     }
 
+    @Override
+    public long generateLegalMovesBitBoard(Board board) {
+        long legalMovesBitboard = 0L;
+
+        for (final int offset : MOVE_OFFSETS) {
+            final int directedOffset = offset * this.getAlliance().getDirection();
+            int candidatePosition = this.getPosition() + directedOffset;
+
+            // S]skip invalid moves
+            if (isContinueCase(directedOffset, candidatePosition)) {
+                continue;
+            }
+
+            // get candidate tile
+            final Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
+
+            // attack move
+            if (offset == 7 || offset == 9) {
+                // normal attack move
+                if (candidateTile.isOccupied() && candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
+                    legalMovesBitboard |= 1L << candidatePosition;
+                    // en passant attack move
+                } else if (candidateTile.isEmpty() && isEnPassantMove(board, candidateTile, offset)) {
+                    legalMovesBitboard |= 1L << candidatePosition;
+                }
+                // normal 1-tile move
+            } else if (offset == 8 && candidateTile.isEmpty()) {
+                legalMovesBitboard |= 1L << candidatePosition;
+                // normal 2-tile move
+            } else if (isFirstMove() && offset == 16 && candidateTile.isEmpty() &&
+                    board.getTileAtCoordinate(candidatePosition - 8 * this.getAlliance().getDirection()).isEmpty()) {
+                legalMovesBitboard |= 1L << candidatePosition;
+            }
+        }
+
+        return legalMovesBitboard;
+    }
+
     private boolean isEnPassantMove(final Board board, final Tile candidateTile, final int offset) {
         final int neighbourPosition = this.getPosition() + (offset == 7 ? -1 : 1) * this.getAlliance().getDirection();
         final Tile neighbourTile = board.getTileAtCoordinate(neighbourPosition);
@@ -93,8 +131,8 @@ public class Pawn extends Piece {
     }
 
     private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
-        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == 7 || offset == -9) ||
-                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 9);
+        return ChessUtils.isPositionInColumn(currentPosition, 1) && (offset == 7 || offset == -9) ||
+                ChessUtils.isPositionInColumn(currentPosition, 8) && (offset == -7 || offset == 9);
     }
 
     private List<Character> getPromotionChars() {

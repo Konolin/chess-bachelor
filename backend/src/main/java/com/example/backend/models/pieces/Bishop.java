@@ -1,64 +1,62 @@
 package com.example.backend.models.pieces;
 
-import com.example.backend.utils.ChessUtils;
-import com.example.backend.models.moves.Move;
+import com.example.backend.models.bitboards.MagicBitBoards;
 import com.example.backend.models.board.Board;
-import com.example.backend.models.board.Tile;
-import com.example.backend.models.moves.MoveType;
 
-import java.util.ArrayList;
-import java.util.List;
-
+/**
+ * Represents a Bishop piece in the chess game.
+ * A Bishop can move diagonally on the board, and this class provides the functionality to generate legal moves
+ * based on the current board state and the Bishop's position.
+ */
 public class Bishop extends Piece {
-    private static final int[] MOVE_OFFSETS = {-9, -7, 7, 9};
 
+    /**
+     * Constructs a Bishop with the given position and alliance.
+     *
+     * @param position The current position of the Bishop on the board.
+     * @param alliance The alliance (color) of the Bishop (White or Black).
+     */
     public Bishop(final int position, final Alliance alliance) {
-        super(position, alliance, false);
+        super(position, alliance, false, PieceType.BISHOP);
     }
 
+    /**
+     * Generates the legal moves for the Bishop as a bitboard.
+     * The legal moves are calculated by determining all possible attacks for the Bishop,
+     * and then filtering out the squares occupied by friendly pieces.
+     *
+     * @param board The current state of the chess board.
+     * @return A bitboard representing the legal move positions for the Bishop.
+     */
     @Override
-    public List<Move> generateLegalMoves(final Board board) {
-        List<Move> legalMoves = new ArrayList<>();
-
-        for (final int offset: MOVE_OFFSETS) {
-            int currentIterationPosition = this.getPosition();
-            while (ChessUtils.isValidPosition(currentIterationPosition)) {
-                final int candidatePosition = currentIterationPosition + offset;
-
-                // reached board limits
-                if (!ChessUtils.isValidPosition(candidatePosition) ||
-                        isFirstOrEighthColumnExclusion(currentIterationPosition, offset)) {
-                    break;
-                }
-
-                final Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
-                if (candidateTile.isEmpty()) {
-                    // make normal move
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
-                } else if (candidateTile.isOccupied()) {
-                    if (candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
-                        // make attack move
-                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
-                    }
-                    break;
-                }
-
-                currentIterationPosition = candidatePosition;
-            }
-        }
-        return legalMoves;
+    public long generateLegalMovesBitBoard(final Board board) {
+        // get the occupancy bitboard for all pieces on the board
+        long occupancyBitBoard = board.getPiecesBitBoards().getAllPieces();
+        // get the bitboard of all possible attacks for this position and occupancy
+        long allMovesBitBoard = MagicBitBoards.getBishopAttacks(this.getPosition(), occupancyBitBoard);
+        // filter out the squares occupied by friendly pieces
+        long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(this.getAlliance());
+        return allMovesBitBoard & ~friendlyPiecesBitBoard;
     }
 
+    /**
+     * Moves the Bishop to a new position on the board.
+     *
+     * @param alliance The alliance (color) of the Bishop (White or Black).
+     * @param toTilePosition The new position to which the Bishop is moved.
+     * @return A new Bishop instance at the specified position with the same alliance.
+     */
     @Override
     public Bishop movePiece(final Alliance alliance, final int toTilePosition) {
         return new Bishop(toTilePosition, alliance);
     }
 
-    private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
-        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == -9 || offset == 7) ||
-                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 9);
-    }
-
+    /**
+     * Returns a string representation of the Bishop piece.
+     * The string is "B" for white and "b" for black.
+     *
+     * @return A string representing the Bishop piece, either "B" or "b".
+     */
     @Override
     public String toString() {
         return this.getAlliance().isWhite() ? "B" : "b";

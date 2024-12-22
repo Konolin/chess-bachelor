@@ -16,38 +16,53 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * The GameService class provides services to manage and manipulate a chess game.
+ * It includes functionality for initializing the board, validating moves, executing moves,
+ * and determining the winner.
+ */
 @Service
 public class GameService {
-    private final Logger logger = LoggerFactory.getLogger(GameService.class);
+
     private final ChessValidator validator;
     @Setter
     private Board board;
 
+    /**
+     * Constructor for GameService that initializes the validator.
+     *
+     * @param validator A ChessValidator instance to validate moves.
+     */
     @Autowired
     public GameService(final ChessValidator validator) {
         this.validator = validator;
     }
 
+    /**
+     * Initializes the game by creating a new chessboard from the starting FEN string.
+     * Sets up the initial state of the board and returns the BoardStateDTO.
+     *
+     * @return A BoardStateDTO containing the initial board setup in FEN format and winner flag.
+     */
     public BoardStateDTO initializeBoardState() {
-        long startNanos = System.nanoTime();
-
-        board = FenService.createGameFromFEN("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -");
-//        board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+        board = FenService.createGameFromFEN(ChessUtils.STARTING_FEN);
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
-        boardStateDTO.setWinnerFlag(0);
-
-        long elapsedNanos = System.nanoTime() - startNanos;
-        double elapsedMillis = elapsedNanos / 1_000_000.0;
-        logger.info("Board initialization completed in {} ms", elapsedMillis);
+        boardStateDTO.setWinnerFlag(0);  // No winner initially
 
         return boardStateDTO;
     }
 
+    /**
+     * Retrieves a list of all legal moves for a given position on the board.
+     * The legal moves are filtered to ensure no move results in a check.
+     * If the piece is a King, castle moves are also included.
+     *
+     * @param position The board position (coordinate) for which to retrieve legal moves.
+     * @return A list of legal moves for the piece at the given position.
+     */
     public List<Move> getAllMovesForPosition(final int position) {
-        long startNanos = System.nanoTime();
-
         // validate the input position
         validator.validatePosition(position);
 
@@ -57,8 +72,8 @@ public class GameService {
         if (candidateTile.isOccupied()) {
             final Piece piece = candidateTile.getOccupyingPiece();
             // get the legal moves that do not result in check
-            legalMoves = ChessUtils.filterMovesResultingInCheck(piece.generateLegalMoves(board), board);
-            // add the castle moves if the piece is king
+            legalMoves = ChessUtils.filterMovesResultingInCheck(piece.generateLegalMovesList(board), board);
+            // add the castle moves if the piece is a king
             if (piece.isKing()) {
                 legalMoves.addAll(CastleUtils.calculateCastleMoves(board, board.getMoveMaker()));
             }
@@ -66,16 +81,17 @@ public class GameService {
             legalMoves = null;
         }
 
-        long elapsedNanos = System.nanoTime() - startNanos;
-        double elapsedMillis = elapsedNanos / 1_000_000.0;
-        logger.info("Legal moves for position {} calculated in {} ms", position, elapsedMillis);
-
         return legalMoves;
     }
 
+    /**
+     * Executes a move on the board after validating the move input.
+     * The board is updated with the new move, and the BoardStateDTO is returned with the updated FEN and winner flag.
+     *
+     * @param move The move to be executed on the board.
+     * @return A BoardStateDTO with the updated board state and winner flag.
+     */
     public BoardStateDTO makeMove(final Move move) {
-        long startNanos = System.nanoTime();
-
         validator.makeMoveInputValidator(board, move);
 
         board = board.executeMove(move);
@@ -83,18 +99,23 @@ public class GameService {
         boardStateDTO.setFen(FenService.createFENFromGame(board));
         boardStateDTO.setWinnerFlag(getWinnerFlag());
 
-        long elapsedNanos = System.nanoTime() - startNanos;
-        double elapsedMillis = elapsedNanos / 1_000_000.0;
-        logger.info("Move from {} to {} of type {} completed in {} ms", move.getFromTileIndex(), move.getToTileIndex(), move.getMoveType(), elapsedMillis);
-
         return boardStateDTO;
     }
 
+    /**
+     * Determines if there is a winner in the current game state.
+     * A player wins if their king is in check and they have no legal moves left.
+     *
+     * @return An integer representing the winner flag:
+     *         -1 for White's win,
+     *         1 for Black's win,
+     *         0 if there is no winner yet.
+     */
     private int getWinnerFlag() {
         final Alliance moveMaker = board.getMoveMaker();
         if (board.isAllianceInCheck(moveMaker) && board.getAlliancesLegalMoves(moveMaker).isEmpty()) {
             return moveMaker.isWhite() ? -1 : 1;
         }
-        return 0;
+        return 0;  // No winner yet
     }
 }
