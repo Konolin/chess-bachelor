@@ -6,12 +6,26 @@ import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.pieces.*;
 
+/**
+ * This service handles the creation and parsing of FEN (Forsyth-Edwards Notation) strings.
+ * It provides methods to create a game from a FEN string and to generate a FEN string from the current game state.
+ */
 public class FenService {
 
+    /**
+     * Private constructor to prevent instantiation of this utility class.
+     */
     private FenService() {
         throw new ChessException("not instantiable", ChessExceptionCodes.ILLEGAL_STATE);
     }
 
+    /**
+     * Creates a chess game (Board) from the given FEN string.
+     *
+     * @param fenString The FEN string representing the board state.
+     * @return A Board object representing the game state described by the FEN string.
+     * @throws ChessException If the FEN string is invalid.
+     */
     public static Board createGameFromFEN(final String fenString) {
         final String[] fenPartitions = fenString.trim().split(" ");
         final Board.Builder builder = new Board.Builder();
@@ -54,7 +68,7 @@ public class FenService {
                     i++;
                     break;
                 case 'p':
-                    builder.setPieceAtPosition(new Pawn(i, Alliance.BLACK, ChessUtils.SECOND_ROW[i]));
+                    builder.setPieceAtPosition(new Pawn(i, Alliance.BLACK, ChessUtils.isPositionInRow(i, 2)));
                     if (!enPassantString.equals("-") &&
                             ChessUtils.getAlgebraicNotationAtCoordinate(i - 8).equals(enPassantString)) {
                         builder.setEnPassantPawn(new Pawn(i, Alliance.BLACK, false));
@@ -82,7 +96,7 @@ public class FenService {
                     i++;
                     break;
                 case 'P':
-                    builder.setPieceAtPosition(new Pawn(i, Alliance.WHITE, ChessUtils.SEVENTH_ROW[i]));
+                    builder.setPieceAtPosition(new Pawn(i, Alliance.WHITE, ChessUtils.isPositionInRow(i, 7)));
                     if (!enPassantString.equals("-") &&
                             ChessUtils.getAlgebraicNotationAtCoordinate(i + 8).equals(enPassantString)) {
                         builder.setEnPassantPawn(new Pawn(i, Alliance.WHITE, false));
@@ -96,10 +110,17 @@ public class FenService {
                     throw new ChessException("Invalid FEN String " + gameConfiguration, ChessExceptionCodes.INVALID_FEN_STRING);
             }
         }
+
         builder.setMoveMaker(moveMaker(fenPartitions[1]));
         return builder.build();
     }
 
+    /**
+     * Generates a FEN string from the current state of the game (Board).
+     *
+     * @param board The current game state.
+     * @return A FEN string representing the board state.
+     */
     public static String createFENFromGame(final Board board) {
         return calculateBoardText(board) + " " +
                 calculateCurrentPlayerText(board) + " " +
@@ -107,6 +128,13 @@ public class FenService {
                 calculateEnPassantText(board);
     }
 
+    /**
+     * Determines which player's turn it is based on the FEN string's second field (move maker).
+     *
+     * @param moveMakerString The move maker string ("w" or "b").
+     * @return The alliance representing the player whose turn it is.
+     * @throws ChessException If the move maker string is invalid.
+     */
     private static Alliance moveMaker(final String moveMakerString) {
         if (moveMakerString.equals("w")) {
             return Alliance.WHITE;
@@ -116,12 +144,19 @@ public class FenService {
         throw new ChessException("Invalid FEN String " + moveMakerString, ChessExceptionCodes.INVALID_FEN_STRING);
     }
 
+    /**
+     * Generates the board layout section of the FEN string from the current board state.
+     *
+     * @param board The current game state.
+     * @return The board layout portion of the FEN string.
+     */
     private static String calculateBoardText(final Board board) {
         final StringBuilder builder = new StringBuilder();
         for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
             final String tileText = board.getTileAtCoordinate(i).toString();
             builder.append(tileText);
         }
+
         builder.insert(8, "/");
         builder.insert(17, "/");
         builder.insert(26, "/");
@@ -141,10 +176,22 @@ public class FenService {
                 .replace("-", "1");
     }
 
+    /**
+     * Generates the current player section of the FEN string from the current board state.
+     *
+     * @param board The current game state.
+     * @return The current player portion of the FEN string ("w" or "b").
+     */
     private static String calculateCurrentPlayerText(final Board board) {
         return board.getMoveMaker().toString().substring(0, 1).toLowerCase();
     }
 
+    /**
+     * Generates the castling rights section of the FEN string from the current board state.
+     *
+     * @param board The current game state.
+     * @return The castling rights portion of the FEN string (e.g., "KQkq").
+     */
     private static String calculateCastleText(final Board board) {
         StringBuilder builder = new StringBuilder();
         if (board.isBlackKingSideCastleCapable()) {
@@ -163,6 +210,12 @@ public class FenService {
         return result.isEmpty() ? "-" : result;
     }
 
+    /**
+     * Generates the en passant target square section of the FEN string from the current board state.
+     *
+     * @param board The current game state.
+     * @return The en passant target square (e.g., "e3" or "-").
+     */
     private static String calculateEnPassantText(final Board board) {
         final Pawn enPassantPawn = board.getEnPassantPawn();
         if (enPassantPawn != null) {
@@ -173,10 +226,22 @@ public class FenService {
         return "-";
     }
 
+    /**
+     * Determines if the white king can castle based on the FEN string's castling rights.
+     *
+     * @param fenCastleString The castling rights section from the FEN string.
+     * @return True if the white king can castle, false otherwise.
+     */
     private static boolean canWhiteKingCastle(final String fenCastleString) {
         return fenCastleString.contains("K") || fenCastleString.contains("Q");
     }
 
+    /**
+     * Determines if the black king can castle based on the FEN string's castling rights.
+     *
+     * @param fenCastleString The castling rights section from the FEN string.
+     * @return True if the black king can castle, false otherwise.
+     */
     private static boolean canBlackKingCastle(final String fenCastleString) {
         return fenCastleString.contains("k") || fenCastleString.contains("q");
     }

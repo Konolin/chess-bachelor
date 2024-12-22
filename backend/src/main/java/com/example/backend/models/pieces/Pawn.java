@@ -131,8 +131,8 @@ public class Pawn extends Piece {
     }
 
     private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
-        return ChessUtils.FIRST_COLUMN[currentPosition] && (offset == 7 || offset == -9) ||
-                ChessUtils.EIGHTH_COLUMN[currentPosition] && (offset == -7 || offset == 9);
+        return ChessUtils.isPositionInColumn(currentPosition, 1) && (offset == 7 || offset == -9) ||
+                ChessUtils.isPositionInColumn(currentPosition, 8) && (offset == -7 || offset == 9);
     }
 
     private List<Character> getPromotionChars() {

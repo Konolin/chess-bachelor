@@ -9,6 +9,11 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.IntStream;
 
+
+/**
+ * A class for generating magic numbers for bitboard-based sliding piece move generation.
+ * Magic numbers are used to create compact and efficient lookup tables for rook and bishop attacks.
+ */
 public class MagicNumberGenerator {
     private static final Logger logger = LoggerFactory.getLogger(MagicNumberGenerator.class);
     private static final Random random = new Random();
@@ -17,36 +22,48 @@ public class MagicNumberGenerator {
         initMagicNumbers();
     }
 
+    /**
+     * Initializes and computes magic numbers for rooks and bishops across all board squares.
+     * This method runs in parallel to optimize performance.
+     */
     private static void initMagicNumbers() {
-        long[] newRookMagicNumbers = new long[64];
-        long[] newBishopMagicNumbers = new long[64];
+        final long[] newRookMagicNumbers = new long[64];
+        final long[] newBishopMagicNumbers = new long[64];
 
         IntStream.range(0, ChessUtils.TILES_NUMBER).parallel().forEach(square -> {
-            newRookMagicNumbers[square] = findMagicNumber(square, BitBoardUtils.rookRelevantBits[square], true);
-            newBishopMagicNumbers[square] = findMagicNumber(square, BitBoardUtils.bishopRelevantBits[square], false);
+            newRookMagicNumbers[square] = findMagicNumber(square, BitBoardUtils.getRookRelevantBits(square), true);
+            newBishopMagicNumbers[square] = findMagicNumber(square, BitBoardUtils.getBishopRelevantBits(square), false);
         });
 
         logger.info("Rook magic numbers: {}", Arrays.toString(newRookMagicNumbers));
         logger.info("Bishop magic numbers: {}", Arrays.toString(newBishopMagicNumbers));
     }
 
+    /**
+     * Finds a magic number for a specific square and piece type.
+     *
+     * @param tileIndex    The index of the tile (0-63).
+     * @param relevantBits The number of bits relevant for this square's attack pattern.
+     * @param isRook       True if finding a rook's magic number, false for a bishop.
+     * @return A suitable magic number for the given parameters.
+     */
     private static long findMagicNumber(int tileIndex, int relevantBits, boolean isRook) {
         // holds all possible combinations of occupied tiles that can influence the attack pattern of the given tileIndex
         // 4096 = 2^12: 12 is the largest relevant bit count possible
-        long[] occupancies = new long[4096];
+        final long[] occupancies = new long[4096];
 
         // holds all attackMasks and blockers are accounted for; each occupancy has an attackMask
-        long[] attackMasks = new long[4096];
+        final long[] attackMasks = new long[4096];
 
-        long[] usedAttacks = new long[4096];
+        final long[] usedAttacks = new long[4096];
 
         // get the attackMask for the current piece type (these are the relevant tiles)
-        long attackMask = isRook
-                ? BitBoardUtils.ROOK_ATTACK_MASK[tileIndex]
-                : BitBoardUtils.BISHOP_ATTACK_MASK[tileIndex];
+        final long attackMask = isRook
+                ? BitBoardUtils.getRookAttackMask(tileIndex)
+                : BitBoardUtils.getBishopAttackMask(tileIndex);
 
         // the number of possible ways to occupy the relevant tiles: (2^relevantBits)
-        int numberOfOccupancies = 1 << relevantBits;
+        final int numberOfOccupancies = 1 << relevantBits;
 
         // loop over every possible occupancy
         for (int occupancyIndex = 0; occupancyIndex < numberOfOccupancies; occupancyIndex++) {
@@ -61,7 +78,7 @@ public class MagicNumberGenerator {
 
         // test multiple magic numbers
         for (int iteration = 0; iteration < 1_000_000_000; iteration++) {
-            long magicNumberCandidate = generateMagicNumberCandidate();
+            final long magicNumberCandidate = generateMagicNumberCandidate();
 
             // skip the magic number candidate if the number of set bits (1s) in the top 8 bits (bits 56-63)
             // of the result from multiplying the attack mask and the magic number is less than 6.
@@ -79,7 +96,7 @@ public class MagicNumberGenerator {
                 // calculate the index of the magic mask.
                 // Every occupancy gets multiplied by the magic number. Only the relevant bits are kept,
                 // this helps in keeping the mapping of the attack sets as small as possible while remaining unique
-                int magicMaskIndex = (int) ((occupancies[occupancyIndex] * magicNumberCandidate) >>> (64 - relevantBits));
+                final int magicMaskIndex = (int) ((occupancies[occupancyIndex] * magicNumberCandidate) >>> (64 - relevantBits));
 
                 // check if the magic index works (is unique)
                 if (usedAttacks[magicMaskIndex] == 0L) {

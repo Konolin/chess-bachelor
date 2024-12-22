@@ -5,7 +5,6 @@ import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.PieceType;
-import com.example.backend.utils.BitBoardUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
@@ -36,6 +35,12 @@ public class PiecesBitBoards {
     private long blackQueens;
     private long blackKing;
 
+    /**
+     * Constructor to initialize the PiecesBitBoards based on the provided board configuration.
+     * Sets the bitboard for each piece according to its position on the board.
+     *
+     * @param boardConfig A map of board positions to pieces.
+     */
     public PiecesBitBoards(final Map<Integer, Piece> boardConfig) {
         for (Map.Entry<Integer, Piece> entry : boardConfig.entrySet()) {
             int position = entry.getKey();
@@ -46,10 +51,13 @@ public class PiecesBitBoards {
             }
         }
         allPieces = whitePieces | blackPieces;
-//        logBitBoards();
     }
 
-    // copy constructor
+    /**
+     * Copy constructor to create a new PiecesBitBoards object with the same values as another.
+     *
+     * @param other The PiecesBitBoards object to copy.
+     */
     public PiecesBitBoards(final PiecesBitBoards other) {
         this.allPieces = other.allPieces;
         this.whitePieces = other.whitePieces;
@@ -68,14 +76,19 @@ public class PiecesBitBoards {
         this.blackKing = other.blackKing;
     }
 
+    /**
+     * Updates the bitboards when a piece moves from one position to another.
+     *
+     * @param movingPiece The piece being moved.
+     * @param fromIndex   The starting position of the piece.
+     * @param toIndex     The target position for the piece.
+     */
     public void updateMove(Piece movingPiece, int fromIndex, int toIndex) {
         long fromMask = ~(1L << fromIndex);
         long toMask = 1L << toIndex;
 
-        // Update the specific piece's bitboard
         updateBitBoardForPiece(movingPiece, fromMask, toMask);
 
-        // Update all pieces and alliance-specific bitboards
         if (movingPiece.getAlliance().isWhite()) {
             whitePieces = (whitePieces & fromMask) | toMask;
         } else {
@@ -84,9 +97,15 @@ public class PiecesBitBoards {
         allPieces = whitePieces | blackPieces;
     }
 
+    /**
+     * Updates the bitboards when a piece is captured.
+     *
+     * @param captureIndex     The position of the captured piece.
+     * @param opponentAlliance The alliance of the opponent whose piece was captured.
+     */
     public void updateCapture(int captureIndex, Alliance opponentAlliance) {
         long captureMask = ~(1L << captureIndex);
-
+        // remove the captured piece from the appropriate bitboards
         if (opponentAlliance.isWhite()) {
             whitePieces &= captureMask;
             whitePawns &= captureMask;
@@ -106,12 +125,19 @@ public class PiecesBitBoards {
         }
     }
 
+    /**
+     * Updates the bitboards when a pawn is promoted to a new piece.
+     *
+     * @param pawn          The pawn that was promoted.
+     * @param promotedPiece The new piece the pawn was promoted to.
+     * @param fromPosition  The position of the pawn before promotion.
+     * @param toPosition    The position of the new piece after promotion.
+     */
     public void updatePromotion(final Piece pawn, final Piece promotedPiece, final int fromPosition, final int toPosition) {
-        // create a mask with the bit at the fromIndex to 0 and set the bit at the toIndex to 1
         long fromMask = ~(1L << fromPosition);
         long toMask = 1L << toPosition;
 
-        // clear the pawn bitboard using the mask
+        // remove the pawn from its bitboard
         if (pawn.getAlliance().isWhite()) {
             whitePawns &= fromMask;
             whitePieces &= fromMask;
@@ -120,10 +146,9 @@ public class PiecesBitBoards {
             blackPieces &= fromMask;
         }
 
-        // update the promoted piece's bitboard
         setBitBoardForPiece(promotedPiece, toPosition);
 
-        // update alliance-specific bitboards
+        // update the alliance-specific bitboards
         if (promotedPiece.getAlliance().isWhite()) {
             whitePieces = (whitePieces & fromMask) | toMask;
         } else {
@@ -132,6 +157,13 @@ public class PiecesBitBoards {
         allPieces = whitePieces | blackPieces;
     }
 
+    /**
+     * Updates the bitboard for a specific piece when it moves.
+     *
+     * @param piece    The piece that is moving.
+     * @param fromMask The mask to remove the piece from its old position.
+     * @param toMask   The mask to add the piece to its new position.
+     */
     private void updateBitBoardForPiece(final Piece piece, long fromMask, long toMask) {
         if (piece.getAlliance().isWhite()) {
             switch (piece.getType()) {
@@ -154,6 +186,12 @@ public class PiecesBitBoards {
         }
     }
 
+    /**
+     * Sets the bitboard for a given piece at the specified position.
+     *
+     * @param piece    The piece to place on the board.
+     * @param position The position on the board where the piece is located.
+     */
     private void setBitBoardForPiece(Piece piece, int position) {
         long positionMask = 1L << position;
 
@@ -180,6 +218,13 @@ public class PiecesBitBoards {
         }
     }
 
+    /**
+     * Returns the bitboard for a specific piece type and alliance.
+     *
+     * @param pieceType The type of piece (PAWN, KNIGHT, etc.).
+     * @param alliance  The alliance (white or black).
+     * @return The bitboard for the specified piece type and alliance
+     */
     public long getPieceBitBoard(final PieceType pieceType, final Alliance alliance) {
         switch (pieceType) {
             case PAWN -> {
@@ -204,25 +249,13 @@ public class PiecesBitBoards {
         }
     }
 
+    /**
+     * Returns the bitboard for all pieces of a specific alliance.
+     *
+     * @param alliance The alliance (white or black).
+     * @return The bitboard for all pieces of the specified alliance.
+     */
     public long getAllianceBitBoard(final Alliance alliance) {
         return alliance.isWhite() ? whitePieces : blackPieces;
-    }
-
-    private void logBitBoards() {
-        logger.info("\nWhite pieces bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whitePieces));
-        logger.info("\nBlack pieces bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackPieces));
-        logger.info("\nAll pieces bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.allPieces));
-        logger.info("\nWhite pawns bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whitePawns));
-        logger.info("\nBlack pawns bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackPawns));
-        logger.info("\nWhite rooks bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whiteRooks));
-        logger.info("\nBlack rooks bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackRooks));
-        logger.info("\nWhite knights bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whiteKnights));
-        logger.info("\nBlack knights bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackKnights));
-        logger.info("\nWhite bishops bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whiteBishops));
-        logger.info("\nBlack bishops bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackBishops));
-        logger.info("\nWhite queens bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whiteQueens));
-        logger.info("\nBlack queens bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackQueens));
-        logger.info("\nWhite king bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.whiteKing));
-        logger.info("\nBlack king bitboard:\n{}", BitBoardUtils.bitBoardFormatedString(this.blackKing));
     }
 }
