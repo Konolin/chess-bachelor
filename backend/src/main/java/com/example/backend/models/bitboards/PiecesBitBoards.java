@@ -46,7 +46,7 @@ public class PiecesBitBoards {
             }
         }
         allPieces = whitePieces | blackPieces;
-//        logBitboards();
+//        logBitBoards();
     }
 
     // copy constructor
