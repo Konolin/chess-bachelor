@@ -12,36 +12,52 @@ import com.example.backend.models.pieces.Rook;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utility class for handling castling logic in chess.
+ */
 public class CastleUtils {
     private CastleUtils() {
         throw new ChessException("Illegal state", ChessExceptionCodes.ILLEGAL_STATE);
     }
 
+    /**
+     * Calculates all valid castling moves for the given alliance on the board.
+     * Castling is only allowed if both the king and rook have not moved, and if
+     * the squares between them are empty and not attacked by the opponent.
+     *
+     * @param board   The current game board.
+     * @param alliance The alliance (color) of the player requesting the castling move.
+     * @return A list of valid castling moves for the specified alliance.
+     */
     public static List<Move> calculateCastleMoves(Board board, Alliance alliance) {
         List<Move> castleMoves = new ArrayList<>();
 
-        // no need to check if fen tells us that the alliance is not capable of castling
+        // check if castling is still possible for the given alliance
         if (!board.isAllianceCastleCapable(alliance)) {
             return castleMoves;
         }
 
+        // determine the position of the king for the alliance
         int kingPosition = alliance.isWhite() ? 60 : 4;
 
-        // check if king is not in check
+        // check if the king is in check (if so, castling is not allowed)
         if ((board.getAlliancesLegalMovesBitBoard(alliance.getOpponent()) & (1L << kingPosition)) != 0) {
             return castleMoves;
         }
 
+        // determine rook positions based on alliance (white or black)
         int[] rookPositions = alliance.isWhite() ? new int[]{56, 63} : new int[]{0, 7};
         for (int rookPosition : rookPositions) {
             if (!isRookEligibleForCastle(board, rookPosition, alliance)) {
                 continue;
             }
 
+            // determine the offsets for the king's move based on rook position (king-side or queen-side)
             int[] offsets = rookPosition < kingPosition ? new int[]{-1, -2, -3} : new int[]{1, 2};
             MoveType moveType = rookPosition < kingPosition ? MoveType.QUEEN_SIDE_CASTLE : MoveType.KING_SIDE_CASTLE;
             int kingDestination = rookPosition < kingPosition ? kingPosition - 2 : kingPosition + 2;
 
+            // check if the tiles are safe for castling
             if (areTilesSafeForCastle(board, kingPosition, offsets, alliance)) {
                 castleMoves.add(new Move(kingPosition, kingDestination, moveType));
             }
@@ -49,6 +65,15 @@ public class CastleUtils {
         return castleMoves;
     }
 
+    /**
+     * Checks if the rook at the given position is eligible for castling.
+     * A rook is eligible if it has not moved and belongs to the given alliance.
+     *
+     * @param board The current game board.
+     * @param rookPosition The position of the rook to check.
+     * @param alliance The alliance (color) of the player requesting the castling move.
+     * @return true if the rook is eligible for castling, false otherwise.
+     */
     private static boolean isRookEligibleForCastle(Board board, int rookPosition, Alliance alliance) {
         Tile tile = board.getTileAtCoordinate(rookPosition);
         return tile.isOccupied() &&
@@ -57,22 +82,39 @@ public class CastleUtils {
                 tile.getOccupyingPiece().getAlliance() == alliance;
     }
 
+    /**
+     * Checks if the tiles between the king and rook are safe for castling.
+     * A tile is safe if it is unoccupied and not under attack by the opponent.
+     *
+     * @param board The current game board.
+     * @param kingPosition The current position of the king.
+     * @param offsets The offsets representing the tiles between the king and rook.
+     * @param alliance The alliance (color) of the player requesting the castling move.
+     * @return true if the tiles between the king and rook are safe for castling, false otherwise.
+     */
     private static boolean areTilesSafeForCastle(Board board, int kingPosition, int[] offsets, Alliance alliance) {
         for (int offset : offsets) {
             // check if tile is occupied
             if (board.getTileAtCoordinate(kingPosition + offset).isOccupied()) {
                 return false;
             }
-            // Check if the tile is attacked by the opponent (offset -3 does not need to be checked for attacks)
+            // check if the tile is attacked by the opponent (offset -3 does not need to be checked for attacks)
             if (offset != -3 &&
                     (board.getAlliancesLegalMovesBitBoard(alliance.getOpponent()) & (1L << (kingPosition + offset))) != 0) {
                 return false;
             }
-
         }
         return true;
     }
 
+    /**
+     * Checks if the king of the given alliance is eligible for castling.
+     * The king is eligible if it has not moved and is present on the board.
+     *
+     * @param alliance The alliance (color) of the player.
+     * @param tiles The list of tiles on the board.
+     * @return true if the king is eligible for castling, false otherwise.
+     */
     public static boolean calculateAlliancesKingEligibleForCastle(final Alliance alliance, final List<Tile> tiles) {
         final int position = alliance.isWhite() ? 60 : 4;
         return tiles.get(position).isOccupied() &&
@@ -80,6 +122,15 @@ public class CastleUtils {
                 tiles.get(position).getOccupyingPiece().isFirstMove();
     }
 
+    /**
+     * Checks if the rook of the given alliance, at the specified offset, is eligible for castling.
+     * The rook is eligible if it has not moved and is present on the board.
+     *
+     * @param alliance The alliance (color) of the player.
+     * @param tiles The list of tiles on the board.
+     * @param offset The offset to determine the position of the rook (0 for king-side, 7 for queen-side).
+     * @return true if the rook is eligible for castling, false otherwise.
+     */
     public static boolean calculateAlliancesRookEligibleForCastle(final Alliance alliance, final List<Tile> tiles, final int offset) {
         final int position = alliance.isWhite() ? 60 + offset : 4 + offset;
         return tiles.get(position).isOccupied() &&
@@ -87,12 +138,20 @@ public class CastleUtils {
                 tiles.get(position).getOccupyingPiece().isFirstMove();
     }
 
+    /**
+     * Handles the castling move by updating the board.
+     * The method updates the position of the king and the rook, and sets the intermediate tiles as empty.
+     *
+     * @param move The move representing the castling.
+     * @param boardBuilder The builder used to update the game board.
+     * @param moveMaker The alliance (color) making the castling move.
+     */
     public static void handleCastleMove(final Move move, Board.Builder boardBuilder, final Alliance moveMaker) {
         if (move.getMoveType().isCastleMove()) {
             if (move.getMoveType() == MoveType.KING_SIDE_CASTLE) {
                 boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() + 1, moveMaker, false))
                         .setEmptyTile(move.getFromTileIndex() + 3);
-            } else { // Queen-side castle
+            } else { // queen-side castle
                 boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() - 1, moveMaker, false))
                         .setEmptyTile(move.getFromTileIndex() - 4);
             }
