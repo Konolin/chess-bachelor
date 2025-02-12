@@ -4,7 +4,7 @@ import zipfile
 import shutil
 
 STOCKFISH_URL = "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip"
-DEST_DIR = "engines"
+DEST_DIR = "../engines"
 STOCKFISH_EXE_NAME = "stockfish-windows-x86-64-avx2.exe"
 FINAL_EXE_NAME = "stockfish.exe"
 

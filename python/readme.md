@@ -4,7 +4,7 @@
 This project uses **Stockfish**, a powerful open-source chess engine, to evaluate chess positions. However, **Stockfish is not included by default** and must be downloaded before running the application.
 
 ## **Installation Instructions**
-To ensure Stockfish is properly installed and ready for use, you must run the **`download_stockfish.py`** script before starting the application.
+To ensure Stockfish is properly installed and ready for use, you must run the **`utils/download_stockfish.py`** script before starting the application.
 
 ### **Step 1: Run the Stockfish Download Script**
 Execute the following command in your terminal or command prompt:
