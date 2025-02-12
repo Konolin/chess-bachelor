@@ -4,7 +4,10 @@ import chess
 import chess.engine
 import mysql.connector
 import multiprocessing
-import itertools
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # MySQL Configuration
 DB_CONFIG = {
@@ -17,7 +20,7 @@ DB_CONFIG = {
 STOCKFISH_PATH = "../engines/stockfish.exe"
 EVALUATION_SEARCH_DEPTH = 15
 SAFE_CORES = max(1, int(multiprocessing.cpu_count() * 0.5))
-BATCH_SIZE = 1000 # Number of positions to evaluate in each batch
+BATCH_SIZE = 1000  # Number of positions to evaluate in each batch
 
 
 def fetch_unrated_positions(limit=100):
