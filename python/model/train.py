@@ -22,35 +22,18 @@ DB_CONFIG = {
 def fetch_data():
     db_connection = mysql.connector.connect(**DB_CONFIG)
 
-    # Get total row count
-    count_query = "SELECT COUNT(*) FROM chess_positions WHERE best_move IS NOT NULL AND black_score IS NOT NULL"
-    cursor = db_connection.cursor()
-    cursor.execute(count_query)
-    total_rows = cursor.fetchone()[0]
-    cursor.close()
+    query = ("SELECT * FROM chess_positions "
+             "WHERE best_move IS NOT NULL "
+             "AND black_score IS NOT NULL "
+             "ORDER BY RAND()")
 
-    # Calculate train/test split
-    train_size = int(0.8 * total_rows)
-
-    # Fetch train data directly
-    train_query = """
-            SELECT * FROM chess_positions 
-            WHERE best_move IS NOT NULL 
-            AND black_score IS NOT NULL 
-            LIMIT %s
-        """
-    train_df = pd.read_sql(train_query, db_connection, params=(train_size,))
-
-    # Fetch validation data directly
-    val_query = """
-            SELECT * FROM chess_positions 
-            WHERE best_move IS NOT NULL 
-            AND black_score IS NOT NULL 
-            LIMIT %s OFFSET %s
-        """
-    val_df = pd.read_sql(val_query, db_connection, params=(total_rows - train_size, train_size))
-
+    train_df = pd.read_sql(query, db_connection)
     db_connection.close()
+    # train_df = pd.read_csv('../data/train.csv', index_col='id')
+
+    ratio = int(len(train_df) * 0.8)
+    val_df = train_df[ratio:]
+    train_df = train_df[:ratio]
 
     return train_df, val_df
 
@@ -104,6 +87,7 @@ def main():
     model = Sequential([
         Flatten(),
         Dense(1024, activation='relu'),
+        Dense(64, activation='relu'),
         Dense(1),
     ])
 
@@ -114,7 +98,7 @@ def main():
     history = model.fit(
         x_train,
         y_train,
-        epochs=50,
+        epochs=20,
         validation_data=(x_val, y_val))
 
     plot_history(history)
