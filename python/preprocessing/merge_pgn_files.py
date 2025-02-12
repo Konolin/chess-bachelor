@@ -1,5 +1,6 @@
 import os
 
+
 def merge_pgn_files(input_directory, output_file):
     with open(output_file, 'w') as outfile:
         for filename in os.listdir(input_directory):
@@ -8,7 +9,6 @@ def merge_pgn_files(input_directory, output_file):
                     outfile.write(infile.read())
                     outfile.write('\n')
 
+
 if __name__ == "__main__":
-    input_directory = '../data/pgn'
-    output_file = '../data/pgn/magnus_carlsen.pgn'
-    merge_pgn_files(input_directory, output_file)
+    merge_pgn_files('../data/pgn', '../data/pgn/merged.pgn')
