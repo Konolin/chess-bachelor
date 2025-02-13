@@ -116,6 +116,7 @@ def reset_evaluations():
             query = """
                 UPDATE chess_positions
                 SET black_score = NULL, best_move = NULL
+                WHERE black_score IS NOT NULL OR best_move IS NOT NULL
             """
             cursor.execute(query)
             conn.commit()
