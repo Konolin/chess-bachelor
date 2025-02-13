@@ -73,7 +73,7 @@ def save(model, history, version, metadata):
         plt.show()
 
     # Save the model
-    model.save(f"models/model_v{version}")
+    model.save(f"models/model_v{version}.keras")
 
     # Save the metadata
     with open(f"models/metadata_v{version}.json", "w") as f:
