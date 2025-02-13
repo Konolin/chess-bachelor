@@ -6,6 +6,7 @@ import numpy as np
 import chess
 import matplotlib.pyplot as plt
 import pandas as pd
+import joblib
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -63,24 +64,29 @@ def encode_fen_string(fen_str):
     return encode_board(str(board))
 
 
-def save(model, history, version, metadata):
+def save(model, history, version, metadata, scaler=None):
     def plot_history(hist):
         plt.style.use('ggplot')
         plt.plot(hist['loss'], label='train loss')
         plt.plot(hist['val_loss'], label='val loss')
         plt.legend()
         plt.title('Loss During Training')
+        plt.savefig(f"v{version}_loss_plot.png")
         plt.show()
 
     # Save the model
-    model.save(f"models/model_v{version}.keras")
+    model.save(f"v{version}_model.keras")
+
+    if scaler:
+        with open(f"v{version}_scalar.pkl", "wb") as f:
+            joblib.dump(scaler, f)
 
     # Save the metadata
-    with open(f"models/metadata_v{version}.json", "w") as f:
+    with open(f"v{version}_metadata.json", "w") as f:
         json.dump(metadata, f)
 
     # Save the history
-    with open(f"models/history_v{version}.json", "w") as f:
+    with open(f"v{version}_history.json", "w") as f:
         json.dump(history, f)
 
     # Plot the history
