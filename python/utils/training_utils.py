@@ -63,16 +63,25 @@ def encode_fen_string(fen_str):
     return encode_board(str(board))
 
 
-def save(model, history, version):
-    def plot_history(history):
+def save(model, history, version, metadata):
+    def plot_history(hist):
         plt.style.use('ggplot')
-        plt.plot(history.history['loss'], label='train loss')
-        plt.plot(history.history['val_loss'], label='val loss')
+        plt.plot(hist['loss'], label='train loss')
+        plt.plot(hist['val_loss'], label='val loss')
         plt.legend()
         plt.title('Loss During Training')
         plt.show()
 
+    # Save the model
     model.save(f"models/model_v{version}")
+
+    # Save the metadata
+    with open(f"models/metadata_v{version}.json", "w") as f:
+        json.dump(metadata, f)
+
+    # Save the history
     with open(f"models/history_v{version}.json", "w") as f:
-        json.dump(history.history, f)
+        json.dump(history, f)
+
+    # Plot the history
     plot_history(history)
