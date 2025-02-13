@@ -160,4 +160,5 @@ def main():
 # Script Entry
 # ----------------------
 if __name__ == "__main__":
-    main()
+    # main()
+    print(evaluate_position((1, "4k3/p7/1q1p4/2p1B1Q1/2P2P2/1Q3N2/1P1PP1PP/RNB1K2R b KQkq - 0 1")))

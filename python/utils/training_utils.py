@@ -1,5 +1,6 @@
 import json
 import os
+import pickle
 
 import mysql.connector
 import numpy as np
@@ -39,15 +40,6 @@ def fetch_data():
     return train_df, val_df
 
 
-def one_hot_encode_piece(piece):
-    pieces = list('rnbqkpRNBQKP.')
-    arr = np.zeros(len(pieces))
-    piece_to_index = {p: i for i, p in enumerate(pieces)}
-    index = piece_to_index[piece]
-    arr[index] = 1
-    return arr
-
-
 def encode_fen_string(fen_str):
     def encode_board(board_str):
         # Remove all the spaces
@@ -60,8 +52,33 @@ def encode_fen_string(fen_str):
             board_list.append(row_list)
         return np.array(board_list)
 
+    def one_hot_encode_piece(piece):
+        pieces = list('rnbqkpRNBQKP.')
+        arr = np.zeros(len(pieces))
+        piece_to_index = {p: i for i, p in enumerate(pieces)}
+        index = piece_to_index[piece]
+        arr[index] = 1
+        return arr
+
     board = chess.Board(fen=fen_str)
     return encode_board(str(board))
+
+
+import pickle
+from sklearn.preprocessing import StandardScaler
+
+def load_scaler(filename="scaler.pkl"):
+    """Loads a saved StandardScaler from a file."""
+    try:
+        with open(filename, "rb") as f:
+            scaler = pickle.load(f)
+            if not isinstance(scaler, StandardScaler):
+                raise TypeError("Loaded object is not a StandardScaler instance")
+            return scaler
+    except Exception as e:
+        print(f"Error loading scaler: {e}")
+        return None  # Handle missing or invalid scaler gracefully
+
 
 
 def save(model, history, version, metadata, scaler=None):
@@ -78,8 +95,8 @@ def save(model, history, version, metadata, scaler=None):
     model.save(f"v{version}_model.keras")
 
     if scaler:
-        with open(f"v{version}_scalar.pkl", "wb") as f:
-            joblib.dump(scaler, f)
+        with open(f"v{version}_scaler.pkl", "wb") as f:
+            pickle.dump(scaler, f)
 
     # Save the metadata
     with open(f"v{version}_metadata.json", "w") as f:
