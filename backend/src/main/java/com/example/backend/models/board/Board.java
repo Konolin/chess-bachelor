@@ -225,6 +225,10 @@ public class Board {
         return tiles.get(position).getOccupyingPiece().getAlliance();
     }
 
+    public boolean isAllianceInCheckMate(final Alliance alliance) {
+        return isAllianceInCheck(alliance) && getAlliancesLegalMoves(alliance).isEmpty();
+    }
+
     public boolean isAllianceInCheck(final Alliance alliance) {
         // find the position of the king for the given alliance
         int kingPosition = alliance.isWhite()

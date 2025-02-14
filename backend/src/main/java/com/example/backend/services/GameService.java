@@ -113,7 +113,7 @@ public class GameService {
      */
     private int getWinnerFlag() {
         final Alliance moveMaker = board.getMoveMaker();
-        if (board.isAllianceInCheck(moveMaker) && board.getAlliancesLegalMoves(moveMaker).isEmpty()) {
+        if (board.isAllianceInCheckMate(moveMaker)) {
             return moveMaker.isWhite() ? -1 : 1;
         }
         return 0;  // No winner yet
