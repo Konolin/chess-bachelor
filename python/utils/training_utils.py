@@ -33,7 +33,7 @@ def fetch_data():
     train_df = pd.read_sql(query, db_connection)
     db_connection.close()
 
-    ratio = int(len(train_df) * 0.8)
+    ratio = int(len(train_df) * 0.9)
     val_df = train_df[ratio:]
     train_df = train_df[:ratio]
 

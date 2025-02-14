@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten, Dropout
+from tensorflow.keras.layers import Dense, Flatten, Dropout, Input
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from tensorflow.keras.optimizers import Adam
@@ -23,10 +23,10 @@ def main():
 
     model = Sequential([
         Flatten(),
-        Dense(512, activation='relu', kernel_regularizer=l2(0.001)),
-        Dropout(0.2),
-        Dense(128, activation='relu', kernel_regularizer=l2(0.001)),
-        Dropout(0.2),
+        Dense(512, activation='relu', kernel_regularizer=l2(0.002)),
+        Dropout(0.25),
+        Dense(128, activation='relu', kernel_regularizer=l2(0.002)),
+        Dropout(0.25),
         Dense(64, activation='relu'),
         Dense(1),
     ])
@@ -47,9 +47,9 @@ def main():
     )
 
     metadata = {
-        "model_name": "model_v2",
-        "l2": "0.001",
-        "dropout": "0.2",
+        "model_name": "model_v4",
+        "l2": "0.002",
+        "dropout": "0.25",
         "architecture": "Dense (512-128-64-1)",
         "optimizer": "adam",
         "loss": "mean_squared_error",
