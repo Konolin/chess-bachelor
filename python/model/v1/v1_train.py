@@ -31,17 +31,7 @@ def main():
         epochs=50,
         validation_data=(x_val, y_val))
 
-    metadata = {
-        "model_name": "model_v1",
-        "architecture": "Dense (1024-64-1)",
-        "optimizer": "rmsprop",
-        "loss": "mean_squared_error",
-        "epochs": 50,
-        "date": str(datetime.now()),
-        "training_data_size": len(train_df),
-    }
-
-    training_utils.save(model, history.history, 1, metadata)
+    training_utils.save(model, history.history, 1)
 
 
 if __name__ == "__main__":

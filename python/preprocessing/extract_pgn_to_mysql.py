@@ -54,6 +54,15 @@ def process_pgn_file(filepath):
                 if game is None:
                     break  # End of file
 
+                white_elo = game.headers.get("WhiteElo")
+                black_elo = game.headers.get("BlackElo")
+
+                if white_elo is None or black_elo is None:
+                    continue
+
+                if int(white_elo) < 2000 or int(black_elo) < 2000:
+                    continue
+
                 board = game.board()
                 move_list = list(game.mainline_moves())
 

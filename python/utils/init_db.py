@@ -24,6 +24,14 @@ def initialize_database():
             )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS chess_positions_lichess (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                fen VARCHAR(100) UNIQUE NOT NULL,
+                evaluation FLOAT
+            )
+        """)
+
         conn.commit()
         print("Database initialized successfully.")
     except mysql.connector.Error as err:

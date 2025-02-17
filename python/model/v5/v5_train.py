@@ -114,19 +114,10 @@ def train_model(model, x_train, y_train, x_val, y_val):
 
 def save_model(model, history, scaler):
     """
-    Saves the trained model, training history, metadata, and scaler.
+    Saves the trained model, training history, and scaler.
     """
-    metadata = {
-        "model_name": "model_with_extra_input_v1",
-        "architecture": "Board: Conv2D(32)-BatchNorm-Conv2D(64)-BatchNorm-Flatten; Extra: Dense(32); Combined: Dense(256)-Dropout(0.25)-Dense(32)-Dense(1)",
-        "optimizer": "adam",
-        "loss": "mean_squared_error",
-        "epochs": len(history.history['loss']),
-        "date": str(datetime.now())
-    }
-
     print("🔹 Saving model and metadata...")
-    training_utils.save(model, history.history, version=1, metadata=metadata, scaler=scaler)
+    training_utils.save(model, history.history, version=1, scaler=scaler)
     print("✅ Model saved successfully.")
 
 def main():

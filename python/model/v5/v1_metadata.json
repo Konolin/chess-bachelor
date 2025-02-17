@@ -1,0 +1,1 @@
+{"model_name": "model_with_extra_input_v1", "architecture": "Board: Conv2D(32)-BatchNorm-Conv2D(64)-BatchNorm-Flatten; Extra: Dense(32); Combined: Dense(256)-Dropout(0.25)-Dense(32)-Dense(1)", "optimizer": "adam", "loss": "mean_squared_error", "epochs": 35, "date": "2025-02-14 17:06:45.580492"}
