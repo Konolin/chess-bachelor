@@ -1,1 +1,0 @@
-{"model_name": "model_v4", "l2": "0.002", "dropout": "0.25", "architecture": "Dense (512-128-64-1)", "optimizer": "adam", "loss": "mean_squared_error", "epochs": 50, "date": "2025-02-14 11:15:23.000357", "training_data_size": 589946}

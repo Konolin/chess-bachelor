@@ -16,15 +16,6 @@ def initialize_database():
         cursor = conn.cursor()
 
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS chess_positions (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                fen VARCHAR(100) UNIQUE NOT NULL,
-                black_score INT,
-                best_move VARCHAR(10)
-            )
-        """)
-
-        cursor.execute("""
             CREATE TABLE IF NOT EXISTS chess_positions_lichess (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 fen VARCHAR(100) UNIQUE NOT NULL,

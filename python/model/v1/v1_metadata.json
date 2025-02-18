@@ -1,9 +1,0 @@
-{
-  "model_name": "model_v1",
-  "architecture": "Dense (1024-64-1)",
-  "optimizer": "rmsprop",
-  "loss": "mean_squared_error",
-  "epochs": 50,
-  "date": "2025-02-13 10:53:56.197635",
-  "training_data_size": 76346
-}
