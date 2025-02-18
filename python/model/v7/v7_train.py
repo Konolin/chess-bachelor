@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from datetime import datetime
 import numpy as np
 import tensorflow as tf
@@ -43,7 +41,7 @@ def load_and_preprocess_data():
       Tuple: ((x_board_train, x_extra_train), y_train, (x_board_val, x_extra_val), y_val)
     """
     print("🔹 Loading data...")
-    train_df, val_df = training_utils.fetch_data_lichess()
+    train_df, val_df = training_utils.fetch_data_from_db()
 
     print("🔹 Encoding FEN strings for board input...")
     x_board_train = np.stack(train_df['fen'].apply(training_utils.encode_fen_string))

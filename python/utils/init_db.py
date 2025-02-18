@@ -1,16 +1,32 @@
+import os
+
 import mysql.connector
+from dotenv import load_dotenv
+
+"""
+    This script initializes the MySQL database for storing chess positions.
+"""
+
+# Load environment variables from .env file
+load_dotenv()
 
 # MySQL Connection Configuration
 DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "password",
-    "database": "chess_db",
+    "host": os.getenv("DB_HOST"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "database": os.getenv("DB_NAME"),
 }
 
 
 def initialize_database():
-    """ Creates the necessary tables for storing chess positions. """
+    """
+    Creates the necessary table for storing chess positions.
+    The table has the following columns:
+    - id: Primary key (int, auto-increment)
+    - fen: FEN representation of the chess position (varchar-100, unique)
+    - evaluation: Evaluation of the chess position (float)
+    """
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
@@ -25,6 +41,7 @@ def initialize_database():
 
         conn.commit()
         print("Database initialized successfully.")
+
     except mysql.connector.Error as err:
         print(f"MySQL Error: {err}")
     finally:

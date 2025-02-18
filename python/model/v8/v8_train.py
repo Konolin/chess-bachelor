@@ -1,14 +1,6 @@
-#!/usr/bin/env python
 import os
-import json
 import time
-import numpy as np
 import tensorflow as tf
-import pandas as pd
-import chess
-import mysql.connector
-from dotenv import load_dotenv
-import matplotlib.pyplot as plt
 
 from tensorflow.keras.layers import Conv2D, BatchNormalization, Flatten, Dense, Dropout, Input, Concatenate
 from tensorflow.keras.regularizers import l2
@@ -16,13 +8,18 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 
-from utils.training_utils import fetch_data_lichess, create_tfrecord_file, create_dataset, save_model_and_history
+from utils.training_utils import fetch_data_from_db, create_tfrecord_file, create_dataset, save_model_and_history
+
+# TFRecord files for training and validation datasets.
+TRAIN_TFRECORD_PATH = "../../data/train.tfrecords"
+VAL_TFRECORD_PATH = "../../data/val.tfrecords"
+
+BATCH_SIZE = 64
+EPOCHS = 50
+VERSION = 8
 
 
-# -----------------------------------------------------------------------------
-# Define the optimized model.
-# -----------------------------------------------------------------------------
-def build_optimized_model():
+def build_model():
     """
     Builds and compiles the neural network with two input branches:
       - A CNN branch for board representation.
@@ -53,25 +50,31 @@ def build_optimized_model():
     return model
 
 
-# -----------------------------------------------------------------------------
-# Training and saving functions.
-# -----------------------------------------------------------------------------
-def train_model(model, train_dataset, val_dataset, epochs=50):
+def train_model(model, train_dataset, val_dataset, epochs):
+    """
+    Trains the model with the training dataset and validates with the validation dataset.
+    Callbacks include ReduceLROnPlateau and EarlyStopping.
+    """
+    # Reduce learning rate on plateau and early stopping callbacks.
     lr_callback = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=4, min_lr=1e-6)
     early_stopping = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
+
+    # Train the model.
     history = model.fit(
         train_dataset,
         epochs=epochs,
         validation_data=val_dataset,
         callbacks=[lr_callback, early_stopping]
     )
+
     return history
 
 
-# -----------------------------------------------------------------------------
-# Main function: Checks for TFRecord files, creates datasets, builds model, trains, and saves.
-# -----------------------------------------------------------------------------
 def main():
+    """
+    Main function to train the model.
+    """
+
     # Enable dynamic memory growth for GPUs, if available.
     gpus = tf.config.list_physical_devices('GPU')
     if gpus:
@@ -79,32 +82,28 @@ def main():
             tf.config.experimental.set_memory_growth(gpu, True)
 
     # Check if TFRecord files exist; if not, fetch data and create them.
-    train_tfrecord = "../../data/train.tfrecords"
-    val_tfrecord = "../../data/val.tfrecords"
-
-    if not os.path.exists(train_tfrecord) or not os.path.exists(val_tfrecord):
-        print("🔹 TFRecord files not found. Fetching data from the database and creating TFRecord files...")
-        train_df, val_df = fetch_data_lichess()
-        create_tfrecord_file(train_df, train_tfrecord)
-        create_tfrecord_file(val_df, val_tfrecord)
+    if not os.path.exists(TRAIN_TFRECORD_PATH) or not os.path.exists(VAL_TFRECORD_PATH):
+        print("TFRecord files not found. Fetching data from the database and creating TFRecord files...")
+        train_df, val_df = fetch_data_from_db()
+        create_tfrecord_file(train_df, TRAIN_TFRECORD_PATH)
+        create_tfrecord_file(val_df, VAL_TFRECORD_PATH)
     else:
-        print("🔹 TFRecord files found. Skipping creation and using existing files.")
+        print("TFRecord files found. Skipping creation and using existing files.")
 
     # Create streaming datasets from the TFRecord files.
-    batch_size = 64
-    train_dataset = create_dataset(train_tfrecord, batch_size)
-    val_dataset = create_dataset(val_tfrecord, batch_size)
+    train_dataset = create_dataset(TRAIN_TFRECORD_PATH, BATCH_SIZE)
+    val_dataset = create_dataset(VAL_TFRECORD_PATH, BATCH_SIZE)
 
     # Build and train the model.
-    model = build_optimized_model()
-    history = train_model(model, train_dataset, val_dataset, epochs=50)
+    model = build_model()
+    history = train_model(model, train_dataset, val_dataset, EPOCHS)
 
     # Save the model and training history.
-    save_model_and_history(model, history, version=8)
+    save_model_and_history(model, history, VERSION)
 
 
 if __name__ == "__main__":
     start_time = time.time()
     main()
     end_time = time.time()
-    print(f"Execution time: {end_time - start_time:.2f} seconds")
+    print(f"Execution time: {(end_time - start_time) / 3600:.2f} hours.")

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import json
 import os
 import numpy as np
@@ -9,6 +8,13 @@ from dotenv import load_dotenv
 from matplotlib import pyplot as plt
 import tensorflow as tf
 
+"""
+    This module contains utility functions to fetch data from a MySQL database, 
+    encode FEN strings into NumPy arrays, create TFRecord files, and create a
+    streaming tf.data.Dataset from TFRecord files.
+"""
+
+# Load environment variables from .env file
 load_dotenv()
 
 # Database configuration from environment variables
@@ -20,10 +26,13 @@ DB_CONFIG = {
 }
 
 
-def fetch_data_lichess():
+def fetch_data_from_db():
     """
     Connects to the MySQL database and fetches chess positions with evaluations.
     Splits the resulting DataFrame into training (85%) and validation (15%) sets.
+
+    Returns:
+        (train_df, val_df): Two DataFrames with columns 'fen' and 'evaluation'.
     """
     db_connection = mysql.connector.connect(**DB_CONFIG)
     query = """
@@ -40,13 +49,10 @@ def fetch_data_lichess():
     return train_df, val_df
 
 
-# -----------------------------------------------------------------------------
-# Helper functions to encode FEN strings into board and extra features.
-# -----------------------------------------------------------------------------
 def encode_extra_features(fen_str):
     """
-    Extract extra features from a FEN string.
-    Returns a NumPy array of length 6:
+    Extract extra features from a FEN string. This includes side to move, castling rights, and en passant flag.
+    Returns:
       [side_to_move, white kingside, white queenside, black kingside, black queenside, en passant flag]
     """
     board = chess.Board(fen=fen_str)
@@ -90,11 +96,10 @@ def encode_fen_string(fen_str):
     return encode_board(str(board))
 
 
-# -----------------------------------------------------------------------------
-# Functions to create TFRecord files.
-# -----------------------------------------------------------------------------
 def _float_feature(value):
-    """Returns a float_list from a float / double."""
+    """
+    Returns a float_list from a float / double.
+    """
     return tf.train.Feature(float_list=tf.train.FloatList(value=value))
 
 
@@ -110,9 +115,9 @@ def create_tfrecord_file(df, filename):
         for idx, row in df.iterrows():
             fen = row['fen']
             label = float(row['evaluation'])
-            board_encoded = encode_fen_string(fen)  # Shape: (8, 8, 13)
-            board_flat = board_encoded.flatten().tolist()  # Length: 8*8*13 = 832
-            extra_features = encode_extra_features(fen).tolist()  # Length: 6
+            board_encoded = encode_fen_string(fen)
+            board_flat = board_encoded.flatten().tolist()
+            extra_features = encode_extra_features(fen).tolist()
 
             feature = {
                 'board': _float_feature(board_flat),
@@ -124,10 +129,11 @@ def create_tfrecord_file(df, filename):
     print(f"✅ TFRecord file '{filename}' created with {len(df)} samples.")
 
 
-# -----------------------------------------------------------------------------
-# Functions to create a streaming tf.data.Dataset from TFRecord files.
-# -----------------------------------------------------------------------------
 def _parse_function(example_proto):
+    """
+    Parses a single record from a TFRecord file.
+    Returns a tuple of features and label.
+    """
     feature_description = {
         'board': tf.io.FixedLenFeature([8 * 8 * 13], tf.float32),
         'extra': tf.io.FixedLenFeature([6], tf.float32),
@@ -141,6 +147,10 @@ def _parse_function(example_proto):
 
 
 def create_dataset(tfrecord_filename, batch_size):
+    """
+    Creates a streaming tf.data.Dataset from a TFRecord file.
+    Returns a Dataset object with batches of size `batch_size`.
+    """
     dataset = tf.data.TFRecordDataset(tfrecord_filename)
     dataset = dataset.map(_parse_function, num_parallel_calls=tf.data.AUTOTUNE)
     dataset = dataset.batch(batch_size)
@@ -148,14 +158,14 @@ def create_dataset(tfrecord_filename, batch_size):
     return dataset
 
 
-def save_model_and_history(model, history, version=7):
+def save_model_and_history(model, history, version):
     """
     Saves the trained model and the training history (converted to native floats for JSON compatibility).
     Also plots and saves the loss history.
     """
     # Save model
     model.save(f"v{version}_model.keras")
-    print(f"✅ Model saved as v{version}_model.keras")
+    print(f"Model saved as v{version}_model.keras")
 
     # Convert history values to native Python floats
     history_converted = {key: [float(val) for val in values] for key, values in history.history.items()}
@@ -163,7 +173,7 @@ def save_model_and_history(model, history, version=7):
     # Save history as JSON
     with open(f"v{version}_history.json", "w") as f:
         json.dump(history_converted, f)
-    print(f"✅ Training history saved as v{version}_history.json")
+    print(f"Training history saved as v{version}_history.json")
 
     # Plot and save the loss curve
     plt.style.use('ggplot')
@@ -175,4 +185,4 @@ def save_model_and_history(model, history, version=7):
     plt.legend()
     plt.savefig(f"v{version}_loss_plot.png")
     plt.close()
-    print(f"✅ Loss plot saved as v{version}_loss_plot.png")
+    print(f"Loss plot saved as v{version}_loss_plot.png")
