@@ -4,7 +4,6 @@ import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.Move;
 
 public class MoveFinder {
-
     public static Move findBestMove(Board board, int depth) {
         Move bestMove = null;
         float highestEvaluation = Float.MIN_VALUE;
@@ -31,7 +30,7 @@ public class MoveFinder {
 
     private static float min(final Board board, final int depth, final float alpha, float beta) {
         if (depth == 0 || board.isAllianceInCheckMate(board.getMoveMaker().getOpponent())) {
-            return ModelPredictor.makePrediction(FenService.createFENFromGame(board));
+            return ModelService.makePrediction(FenService.createFENFromGame(board));
         }
         float lowestEvaluation = Float.MAX_VALUE;
         for (final Move move : board.getAlliancesLegalMoves(board.getMoveMaker())) {
@@ -51,7 +50,7 @@ public class MoveFinder {
 
     private static float max(final Board board, final int depth, final float alpha, float beta) {
         if (depth == 0 || board.isAllianceInCheckMate(board.getMoveMaker().getOpponent())) {
-            return ModelPredictor.makePrediction(FenService.createFENFromGame(board));
+            return ModelService.makePrediction(FenService.createFENFromGame(board));
         }
         float highestEvaluation = Float.MIN_VALUE;
         for (final Move move : board.getAlliancesLegalMoves(board.getMoveMaker())) {

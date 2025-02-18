@@ -95,7 +95,6 @@ public class Board {
         return pieces;
     }
 
-
     private long calculateLegalMovesBitBoard(final Alliance alliance) {
         long attackingPositionsBitBoard = 0L;
         // add all the tiles that are attacked

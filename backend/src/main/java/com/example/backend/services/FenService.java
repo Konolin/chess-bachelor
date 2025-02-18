@@ -20,6 +20,31 @@ public class FenService {
     }
 
     /**
+     * Converts a FEN string to a string representation of the board
+     *
+     * @param fen The FEN string to convert.
+     * @return A string representation of the board.
+     */
+    public static String convertFENToStringBoard(String fen) {
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < fen.length(); i++) {
+            char c = fen.charAt(i);
+            if (c == '/') {
+                // new line
+                sb.append('\n');
+            } else if (Character.isDigit(c)) {
+                // repeat the empty tile representation by the numeric value of c
+                sb.append("- ".repeat(Math.max(0, Character.getNumericValue(c))));
+            } else {
+                sb.append(c).append(' ');
+            }
+        }
+
+        return sb.toString();
+    }
+
+    /**
      * Creates a chess game (Board) from the given FEN string.
      *
      * @param fenString The FEN string representing the board state.
