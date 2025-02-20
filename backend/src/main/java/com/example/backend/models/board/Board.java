@@ -95,7 +95,6 @@ public class Board {
         return pieces;
     }
 
-
     private long calculateLegalMovesBitBoard(final Alliance alliance) {
         long attackingPositionsBitBoard = 0L;
         // add all the tiles that are attacked
@@ -223,6 +222,10 @@ public class Board {
             return null;
         }
         return tiles.get(position).getOccupyingPiece().getAlliance();
+    }
+
+    public boolean isAllianceInCheckMate(final Alliance alliance) {
+        return isAllianceInCheck(alliance) && getAlliancesLegalMoves(alliance).isEmpty();
     }
 
     public boolean isAllianceInCheck(final Alliance alliance) {
