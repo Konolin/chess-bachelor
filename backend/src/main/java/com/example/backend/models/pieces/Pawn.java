@@ -4,12 +4,16 @@ import com.example.backend.models.board.Board;
 import com.example.backend.models.board.Tile;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
+import com.example.backend.services.GameService;
 import com.example.backend.utils.ChessUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Pawn extends Piece {
+    private final Logger logger = LoggerFactory.getLogger(Pawn.class);
     private static final int[] MOVE_OFFSETS = {7, 8, 9, 16};
 
     public Pawn(final int position, final Alliance alliance, final boolean isFirstMove) {
@@ -18,6 +22,8 @@ public class Pawn extends Piece {
 
     @Override
     public List<Move> generateLegalMovesList(final Board board) {
+        logger.info("pawn" + board.toString());
+
         List<Move> legalMoves = new ArrayList<>();
 
         for (final int offset : MOVE_OFFSETS) {

@@ -4,6 +4,7 @@ import com.example.backend.models.moves.Move;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.MoveType;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,9 +16,11 @@ import java.util.List;
  */
 @Getter
 public abstract class Piece {
-    private final int position;
+    @Setter
+    private int position;
+    @Setter
+    private boolean isFirstMove;
     private final Alliance alliance;
-    private final boolean isFirstMove;
     private final int cachedHashCode;
     private final PieceType type;
 

@@ -88,6 +88,15 @@ public class Tile {
     }
 
     /**
+     * Gets the empty tile for a given position from the cache.
+     * @param position The position of the empty tile.
+     * @return The empty tile at the specified position.
+     */
+    public static Tile getEmptyTileForPosition(final int position) {
+        return EMPTY_TILES_CACHE.get(position);
+    }
+
+    /**
      * Provides a string representation of the tile.
      * If the tile is empty, it returns a "-" symbol; otherwise, it returns the string representation of the occupying piece.
      *

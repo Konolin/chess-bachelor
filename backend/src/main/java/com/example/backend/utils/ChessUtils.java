@@ -53,7 +53,7 @@ public class ChessUtils {
      * @param position the position of the piece on the board
      * @return the corresponding {@link Piece} object
      */
-    public static Piece createPieceFromTypeAndPosition(final PieceType type, final Alliance alliance, final int position) {
+    public static Piece createPieceFromTypePositionAlliace(final PieceType type, final Alliance alliance, final int position) {
         return switch (type) {
             case QUEEN -> new Queen(position, alliance);
             case ROOK -> new Rook(position, alliance, false);

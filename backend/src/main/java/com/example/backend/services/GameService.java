@@ -10,6 +10,8 @@ import com.example.backend.models.moves.Move;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import lombok.Setter;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +24,7 @@ import java.util.List;
  */
 @Service
 public class GameService {
-
+    private final Logger logger = LoggerFactory.getLogger(GameService.class);
     private final ChessValidator validator;
     @Setter
     private Board board;
@@ -62,6 +64,8 @@ public class GameService {
      * @return A list of legal moves for the piece at the given position.
      */
     public List<Move> getAllMovesForPosition(final int position) {
+        logger.info("getAll" + board.toString());
+
         // validate the input position
         validator.validatePosition(position);
 
@@ -93,7 +97,9 @@ public class GameService {
     public BoardStateDTO makeMove(final Move move) {
         validator.makeMoveInputValidator(board, move);
 
-        board = board.executeMove(move);
+        logger.info("pre" + board.toString());
+        board.executeMove(move);
+        logger.info("post" + board.toString());
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
         boardStateDTO.setWinnerFlag(getWinnerFlag());

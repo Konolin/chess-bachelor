@@ -2,6 +2,7 @@ package com.example.backend.models.bitboards;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
+import com.example.backend.models.board.Tile;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.PieceType;
@@ -11,6 +12,7 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -45,6 +47,18 @@ public class PiecesBitBoards {
         for (Map.Entry<Integer, Piece> entry : boardConfig.entrySet()) {
             int position = entry.getKey();
             Piece piece = entry.getValue();
+            if (piece != null) {
+                // set the corresponding bitboard for the piece
+                setBitBoardForPiece(piece, position);
+            }
+        }
+        allPieces = whitePieces | blackPieces;
+    }
+
+    public PiecesBitBoards(final List<Tile> tiles) {
+        for (final Tile tile : tiles) {
+            int position = tile.getPosition();
+            Piece piece = tile.getOccupyingPiece();
             if (piece != null) {
                 // set the corresponding bitboard for the piece
                 setBitBoardForPiece(piece, position);

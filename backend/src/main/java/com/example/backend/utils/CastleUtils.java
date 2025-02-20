@@ -138,24 +138,4 @@ public class CastleUtils {
                 tiles.get(position).getOccupyingPiece().getType() == PieceType.ROOK &&
                 tiles.get(position).getOccupyingPiece().isFirstMove();
     }
-
-    /**
-     * Handles the castling move by updating the board.
-     * The method updates the position of the king and the rook, and sets the intermediate tiles as empty.
-     *
-     * @param move The move representing the castling.
-     * @param boardBuilder The builder used to update the game board.
-     * @param moveMaker The alliance (color) making the castling move.
-     */
-    public static void handleCastleMove(final Move move, Board.Builder boardBuilder, final Alliance moveMaker) {
-        if (move.getMoveType().isCastleMove()) {
-            if (move.getMoveType() == MoveType.KING_SIDE_CASTLE) {
-                boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() + 1, moveMaker, false))
-                        .setEmptyTile(move.getFromTileIndex() + 3);
-            } else { // queen-side castle
-                boardBuilder.setPieceAtPosition(new Rook(move.getFromTileIndex() - 1, moveMaker, false))
-                        .setEmptyTile(move.getFromTileIndex() - 4);
-            }
-        }
-    }
 }

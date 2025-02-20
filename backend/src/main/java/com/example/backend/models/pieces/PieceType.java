@@ -24,4 +24,8 @@ public enum PieceType {
         this.name = name;
         this.algebraicSymbol = name.substring(0, 1);
     }
+
+    public boolean isCastlePartaker() {
+        return this == KING || this == ROOK;
+    }
 }
