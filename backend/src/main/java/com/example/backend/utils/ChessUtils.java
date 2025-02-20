@@ -46,29 +46,6 @@ public class ChessUtils {
     }
 
     /**
-     * Creates a chess piece based on its character representation and position.
-     *
-     * @param pieceChar the character representation of the piece
-     * @param position  the position of the piece on the board
-     * @return the corresponding {@link Piece} object
-     * @throws ChessException if the piece character is invalid
-     */
-    public static Piece createPieceFromCharAndPosition(final String pieceChar, final int position) {
-        return switch (pieceChar) {
-            case "q" -> new Queen(position, Alliance.BLACK);
-            case "r" -> new Rook(position, Alliance.BLACK, false);
-            case "n" -> new Knight(position, Alliance.BLACK);
-            case "b" -> new Bishop(position, Alliance.BLACK);
-            case "Q" -> new Queen(position, Alliance.WHITE);
-            case "R" -> new Rook(position, Alliance.WHITE, false);
-            case "N" -> new Knight(position, Alliance.WHITE);
-            case "B" -> new Bishop(position, Alliance.WHITE);
-            default ->
-                    throw new ChessException("Invalid piece character " + pieceChar, ChessExceptionCodes.INVALID_PIECE_CHARACTER);
-        };
-    }
-
-    /**
      * Creates a chess piece based on its type, alliance, and position.
      *
      * @param type     the type of the piece

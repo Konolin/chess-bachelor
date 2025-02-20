@@ -147,7 +147,8 @@ public class Board {
         // check if this is a promotion move
         if (move.getMoveType().isPromotion()) {
             // create the promoted piece on its new position
-            final Piece promotedPiece = ChessUtils.createPieceFromCharAndPosition(move.getPromotedPieceChar(), move.getToTileIndex());
+            final Piece promotedPiece = ChessUtils.createPieceFromTypeAndPosition(
+                    move.getPromotedPieceType(), moveMaker, move.getToTileIndex());
 
             // update the bitboards with the promoted piece
             newPiecesBitBoards.updatePromotion(movingPiece, promotedPiece, move.getFromTileIndex(), move.getToTileIndex());
