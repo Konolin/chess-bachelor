@@ -1,8 +1,9 @@
-import { MoveType } from './move-type';
+import { MoveTypeEnum } from '../enums/move-type-enum';
+import { PieceTypeEnum } from '../enums/piece-type-enum';
 
 export type Move = {
   fromTileIndex: number;
   toTileIndex: number;
-  moveType: MoveType;
-  promotedPieceChar: string | null;
+  moveType: MoveTypeEnum;
+  promotedPieceType: PieceTypeEnum | null;
 };
