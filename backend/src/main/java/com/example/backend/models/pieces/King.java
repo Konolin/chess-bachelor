@@ -59,14 +59,4 @@ public class King extends Piece {
     public String toString() {
         return this.getAlliance().isWhite() ? "K" : "k";
     }
-
-    /**
-     * Indicates that this piece is a King.
-     *
-     * @return true, as this piece is a King.
-     */
-    @Override
-    public boolean isKing() {
-        return true;
-    }
 }

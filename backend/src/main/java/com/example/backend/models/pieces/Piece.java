@@ -15,7 +15,6 @@ import java.util.List;
  */
 @Getter
 public abstract class Piece {
-
     private final int position;
     private final Alliance alliance;
     private final boolean isFirstMove;
@@ -136,33 +135,6 @@ public abstract class Piece {
         result = prime * result + position;
         result = prime * result + (isFirstMove ? 1 : 0);
         return result;
-    }
-
-    /**
-     * Indicates whether this piece is a King.
-     *
-     * @return false, as this method is meant to be overridden by the King piece class.
-     */
-    public boolean isKing() {
-        return false;
-    }
-
-    /**
-     * Indicates whether this piece is a Rook.
-     *
-     * @return false, as this method is meant to be overridden by the Rook piece class.
-     */
-    public boolean isRook() {
-        return false;
-    }
-
-    /**
-     * Indicates whether this piece is a Pawn.
-     *
-     * @return false, as this method is meant to be overridden by the Pawn piece class.
-     */
-    public boolean isPawn() {
-        return false;
     }
 
     /**

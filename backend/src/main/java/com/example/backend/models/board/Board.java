@@ -8,6 +8,7 @@ import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Pawn;
 import com.example.backend.models.pieces.Piece;
+import com.example.backend.models.pieces.PieceType;
 import com.example.backend.utils.BitBoardUtils;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
@@ -99,7 +100,7 @@ public class Board {
         long attackingPositionsBitBoard = 0L;
         // add all the tiles that are attacked
         for (final Piece piece : getAlliancesPieces(alliance)) {
-            if (piece.isPawn()) {
+            if (piece.getType() == PieceType.PAWN) {
                 long pawnBitboard = alliance.isWhite() ? piecesBitBoards.getWhitePawns() : piecesBitBoards.getBlackPawns();
                 attackingPositionsBitBoard |= BitBoardUtils.calculatePawnAttackingBitboard(pawnBitboard, alliance);
             } else {

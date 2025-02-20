@@ -7,6 +7,7 @@ import com.example.backend.models.board.Tile;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.Alliance;
+import com.example.backend.models.pieces.PieceType;
 import com.example.backend.models.pieces.Rook;
 
 import java.util.ArrayList;
@@ -77,7 +78,7 @@ public class CastleUtils {
     private static boolean isRookEligibleForCastle(Board board, int rookPosition, Alliance alliance) {
         Tile tile = board.getTileAtCoordinate(rookPosition);
         return tile.isOccupied() &&
-                tile.getOccupyingPiece().isRook() &&
+                tile.getOccupyingPiece().getType() == PieceType.ROOK &&
                 tile.getOccupyingPiece().isFirstMove() &&
                 tile.getOccupyingPiece().getAlliance() == alliance;
     }
@@ -118,7 +119,7 @@ public class CastleUtils {
     public static boolean calculateAlliancesKingEligibleForCastle(final Alliance alliance, final List<Tile> tiles) {
         final int position = alliance.isWhite() ? 60 : 4;
         return tiles.get(position).isOccupied() &&
-                tiles.get(position).getOccupyingPiece().isKing() &&
+                tiles.get(position).getOccupyingPiece().getType() == PieceType.KING &&
                 tiles.get(position).getOccupyingPiece().isFirstMove();
     }
 
@@ -134,7 +135,7 @@ public class CastleUtils {
     public static boolean calculateAlliancesRookEligibleForCastle(final Alliance alliance, final List<Tile> tiles, final int offset) {
         final int position = alliance.isWhite() ? 60 + offset : 4 + offset;
         return tiles.get(position).isOccupied() &&
-                tiles.get(position).getOccupyingPiece().isRook() &&
+                tiles.get(position).getOccupyingPiece().getType() == PieceType.ROOK &&
                 tiles.get(position).getOccupyingPiece().isFirstMove();
     }
 

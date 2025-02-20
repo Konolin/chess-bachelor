@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.models.pieces.PieceType;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
@@ -9,8 +10,6 @@ import com.example.backend.models.moves.Move;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import lombok.Setter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -74,7 +73,7 @@ public class GameService {
             // get the legal moves that do not result in check
             legalMoves = ChessUtils.filterMovesResultingInCheck(piece.generateLegalMovesList(board), board);
             // add the castle moves if the piece is a king
-            if (piece.isKing()) {
+            if (piece.getType() == PieceType.KING) {
                 legalMoves.addAll(CastleUtils.calculateCastleMoves(board, board.getMoveMaker()));
             }
         } else {

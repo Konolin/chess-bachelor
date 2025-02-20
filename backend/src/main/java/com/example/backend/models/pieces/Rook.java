@@ -52,16 +52,6 @@ public class Rook extends Piece {
     }
 
     /**
-     * Indicates whether this piece is a Rook.
-     *
-     * @return true, since this class represents a Rook piece.
-     */
-    @Override
-    public boolean isRook() {
-        return true;
-    }
-
-    /**
      * Returns a string representation of the Rook piece.
      * The string is "R" for white and "r" for black.
      *
