@@ -230,6 +230,9 @@ public class Board {
         // update pieceBitBoards
         piecesBitBoards = new PiecesBitBoards(tiles);
 
+        // update castle capabilities
+        calculateCastleCapabilities();
+
         // update legal moves
         whiteLegalMoves = calculateLegalMoves(Alliance.WHITE);
         blackLegalMoves = calculateLegalMoves(Alliance.BLACK);
@@ -238,13 +241,12 @@ public class Board {
         whiteLegalMovesBitBoard = calculateLegalMovesBitBoard(Alliance.WHITE);
         blackLegalMovesBitBoard = calculateLegalMovesBitBoard(Alliance.BLACK);
 
-        // update castle capabilities if the moved piece was a castle partaker piece (king or rook)
-        if (movingPiece.getType().isCastlePartaker()) {
-            calculateCastleCapabilities();
-        }
-
         // change moveMaker
         moveMaker = moveMaker.getOpponent();
+
+        // add the castle moves to the legal moves
+        whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.WHITE));
+        blackLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
 
         // add the move to the move history
         moveHistory.push(moveHistoryEntry);
@@ -322,12 +324,12 @@ public class Board {
             if (move.getMoveType().isKingSideCastle()) {
                 rookIndex = getRookIndex(fromTileIndex + 1);
                 rookNewPosition = fromTileIndex + 3;
-                rook = new Rook(fromTileIndex + 3, moveMaker, false);
+                rook = new Rook(fromTileIndex + 3, moveMaker, true);
                 tiles.set(fromTileIndex + 1, Tile.getEmptyTileForPosition(fromTileIndex));
             } else {
                 rookIndex = getRookIndex(fromTileIndex - 1);
                 rookNewPosition = fromTileIndex - 4;
-                rook = new Rook(fromTileIndex - 4, moveMaker, false);
+                rook = new Rook(fromTileIndex - 4, moveMaker, true);
                 tiles.set(fromTileIndex - 1, Tile.getEmptyTileForPosition(fromTileIndex));
             }
             tiles.set(rookNewPosition, Tile.createTile(rook, rookNewPosition));
@@ -343,6 +345,9 @@ public class Board {
         // update pieceBitBoards
         piecesBitBoards = new PiecesBitBoards(tiles);
 
+        // update castle capabilities
+        calculateCastleCapabilities();
+
         // update legal moves
         whiteLegalMoves = calculateLegalMoves(Alliance.WHITE);
         blackLegalMoves = calculateLegalMoves(Alliance.BLACK);
@@ -351,10 +356,9 @@ public class Board {
         whiteLegalMovesBitBoard = calculateLegalMovesBitBoard(Alliance.WHITE);
         blackLegalMovesBitBoard = calculateLegalMovesBitBoard(Alliance.BLACK);
 
-        // update castle capabilities if the moved piece was a castle partaker piece (king or rook)
-        if (movingPiece.getType().isCastlePartaker()) {
-            calculateCastleCapabilities();
-        }
+        // add the castle moves to the legal moves
+        whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.WHITE));
+        blackLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
     }
 
     private int getRookIndex(final int position) {
