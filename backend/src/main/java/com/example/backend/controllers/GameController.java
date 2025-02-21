@@ -64,4 +64,9 @@ public class GameController {
     public ResponseEntity<BoardStateDTO> getStartingBoardState() {
         return ResponseEntity.ok(gameService.initializeBoardState());
     }
+
+    @GetMapping("/undo-last-move")
+    public ResponseEntity<BoardStateDTO> undoLastMove() {
+        return ResponseEntity.ok(gameService.undoLastMove());
+    }
 }

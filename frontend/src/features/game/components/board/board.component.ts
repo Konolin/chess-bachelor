@@ -183,6 +183,19 @@ export class BoardComponent implements OnInit {
   }
 
   /**
+   * Undoes the last move and last move by using the service to contact the server.
+   * Updates the boardState.
+   */
+  protected undoLastMove(): void {
+    this.gameService
+      .undoLastMove()
+      .pipe(take(1))
+      .subscribe((response) => {
+        this.updateGameState(response);
+      });
+  }
+
+  /**
    * Selects a tile and fetches legal moves for the piece on that tile.
    * @param tile The tile to select.
    */

@@ -4,6 +4,7 @@ import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.bitboards.PiecesBitBoards;
 import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveHistoryEntry;
 import com.example.backend.models.pieces.*;
 import com.example.backend.utils.BitBoardUtils;
 import com.example.backend.utils.CastleUtils;
@@ -17,9 +18,10 @@ import java.util.*;
 @Getter
 public class Board {
     private final Logger logger = LoggerFactory.getLogger(Board.class);
+    private final Stack<MoveHistoryEntry> moveHistory = new Stack<>();
     private final List<Piece> whitePieces;
     private final List<Piece> blackPieces;
-    private List<Tile> tiles;
+    private final List<Tile> tiles;
     private Alliance moveMaker;
     private List<Move> whiteLegalMoves;
     private List<Move> blackLegalMoves;
@@ -129,26 +131,49 @@ public class Board {
     public void executeMove(final Move move) {
         final int fromTileIndex = move.getFromTileIndex();
         final int toTileIndex = move.getToTileIndex();
+
+        // get the pieces involved in this move
         Piece movingPiece = getTileAtCoordinate(fromTileIndex).getOccupyingPiece();
+        Piece capturedPiece = getTileAtCoordinate(toTileIndex).getOccupyingPiece();
+
+        // create the move history entry
+        MoveHistoryEntry moveHistoryEntry = new MoveHistoryEntry(move, movingPiece, capturedPiece, movingPiece.isFirstMove());
+
+        // update the moving piece
         movingPiece.setPosition(toTileIndex);
         movingPiece.setFirstMove(false);
 
         // empty the staring tile
-        setTileAtCoordinate(fromTileIndex, Tile.getEmptyTileForPosition(fromTileIndex));
+        tiles.set(fromTileIndex, Tile.getEmptyTileForPosition(fromTileIndex));
 
-        // set the moved piece to the destination tile
+        // add the moving piece to the destination tile
+        // if the move is a promotion move, then the pieceList of the moveMaker needs to be updated;
+        // the promoted piece will replace the old piece in the list
+        // (if it's not a promotion move, the movingPiece's position is already updated)
         if (move.getMoveType().isPromotion()) {
             // promote the piece
-            movingPiece = ChessUtils.createPieceFromTypePositionAlliace(move.getPromotedPieceType(), moveMaker, toTileIndex);
+            Piece promotedPiece = ChessUtils.createPieceFromTypePositionAlliace(move.getPromotedPieceType(), moveMaker, toTileIndex);
+
+            // replace the old movingPiece in the alliancePieces with the new piece of the promoted type
+            if (moveMaker.isWhite()) {
+                whitePieces.set(whitePieces.indexOf(movingPiece), promotedPiece);
+            } else {
+                blackPieces.set(blackPieces.indexOf(movingPiece), promotedPiece);
+            }
+
+            // set the promoted piece to the destination tile
+            tiles.set(toTileIndex, Tile.createTile(promotedPiece, toTileIndex));
+        } else {
+            // set the moving piece to the destination tile
+            tiles.set(toTileIndex, Tile.createTile(movingPiece, toTileIndex));
         }
-        setTileAtCoordinate(toTileIndex, Tile.createTile(movingPiece, toTileIndex));
 
         // handle enPassant move (remove captured enPassantPawn)
         if (move.getMoveType().isEnPassant()) {
             // remove the enPassantPawn
             for (final Piece piece : getAlliancesPieces(moveMaker.getOpponent())) {
                 if (piece.getPosition() == enPassantPawn.getPosition()) {
-                    if (moveMaker.isWhite()) {
+                    if (moveMaker.getOpponent().isWhite()) {
                         whitePieces.remove(piece);
                     } else {
                         blackPieces.remove(piece);
@@ -156,28 +181,17 @@ public class Board {
                     break;
                 }
             }
+            tiles.set(enPassantPawn.getPosition(), Tile.getEmptyTileForPosition(enPassantPawn.getPosition()));
+            moveHistoryEntry.setCapturedPiece(enPassantPawn);
         }
 
         // update enPassantPawn
         enPassantPawn = move.getMoveType().isDoublePawnAdvance() ? (Pawn) movingPiece : null;
 
-        // update moveMakers pieces (remove the old piece, add the new one)
-        for (final Piece piece : getAlliancesPieces(moveMaker)) {
-            // replace the piece the new one (a new piece was created to make it simpler in case of promotions)
-            if (piece.getPosition() == fromTileIndex) {
-                if (moveMaker.isWhite()) {
-                    whitePieces.set(whitePieces.indexOf(piece), movingPiece);
-                } else {
-                    blackPieces.set(blackPieces.indexOf(piece), movingPiece);
-                }
-                break;
-            }
-        }
-
         // update opponents pieces (remove the captured piece)
         for (final Piece piece : getAlliancesPieces(moveMaker.getOpponent())) {
             if (piece.getPosition() == toTileIndex) {
-                if (moveMaker.isWhite()) {
+                if (moveMaker.getOpponent().isWhite()) {
                     whitePieces.remove(piece);
                 } else {
                     blackPieces.remove(piece);
@@ -190,16 +204,27 @@ public class Board {
         if (move.getMoveType().isCastleMove()) {
             final int rookNewPosition;
             final Rook rook;
+            // the index of the rook in the pieces list
+            final int rookIndex;
             if (move.getMoveType().isKingSideCastle()) {
+                rookIndex = getRookIndex(fromTileIndex + 3);
                 rookNewPosition = fromTileIndex + 1;
                 rook = new Rook(fromTileIndex + 1, moveMaker, false);
                 tiles.set(fromTileIndex + 3, Tile.getEmptyTileForPosition(fromTileIndex));
             } else {
+                rookIndex = getRookIndex(fromTileIndex - 4);
                 rookNewPosition = fromTileIndex - 1;
                 rook = new Rook(fromTileIndex - 1, moveMaker, false);
                 tiles.set(fromTileIndex - 4, Tile.getEmptyTileForPosition(fromTileIndex));
             }
             tiles.set(rookNewPosition, Tile.createTile(rook, rookNewPosition));
+
+            // update the rook in the pieces list (replace the old rook with the new one)
+            if (moveMaker.isWhite()) {
+                whitePieces.set(rookIndex, rook);
+            } else {
+                blackPieces.set(rookIndex, rook);
+            }
         }
 
         // update pieceBitBoards
@@ -220,6 +245,125 @@ public class Board {
 
         // change moveMaker
         moveMaker = moveMaker.getOpponent();
+
+        // add the move to the move history
+        moveHistory.push(moveHistoryEntry);
+    }
+
+    public void undoLastMove() {
+        // change moveMaker
+        moveMaker = moveMaker.getOpponent();
+
+        final MoveHistoryEntry moveHistoryEntry = moveHistory.pop();
+
+        // get the last executed move
+        final Move move = moveHistoryEntry.getMove();
+        final int fromTileIndex = move.getFromTileIndex();
+        final int toTileIndex = move.getToTileIndex();
+
+        // get the pieces involved in this move
+        Piece movingPiece = moveHistoryEntry.getMovingPiece();
+        Piece capturedPiece = moveHistoryEntry.getCapturedPiece();
+        boolean movingPieceFirstMove = moveHistoryEntry.isFirstMove();
+
+        // put the moving piece back to its original position and replace it in the pieces list
+        movingPiece.setPosition(fromTileIndex);
+        movingPiece.setFirstMove(movingPieceFirstMove);
+        tiles.set(fromTileIndex, Tile.createTile(movingPiece, fromTileIndex));
+        if (movingPiece.getAlliance().isWhite()) {
+            for (final Piece piece : whitePieces) {
+                if (piece.getPosition() == toTileIndex) {
+                    whitePieces.set(whitePieces.indexOf(piece), movingPiece);
+                    break;
+                }
+            }
+        } else {
+            for (final Piece piece : blackPieces) {
+                if (piece.getPosition() == toTileIndex) {
+                    blackPieces.set(blackPieces.indexOf(piece), movingPiece);
+                    break;
+                }
+            }
+        }
+        tiles.set(toTileIndex, Tile.getEmptyTileForPosition(toTileIndex));
+
+        // check the move before the current one to see if it was a move that set the enPassantPawn
+        if (!moveHistory.isEmpty() && moveHistory.peek().getMove().getMoveType().isDoublePawnAdvance()) {
+           enPassantPawn = (Pawn) moveHistory.peek().getMovingPiece();
+        }
+
+        // handle enPassant move (put back the captured enPassantPawn)
+        if (move.getMoveType().isEnPassant()) {
+            tiles.set(enPassantPawn.getPosition(), Tile.createTile(enPassantPawn, enPassantPawn.getPosition()));
+            if (moveMaker.isWhite()) {
+                blackPieces.add(enPassantPawn);
+            } else {
+                whitePieces.add(enPassantPawn);
+            }
+        } else {
+            // put the captured piece back to its original position and add it to the pieces list
+            if (capturedPiece != null) {
+                tiles.set(toTileIndex, Tile.createTile(capturedPiece, toTileIndex));
+                if (capturedPiece.getAlliance().isWhite()) {
+                    whitePieces.add(capturedPiece);
+                } else {
+                    blackPieces.add(capturedPiece);
+                }
+            } else {
+                tiles.set(toTileIndex, Tile.getEmptyTileForPosition(toTileIndex));
+            }
+        }
+
+        // handle castle move (move rook and change its firstMove flag)
+        if (move.getMoveType().isCastleMove()) {
+            final int rookNewPosition;
+            final Rook rook;
+            final int rookIndex;
+            if (move.getMoveType().isKingSideCastle()) {
+                rookIndex = getRookIndex(fromTileIndex + 1);
+                rookNewPosition = fromTileIndex + 3;
+                rook = new Rook(fromTileIndex + 3, moveMaker, false);
+                tiles.set(fromTileIndex + 1, Tile.getEmptyTileForPosition(fromTileIndex));
+            } else {
+                rookIndex = getRookIndex(fromTileIndex - 1);
+                rookNewPosition = fromTileIndex - 4;
+                rook = new Rook(fromTileIndex - 4, moveMaker, false);
+                tiles.set(fromTileIndex - 1, Tile.getEmptyTileForPosition(fromTileIndex));
+            }
+            tiles.set(rookNewPosition, Tile.createTile(rook, rookNewPosition));
+
+            // update the rook in the pieces list (replace the old rook with the new one)
+            if (moveMaker.isWhite()) {
+                whitePieces.set(rookIndex, rook);
+            } else {
+                blackPieces.set(rookIndex, rook);
+            }
+        }
+
+        // update pieceBitBoards
+        piecesBitBoards = new PiecesBitBoards(tiles);
+
+        // update legal moves
+        whiteLegalMoves = calculateLegalMoves(Alliance.WHITE);
+        blackLegalMoves = calculateLegalMoves(Alliance.BLACK);
+
+        // update legalMovesBitBoards
+        whiteLegalMovesBitBoard = calculateLegalMovesBitBoard(Alliance.WHITE);
+        blackLegalMovesBitBoard = calculateLegalMovesBitBoard(Alliance.BLACK);
+
+        // update castle capabilities if the moved piece was a castle partaker piece (king or rook)
+        if (movingPiece.getType().isCastlePartaker()) {
+            calculateCastleCapabilities();
+        }
+    }
+
+    private int getRookIndex(final int position) {
+        for (int i = 0; i < getAlliancesPieces(moveMaker).size(); i++) {
+            if (getAlliancesPieces(moveMaker).get(i).getPosition() == position) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     public List<Piece> getAlliancesPieces(final Alliance alliance) {
@@ -264,10 +408,6 @@ public class Board {
         return this.tiles.get(tileCoordinate);
     }
 
-    public void setTileAtCoordinate(final int tileCoordinate, final Tile tile) {
-        tiles.set(tileCoordinate, tile);
-    }
-
     public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
         return alliance.isWhite()
                 ? ChessUtils.filterMovesResultingInCheck(whiteLegalMoves, this)
@@ -307,11 +447,6 @@ public class Board {
 
         public Builder setPieceAtPosition(final Piece piece) {
             this.boardConfig.put(piece.getPosition(), piece);
-            return this;
-        }
-
-        public Builder setEmptyTile(final int position) {
-            this.boardConfig.put(position, null);
             return this;
         }
 
