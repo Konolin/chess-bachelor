@@ -44,7 +44,6 @@ public class GameService {
      */
     public BoardStateDTO initializeBoardState() {
         board = FenService.createGameFromFEN(ChessUtils.STARTING_FEN);
-        board = FenService.createGameFromFEN("r3k2r/p1ppPpb1/bn2pnp1/4N3/4P3/1pN2Q1p/PPPBBPPP/R3K2R b KQkq -");
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));

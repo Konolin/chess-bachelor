@@ -132,6 +132,12 @@ public class Board {
         // create the move history entry
         MoveHistoryEntry moveHistoryEntry = new MoveHistoryEntry(move, movingPiece, capturedPiece, movingPiece.isFirstMove());
 
+        // update the bitboard of the moving piece
+        piecesBitBoards.updateMove(movingPiece, fromTileIndex, toTileIndex);
+        if (move.getMoveType().isAttack()) {
+            piecesBitBoards.updateCapture(toTileIndex, moveMaker.getOpponent());
+        }
+
         // update the moving piece
         movingPiece.setPosition(toTileIndex);
         movingPiece.setFirstMove(false);
@@ -145,6 +151,9 @@ public class Board {
             // promote the piece
             Piece promotedPiece = ChessUtils.createPieceFromTypePositionAlliace(move.getPromotedPieceType(), moveMaker, toTileIndex);
 
+            // update the bitboard following the promotion
+            piecesBitBoards.updatePromotion(toTileIndex, move.getPromotedPieceType(), moveMaker);
+
             // set the promoted piece to the destination tile
             tiles.set(toTileIndex, Tile.createTile(promotedPiece, toTileIndex));
         } else {
@@ -154,6 +163,7 @@ public class Board {
 
         // handle enPassant move (remove captured enPassantPawn)
         if (move.getMoveType().isEnPassant()) {
+            piecesBitBoards.updateEnPassant(enPassantPawn.getPosition(), moveMaker.getOpponent());
             tiles.set(enPassantPawn.getPosition(), Tile.getEmptyTileForPosition(enPassantPawn.getPosition()));
             moveHistoryEntry.setCapturedPiece(enPassantPawn);
         }
@@ -163,22 +173,23 @@ public class Board {
 
         // handle castle move (move rook and change its firstMove flag)
         if (move.getMoveType().isCastleMove()) {
-            final int rookNewPosition;
+            final int newRookPosition;
+            final int oldRookPosition;
             final Rook rook;
             if (move.getMoveType().isKingSideCastle()) {
-                rookNewPosition = fromTileIndex + 1;
+                newRookPosition = fromTileIndex + 1;
+                oldRookPosition = fromTileIndex + 3;
                 rook = new Rook(fromTileIndex + 1, moveMaker, false);
-                tiles.set(fromTileIndex + 3, Tile.getEmptyTileForPosition(fromTileIndex));
+                tiles.set(oldRookPosition, Tile.getEmptyTileForPosition(fromTileIndex));
             } else {
-                rookNewPosition = fromTileIndex - 1;
+                newRookPosition = fromTileIndex - 1;
+                oldRookPosition = fromTileIndex - 4;
                 rook = new Rook(fromTileIndex - 1, moveMaker, false);
-                tiles.set(fromTileIndex - 4, Tile.getEmptyTileForPosition(fromTileIndex));
+                tiles.set(oldRookPosition, Tile.getEmptyTileForPosition(fromTileIndex));
             }
-            tiles.set(rookNewPosition, Tile.createTile(rook, rookNewPosition));
+            tiles.set(newRookPosition, Tile.createTile(rook, newRookPosition));
+            piecesBitBoards.updateCastling(oldRookPosition, newRookPosition, moveMaker);
         }
-
-        // update pieceBitBoards
-        piecesBitBoards = new PiecesBitBoards(tiles);
 
         // update castle capabilities
         calculateCastleCapabilities();

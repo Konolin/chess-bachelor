@@ -49,49 +49,33 @@ public class PiecesBitBoards {
             Piece piece = entry.getValue();
             if (piece != null) {
                 // set the corresponding bitboard for the piece
-                setBitBoardForPiece(piece, position);
+                setBitBoardForPiece(piece.getType(), piece.getAlliance(), position);
             }
         }
-        allPieces = whitePieces | blackPieces;
     }
 
+    /**
+     * Constructor to initialize the PiecesBitBoards based on the provided list of tiles.
+     * Sets the bitboard for each piece according to its position on the board.
+     *
+     * @param tiles A list of tiles on the board.
+     */
     public PiecesBitBoards(final List<Tile> tiles) {
         for (final Tile tile : tiles) {
             int position = tile.getPosition();
             Piece piece = tile.getOccupyingPiece();
             if (piece != null) {
                 // set the corresponding bitboard for the piece
-                setBitBoardForPiece(piece, position);
+                setBitBoardForPiece(piece.getType(), piece.getAlliance(), position);
             }
         }
         allPieces = whitePieces | blackPieces;
     }
 
     /**
-     * Copy constructor to create a new PiecesBitBoards object with the same values as another.
-     *
-     * @param other The PiecesBitBoards object to copy.
-     */
-    public PiecesBitBoards(final PiecesBitBoards other) {
-        this.allPieces = other.allPieces;
-        this.whitePieces = other.whitePieces;
-        this.blackPieces = other.blackPieces;
-        this.whitePawns = other.whitePawns;
-        this.whiteKnights = other.whiteKnights;
-        this.whiteBishops = other.whiteBishops;
-        this.whiteRooks = other.whiteRooks;
-        this.whiteQueens = other.whiteQueens;
-        this.whiteKing = other.whiteKing;
-        this.blackPawns = other.blackPawns;
-        this.blackKnights = other.blackKnights;
-        this.blackBishops = other.blackBishops;
-        this.blackRooks = other.blackRooks;
-        this.blackQueens = other.blackQueens;
-        this.blackKing = other.blackKing;
-    }
-
-    /**
      * Updates the bitboards when a piece moves from one position to another.
+     * Removes the piece from its old position and adds it to its new position.
+     * Updates the piece-specific, alliance-specific and the allPieces bitboard.
      *
      * @param movingPiece The piece being moved.
      * @param fromIndex   The starting position of the piece.
@@ -113,6 +97,8 @@ public class PiecesBitBoards {
 
     /**
      * Updates the bitboards when a piece is captured.
+     * Removes the captured piece from the appropriate bitboards.
+     * Updates the piece-specific, alliance-specific and the allPieces bitboard.
      *
      * @param captureIndex     The position of the captured piece.
      * @param opponentAlliance The alliance of the opponent whose piece was captured.
@@ -141,33 +127,65 @@ public class PiecesBitBoards {
 
     /**
      * Updates the bitboards when a pawn is promoted to a new piece.
+     * Removes the pawn from the appropriate bitboard and adds the newly promoted piece to their specific bitboard.
      *
-     * @param pawn          The pawn that was promoted.
-     * @param promotedPiece The new piece the pawn was promoted to.
-     * @param fromPosition  The position of the pawn before promotion.
-     * @param toPosition    The position of the new piece after promotion.
+     * @param position          The position of the tile where the promotion happened.
+     * @param promotedPieceType The piece type the that pawn was promoted to.
+     * @param alliance          The alliance of the pawn that was promoted.
      */
-    public void updatePromotion(final Piece pawn, final Piece promotedPiece, final int fromPosition, final int toPosition) {
-        long fromMask = ~(1L << fromPosition);
-        long toMask = 1L << toPosition;
+    public void updatePromotion(final int position, final PieceType promotedPieceType, final Alliance alliance) {
+        long positionMask = 1L << position;
 
         // remove the pawn from its bitboard
-        if (pawn.getAlliance().isWhite()) {
-            whitePawns &= fromMask;
-            whitePieces &= fromMask;
+        if (alliance.isWhite()) {
+            whitePawns &= ~positionMask;
         } else {
-            blackPawns &= fromMask;
-            blackPieces &= fromMask;
+            blackPawns &= ~positionMask;
         }
 
-        setBitBoardForPiece(promotedPiece, toPosition);
+        setBitBoardForPiece(promotedPieceType, alliance, position);
+    }
 
-        // update the alliance-specific bitboards
-        if (promotedPiece.getAlliance().isWhite()) {
-            whitePieces = (whitePieces & fromMask) | toMask;
+    /**
+     * Updates the bitboards when a pawn is captured via en passant.
+     * Removes the captured pawn from the appropriate bitboards.
+     *
+     * @param captureIndex     The position of the captured pawn.
+     * @param opponentAlliance The alliance of the opponent whose pawn was captured.
+     */
+    public void updateEnPassant(int captureIndex, final Alliance opponentAlliance) {
+        long captureMask = ~(1L << captureIndex);
+        // remove the captured pawn from the appropriate bitboards
+        if (opponentAlliance.isWhite()) {
+            whitePieces &= captureMask;
+            whitePawns &= captureMask;
         } else {
-            blackPieces = (blackPieces & fromMask) | toMask;
+            blackPieces &= captureMask;
+            blackPawns &= captureMask;
         }
+        allPieces &= captureMask;
+    }
+
+    /**
+     * Updates the piece-specific, alliance-specific and the allPieces bitboard.
+     * Removes the rook from its old position and adds it to its new position.
+     *
+     * @param oldRookPosition The old position of the rook.
+     * @param newRookPosition The new position of the rook.
+     * @param alliance        The alliance of the rook that is castling.
+     */
+    public void updateCastling(int oldRookPosition, int newRookPosition, final Alliance alliance) {
+        long newRookMask = 1L << newRookPosition;
+        long oldRookMask = 1L << oldRookPosition;
+
+        if (alliance.isWhite()) {
+            whiteRooks = (whiteRooks & ~oldRookMask) | newRookMask;
+            whitePieces = (whitePieces & ~oldRookMask) | newRookMask;
+        } else {
+            blackRooks = (blackRooks & ~oldRookMask) | newRookMask;
+            blackPieces = (blackPieces & ~oldRookMask) | newRookMask;
+        }
+
         allPieces = whitePieces | blackPieces;
     }
 
@@ -201,17 +219,19 @@ public class PiecesBitBoards {
     }
 
     /**
-     * Sets the bitboard for a given piece at the specified position.
+     * Sets the bit corresponding to the piece's position in the appropriate bitboard.
+     * Also sets the bit in the allPieces bitboard and alliance-specific bitboard.
      *
-     * @param piece    The piece to place on the board.
-     * @param position The position on the board where the piece is located.
+     * @param pieceType The type of piece (PAWN, KNIGHT, etc.).
+     * @param alliance  The alliance (white or black).
+     * @param position  The position on the board where the piece is located.
      */
-    private void setBitBoardForPiece(Piece piece, int position) {
+    private void setBitBoardForPiece(final PieceType pieceType, final Alliance alliance, int position) {
         long positionMask = 1L << position;
 
-        if (piece.getAlliance().isWhite()) {
+        if (alliance.isWhite()) {
             whitePieces |= positionMask;
-            switch (piece.getType()) {
+            switch (pieceType) {
                 case PAWN -> whitePawns |= positionMask;
                 case KNIGHT -> whiteKnights |= positionMask;
                 case BISHOP -> whiteBishops |= positionMask;
@@ -221,7 +241,7 @@ public class PiecesBitBoards {
             }
         } else {
             blackPieces |= positionMask;
-            switch (piece.getType()) {
+            switch (pieceType) {
                 case PAWN -> blackPawns |= positionMask;
                 case KNIGHT -> blackKnights |= positionMask;
                 case BISHOP -> blackBishops |= positionMask;
@@ -230,6 +250,7 @@ public class PiecesBitBoards {
                 case KING -> blackKing |= positionMask;
             }
         }
+        allPieces |= positionMask;
     }
 
     /**
