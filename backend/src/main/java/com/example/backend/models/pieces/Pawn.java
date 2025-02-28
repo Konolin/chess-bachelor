@@ -76,7 +76,7 @@ public class Pawn extends Piece {
             final int directedOffset = offset * this.getAlliance().getDirection();
             int candidatePosition = this.getPosition() + directedOffset;
 
-            // S]skip invalid moves
+            // skip invalid moves
             if (isContinueCase(directedOffset, candidatePosition)) {
                 continue;
             }
@@ -86,11 +86,9 @@ public class Pawn extends Piece {
 
             // attack move
             if (offset == 7 || offset == 9) {
-                // normal attack move
-                if (candidateTile.isOccupied() && candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
-                    legalMovesBitboard |= 1L << candidatePosition;
-                    // en passant attack move
-                } else if (candidateTile.isEmpty() && isEnPassantMove(board, candidateTile, offset)) {
+                // normal attack move or en passant attack move
+                if ((candidateTile.isOccupied() && candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) ||
+                        (candidateTile.isEmpty() && isEnPassantMove(board, candidateTile, offset))) {
                     legalMovesBitboard |= 1L << candidatePosition;
                 }
                 // normal 1-tile move

@@ -8,7 +8,6 @@ import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.PieceType;
-import com.example.backend.models.pieces.Rook;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +58,7 @@ public class CastleUtils {
             int kingDestination = rookPosition < kingPosition ? kingPosition - 2 : kingPosition + 2;
 
             // check if the tiles are safe for castling
-            if (areTilesSafeForCastle(board, kingPosition, offsets, alliance)) {
+            if (areTilesSafeForCastle(board, kingPosition, offsets)) {
                 castleMoves.add(new Move(kingPosition, kingDestination, moveType));
             }
         }
@@ -90,18 +89,23 @@ public class CastleUtils {
      * @param board The current game board.
      * @param kingPosition The current position of the king.
      * @param offsets The offsets representing the tiles between the king and rook.
-     * @param alliance The alliance (color) of the player requesting the castling move.
      * @return true if the tiles between the king and rook are safe for castling, false otherwise.
      */
-    private static boolean areTilesSafeForCastle(Board board, int kingPosition, int[] offsets, Alliance alliance) {
+    private static boolean areTilesSafeForCastle(Board board, int kingPosition, int[] offsets) {
+        Alliance alliance = board.getMoveMaker();
+
+        // calculate the bitboard of the opponent's legal moves (additionally, check the squares attacked by the opponent's pawns)
+        long opponentPawnBitBoard = alliance.isWhite() ? board.getPiecesBitBoards().getBlackPawns() : board.getPiecesBitBoards().getWhitePawns();
+        long attackBitBoard = board.getAlliancesLegalMovesBitBoard(alliance.getOpponent()) |
+                BitBoardUtils.calculatePawnAttackingBitboard(opponentPawnBitBoard, alliance.getOpponent());
+
         for (int offset : offsets) {
             // check if tile is occupied
             if (board.getTileAtCoordinate(kingPosition + offset).isOccupied()) {
                 return false;
             }
             // check if the tile is attacked by the opponent (offset -3 does not need to be checked for attacks)
-            if (offset != -3 &&
-                    (board.getAlliancesLegalMovesBitBoard(alliance.getOpponent()) & (1L << (kingPosition + offset))) != 0) {
+            if (offset != -3 && (attackBitBoard & (1L << (kingPosition + offset))) != 0) {
                 return false;
             }
         }

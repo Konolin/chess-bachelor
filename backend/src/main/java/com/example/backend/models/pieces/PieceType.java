@@ -16,16 +16,12 @@ public enum PieceType {
     QUEEN("Queen"),
     KING("King");
 
-    public static final PieceType[] PROMOTABLE_TYPES = {PieceType.ROOK, PieceType.KNIGHT, PieceType.BISHOP, PieceType.QUEEN};
+    static final PieceType[] PROMOTABLE_TYPES = {PieceType.ROOK, PieceType.KNIGHT, PieceType.BISHOP, PieceType.QUEEN};
     private final String name;
     private final String algebraicSymbol;
 
     PieceType(String name) {
         this.name = name;
         this.algebraicSymbol = name.substring(0, 1);
-    }
-
-    public boolean isCastlePartaker() {
-        return this == KING || this == ROOK;
     }
 }
