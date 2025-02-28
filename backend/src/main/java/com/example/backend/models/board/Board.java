@@ -32,7 +32,7 @@ public class Board {
     private Pawn enPassantPawn;
     private Alliance moveMaker;
 
-    private PiecesBitBoards piecesBitBoards;
+    private final PiecesBitBoards piecesBitBoards;
 
     // castle capabilities used for fen string generation
     private boolean isBlackKingSideCastleCapable;
@@ -262,7 +262,7 @@ public class Board {
         }
 
         // update pieceBitBoards
-        piecesBitBoards = new PiecesBitBoards(tiles);
+        piecesBitBoards.undoMove(moveHistoryEntry);
 
         // update castle capabilities
         calculateCastleCapabilities();

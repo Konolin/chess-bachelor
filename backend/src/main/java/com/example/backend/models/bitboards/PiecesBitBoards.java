@@ -1,9 +1,7 @@
 package com.example.backend.models.bitboards;
 
-import com.example.backend.exceptions.ChessException;
-import com.example.backend.exceptions.ChessExceptionCodes;
-import com.example.backend.models.board.Tile;
 import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveHistoryEntry;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.PieceType;
@@ -13,24 +11,32 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
 
+/**
+ * Maintains bitboards representing positions of all pieces on the chessboard.
+ */
 @Getter
 @Setter
 public class PiecesBitBoards {
+
     @JsonIgnore
     private final Logger logger = LoggerFactory.getLogger(PiecesBitBoards.class);
 
+    // combined bitboards
     private long allPieces;
     private long whitePieces;
     private long blackPieces;
+
+    // white piece bitboards
     private long whitePawns;
     private long whiteKnights;
     private long whiteBishops;
     private long whiteRooks;
     private long whiteQueens;
     private long whiteKing;
+
+    // black piece bitboards
     private long blackPawns;
     private long blackKnights;
     private long blackBishops;
@@ -39,216 +45,189 @@ public class PiecesBitBoards {
     private long blackKing;
 
     /**
-     * Constructor to initialize the PiecesBitBoards based on the provided board configuration.
-     * Sets the bitboard for each piece according to its position on the board.
+     * Constructs all piece bitboards from a position-to-piece map.
      *
      * @param boardConfig A map of board positions to pieces.
      */
     public PiecesBitBoards(final Map<Integer, Piece> boardConfig) {
-        for (Map.Entry<Integer, Piece> entry : boardConfig.entrySet()) {
-            int position = entry.getKey();
-            Piece piece = entry.getValue();
+        boardConfig.forEach((position, piece) -> {
             if (piece != null) {
-                // set the corresponding bitboard for the piece
-                setBitBoardForPiece(piece.getType(), piece.getAlliance(), position);
+                addPieceToBitBoard(piece.getType(), piece.getAlliance(), position);
             }
-        }
+        });
+        updateAllianceBitBoards();
+        updateAllPieces();
     }
 
     /**
-     * Constructor to initialize the PiecesBitBoards based on the provided list of tiles.
-     * Sets the bitboard for each piece according to its position on the board.
-     *
-     * @param tiles A list of tiles on the board.
-     */
-    public PiecesBitBoards(final List<Tile> tiles) {
-        for (final Tile tile : tiles) {
-            int position = tile.getPosition();
-            Piece piece = tile.getOccupyingPiece();
-            if (piece != null) {
-                // set the corresponding bitboard for the piece
-                setBitBoardForPiece(piece.getType(), piece.getAlliance(), position);
-            }
-        }
-        allPieces = whitePieces | blackPieces;
-    }
-
-    /**
-     * Updates the bitboards when a move is made.
-     * Removes the piece from its old position and adds it to its new position.
-     * Updates the piece-specific, alliance-specific and the allPieces bitboard.
-     * Also handles the bitboards for capturing, promotion, en passant and castling moves.
+     * Updates bitboards after a move:
+     * 1) Moves the piece from its old position to the new position.
+     * 2) Handles captures, promotions, en passant, and castling.
      *
      * @param move        The move that was made.
      * @param movingPiece The piece that is moving.
      */
     public void updateMove(final Move move, final Piece movingPiece) {
-        long fromMask = ~(1L << move.getFromTileIndex());
-        long toMask = 1L << move.getToTileIndex();
+        final long fromMask = ~(1L << move.getFromTileIndex());
+        final long toMask = (1L << move.getToTileIndex());
 
+        // move piece from old to new position in piece-specific bitboards
         updateBitBoardForPiece(movingPiece, fromMask, toMask);
 
+        // update alliance-specific bitboards
         if (movingPiece.getAlliance().isWhite()) {
             whitePieces = (whitePieces & fromMask) | toMask;
         } else {
             blackPieces = (blackPieces & fromMask) | toMask;
         }
-        allPieces = whitePieces | blackPieces;
+        updateAllPieces();
 
+        // handle captures
         if (move.getMoveType().isAttack()) {
-            updateCapture(move.getToTileIndex(), movingPiece.getAlliance().getOpponent());
+            removeCapturedPiece(move.getToTileIndex(), movingPiece.getAlliance().getOpponent());
         }
 
+        // handle promotion
         if (move.getMoveType().isPromotion()) {
-            updatePromotion(move.getToTileIndex(), move.getPromotedPieceType(), movingPiece.getAlliance());
+            promotePawn(move.getToTileIndex(), move.getPromotedPieceType(), movingPiece.getAlliance());
         }
 
+        // handle en passant
         if (move.getMoveType().isEnPassant()) {
-            // the captured pawn is one tile behind the moving pawn in the direction of the opponent
-            int captureIndex = move.getToTileIndex() + (movingPiece.getAlliance().isWhite() ? 8 : -8);
-            updateEnPassant(captureIndex, movingPiece.getAlliance().getOpponent());
+            final int captureIndex = move.getToTileIndex() + (movingPiece.getAlliance().isWhite() ? 8 : -8);
+            removeCapturedPawnEnPassant(captureIndex, movingPiece.getAlliance().getOpponent());
         }
 
+        // handle castling (move the rook as well)
         if (move.getMoveType().isCastleMove()) {
-            int oldRookPosition = move.getMoveType().isKingSideCastle() ? move.getFromTileIndex() + 3 : move.getFromTileIndex() - 4;
-            int newRookPosition = move.getMoveType().isKingSideCastle() ? move.getFromTileIndex() + 1 : move.getFromTileIndex() - 1;
-            updateCastling(oldRookPosition, newRookPosition, movingPiece.getAlliance());
+            final int oldRookPosition = move.getMoveType().isKingSideCastle() ? move.getFromTileIndex() + 3 : move.getFromTileIndex() - 4;
+            final int newRookPosition = move.getMoveType().isKingSideCastle() ? move.getFromTileIndex() + 1 : move.getFromTileIndex() - 1;
+            moveRookForCastling(oldRookPosition, newRookPosition, movingPiece.getAlliance());
         }
     }
 
     /**
-     * Updates the bitboards when a piece is captured.
-     * Removes the captured piece from the appropriate bitboards.
-     * Updates the piece-specific, alliance-specific and the allPieces bitboard.
+     * Undoes the last move (stored in a MoveHistoryEntry).
      *
-     * @param captureIndex     The position of the captured piece.
-     * @param opponentAlliance The alliance of the opponent whose piece was captured.
+     * @param moveHistoryEntry The record of the last move, including moving/captured pieces.
      */
-    private void updateCapture(int captureIndex, Alliance opponentAlliance) {
-        long captureMask = ~(1L << captureIndex);
-        // remove the captured piece from the appropriate bitboards
-        if (opponentAlliance.isWhite()) {
-            whitePieces &= captureMask;
-            whitePawns &= captureMask;
-            whiteKnights &= captureMask;
-            whiteBishops &= captureMask;
-            whiteRooks &= captureMask;
-            whiteQueens &= captureMask;
-            whiteKing &= captureMask;
-        } else {
-            blackPieces &= captureMask;
-            blackPawns &= captureMask;
-            blackKnights &= captureMask;
-            blackBishops &= captureMask;
-            blackRooks &= captureMask;
-            blackQueens &= captureMask;
-            blackKing &= captureMask;
+    public void undoMove(final MoveHistoryEntry moveHistoryEntry) {
+        final Move move = moveHistoryEntry.getMove();
+        final Piece movingPiece = moveHistoryEntry.getMovingPiece();
+        final Piece capturedPiece = moveHistoryEntry.getCapturedPiece();
+
+        final int fromTileIndex = move.getFromTileIndex();
+        final int toTileIndex = move.getToTileIndex();
+
+        // undo castling first: put the rook back where it was
+        if (move.getMoveType().isCastleMove()) {
+            final int oldRookPosition = move.getMoveType().isKingSideCastle() ? fromTileIndex + 3 : fromTileIndex - 4;
+            final int newRookPosition = move.getMoveType().isKingSideCastle() ? fromTileIndex + 1 : fromTileIndex - 1;
+
+            final long oldRookMask = 1L << oldRookPosition;
+            final long newRookMask = 1L << newRookPosition;
+
+            if (movingPiece.getAlliance().isWhite()) {
+                whiteRooks &= ~newRookMask;
+                whitePieces &= ~newRookMask;
+                whiteRooks |= oldRookMask;
+                whitePieces |= oldRookMask;
+            } else {
+                blackRooks &= ~newRookMask;
+                blackPieces &= ~newRookMask;
+                blackRooks |= oldRookMask;
+                blackPieces |= oldRookMask;
+            }
         }
+
+        // undo promotion: remove the promoted piece, restore the pawn
+        if (move.getMoveType().isPromotion()) {
+            removePieceFromBitBoard(move.getPromotedPieceType(), movingPiece.getAlliance(), toTileIndex);
+            addPieceToBitBoard(PieceType.PAWN, movingPiece.getAlliance(), fromTileIndex);
+        }
+        // normal or non-promotion move: remove piece from "to", add it back to "from"
+        else {
+            removePieceFromBitBoard(movingPiece.getType(), movingPiece.getAlliance(), toTileIndex);
+            addPieceToBitBoard(movingPiece.getType(), movingPiece.getAlliance(), fromTileIndex);
+        }
+
+        // if something was captured (including en passant), restore it
+        if (capturedPiece != null) {
+            final int capturePosition = capturedPiece.getPosition();
+            addPieceToBitBoard(capturedPiece.getType(), capturedPiece.getAlliance(), capturePosition);
+        }
+
+        // recalculate whitePieces / blackPieces, then allPieces
+        updateAllianceBitBoards();
+        updateAllPieces();
     }
 
     /**
-     * Updates the bitboards when a pawn is promoted to a new piece.
-     * Removes the pawn from the appropriate bitboard and adds the newly promoted piece to their specific bitboard.
+     * Returns the bitboard for a specific piece type and alliance.
      *
-     * @param position          The position of the tile where the promotion happened.
-     * @param promotedPieceType The piece type the that pawn was promoted to.
-     * @param alliance          The alliance of the pawn that was promoted.
+     * @param pieceType The type of piece (PAWN, KNIGHT, etc.).
+     * @param alliance  The alliance (white or black).
+     * @return The bitboard containing only the specified piece type for the given alliance.
      */
-    private void updatePromotion(final int position, final PieceType promotedPieceType, final Alliance alliance) {
-        long positionMask = 1L << position;
+    public long getPieceBitBoard(final PieceType pieceType, final Alliance alliance) {
+        return switch (pieceType) {
+            case PAWN -> alliance.isWhite() ? whitePawns : blackPawns;
+            case KNIGHT -> alliance.isWhite() ? whiteKnights : blackKnights;
+            case BISHOP -> alliance.isWhite() ? whiteBishops : blackBishops;
+            case ROOK -> alliance.isWhite() ? whiteRooks : blackRooks;
+            case QUEEN -> alliance.isWhite() ? whiteQueens : blackQueens;
+            case KING -> alliance.isWhite() ? whiteKing : blackKing;
+        };
+    }
 
-        // remove the pawn from its bitboard
+    /**
+     * Returns the bitboard for all pieces of a specific alliance.
+     *
+     * @param alliance The alliance (white or black).
+     * @return The bitboard for all pieces of the specified alliance.
+     */
+    public long getAllianceBitBoard(final Alliance alliance) {
+        return alliance.isWhite() ? whitePieces : blackPieces;
+    }
+
+
+    /**
+     * Removes a piece of the given type and alliance from the provided position in the bitboards.
+     */
+    private void removePieceFromBitBoard(final PieceType pieceType, final Alliance alliance, final int position) {
+        final long positionMask = ~(1L << position);
+
         if (alliance.isWhite()) {
-            whitePawns &= ~positionMask;
-        } else {
-            blackPawns &= ~positionMask;
-        }
-
-        setBitBoardForPiece(promotedPieceType, alliance, position);
-    }
-
-    /**
-     * Updates the bitboards when a pawn is captured via en passant.
-     * Removes the captured pawn from the appropriate bitboards.
-     *
-     * @param captureIndex     The position of the captured pawn.
-     * @param opponentAlliance The alliance of the opponent whose pawn was captured.
-     */
-    private void updateEnPassant(int captureIndex, final Alliance opponentAlliance) {
-        long captureMask = ~(1L << captureIndex);
-        // remove the captured pawn from the appropriate bitboards
-        if (opponentAlliance.isWhite()) {
-            whitePieces &= captureMask;
-            whitePawns &= captureMask;
-        } else {
-            blackPieces &= captureMask;
-            blackPawns &= captureMask;
-        }
-        allPieces &= captureMask;
-    }
-
-    /**
-     * Updates the piece-specific, alliance-specific and the allPieces bitboard.
-     * Removes the rook from its old position and adds it to its new position.
-     *
-     * @param oldRookPosition The old position of the rook.
-     * @param newRookPosition The new position of the rook.
-     * @param alliance        The alliance of the rook that is castling.
-     */
-    private void updateCastling(int oldRookPosition, int newRookPosition, final Alliance alliance) {
-        long newRookMask = 1L << newRookPosition;
-        long oldRookMask = 1L << oldRookPosition;
-
-        if (alliance.isWhite()) {
-            whiteRooks = (whiteRooks & ~oldRookMask) | newRookMask;
-            whitePieces = (whitePieces & ~oldRookMask) | newRookMask;
-        } else {
-            blackRooks = (blackRooks & ~oldRookMask) | newRookMask;
-            blackPieces = (blackPieces & ~oldRookMask) | newRookMask;
-        }
-
-        allPieces = whitePieces | blackPieces;
-    }
-
-    /**
-     * Updates the bitboard for a specific piece when it moves.
-     *
-     * @param piece    The piece that is moving.
-     * @param fromMask The mask to remove the piece from its old position.
-     * @param toMask   The mask to add the piece to its new position.
-     */
-    private void updateBitBoardForPiece(final Piece piece, long fromMask, long toMask) {
-        if (piece.getAlliance().isWhite()) {
-            switch (piece.getType()) {
-                case PAWN -> whitePawns = (whitePawns & fromMask) | toMask;
-                case KNIGHT -> whiteKnights = (whiteKnights & fromMask) | toMask;
-                case BISHOP -> whiteBishops = (whiteBishops & fromMask) | toMask;
-                case ROOK -> whiteRooks = (whiteRooks & fromMask) | toMask;
-                case QUEEN -> whiteQueens = (whiteQueens & fromMask) | toMask;
-                case KING -> whiteKing = (whiteKing & fromMask) | toMask;
+            switch (pieceType) {
+                case PAWN -> whitePawns &= positionMask;
+                case KNIGHT -> whiteKnights &= positionMask;
+                case BISHOP -> whiteBishops &= positionMask;
+                case ROOK -> whiteRooks &= positionMask;
+                case QUEEN -> whiteQueens &= positionMask;
+                case KING -> whiteKing &= positionMask;
             }
         } else {
-            switch (piece.getType()) {
-                case PAWN -> blackPawns = (blackPawns & fromMask) | toMask;
-                case KNIGHT -> blackKnights = (blackKnights & fromMask) | toMask;
-                case BISHOP -> blackBishops = (blackBishops & fromMask) | toMask;
-                case ROOK -> blackRooks = (blackRooks & fromMask) | toMask;
-                case QUEEN -> blackQueens = (blackQueens & fromMask) | toMask;
-                case KING -> blackKing = (blackKing & fromMask) | toMask;
+            switch (pieceType) {
+                case PAWN -> blackPawns &= positionMask;
+                case KNIGHT -> blackKnights &= positionMask;
+                case BISHOP -> blackBishops &= positionMask;
+                case ROOK -> blackRooks &= positionMask;
+                case QUEEN -> blackQueens &= positionMask;
+                case KING -> blackKing &= positionMask;
             }
         }
     }
 
     /**
      * Sets the bit corresponding to the piece's position in the appropriate bitboard.
-     * Also sets the bit in the allPieces bitboard and alliance-specific bitboard.
+     * Also sets the bit in the alliance-specific bitboard and the allPieces bitboard.
      *
      * @param pieceType The type of piece (PAWN, KNIGHT, etc.).
-     * @param alliance  The alliance (white or black).
-     * @param position  The position on the board where the piece is located.
+     * @param alliance  The alliance of the piece (white or black).
+     * @param position  The position on the board.
      */
-    private void setBitBoardForPiece(final PieceType pieceType, final Alliance alliance, int position) {
-        long positionMask = 1L << position;
+    private void addPieceToBitBoard(final PieceType pieceType, final Alliance alliance, final int position) {
+        final long positionMask = 1L << position;
 
         if (alliance.isWhite()) {
             whitePieces |= positionMask;
@@ -275,43 +254,134 @@ public class PiecesBitBoards {
     }
 
     /**
-     * Returns the bitboard for a specific piece type and alliance.
+     * Removes the captured piece from the appropriate bitboards.
      *
-     * @param pieceType The type of piece (PAWN, KNIGHT, etc.).
-     * @param alliance  The alliance (white or black).
-     * @return The bitboard for the specified piece type and alliance
+     * @param captureIndex     The position of the captured piece.
+     * @param opponentAlliance Alliance of the captured piece.
      */
-    public long getPieceBitBoard(final PieceType pieceType, final Alliance alliance) {
-        switch (pieceType) {
-            case PAWN -> {
-                return alliance.isWhite() ? whitePawns : blackPawns;
+    private void removeCapturedPiece(final int captureIndex, final Alliance opponentAlliance) {
+        final long captureMask = ~(1L << captureIndex);
+
+        if (opponentAlliance.isWhite()) {
+            whitePawns &= captureMask;
+            whiteKnights &= captureMask;
+            whiteBishops &= captureMask;
+            whiteRooks &= captureMask;
+            whiteQueens &= captureMask;
+            whiteKing &= captureMask;
+            whitePieces &= captureMask;
+        } else {
+            blackPawns &= captureMask;
+            blackKnights &= captureMask;
+            blackBishops &= captureMask;
+            blackRooks &= captureMask;
+            blackQueens &= captureMask;
+            blackKing &= captureMask;
+            blackPieces &= captureMask;
+        }
+        updateAllPieces();
+    }
+
+    /**
+     * Promotes a pawn on the board by removing the pawn and adding the promoted piece.
+     *
+     * @param position          The board position of the promoted pawn.
+     * @param promotedPieceType The new piece type (QUEEN, ROOK, BISHOP, or KNIGHT).
+     * @param alliance          The alliance of the promoted pawn.
+     */
+    private void promotePawn(final int position, final PieceType promotedPieceType, final Alliance alliance) {
+        final long positionMask = ~(1L << position);
+
+        if (alliance.isWhite()) {
+            whitePawns &= positionMask;  // remove the old pawn
+        } else {
+            blackPawns &= positionMask;
+        }
+        // add the promoted piece
+        addPieceToBitBoard(promotedPieceType, alliance, position);
+
+        updateAllianceBitBoards();
+        updateAllPieces();
+    }
+
+    /**
+     * Removes a pawn captured via en-passant.
+     *
+     * @param captureIndex     The position of the captured pawn.
+     * @param opponentAlliance The alliance of the captured pawn.
+     */
+    private void removeCapturedPawnEnPassant(final int captureIndex, final Alliance opponentAlliance) {
+        final long captureMask = ~(1L << captureIndex);
+
+        if (opponentAlliance.isWhite()) {
+            whitePawns &= captureMask;
+            whitePieces &= captureMask;
+        } else {
+            blackPawns &= captureMask;
+            blackPieces &= captureMask;
+        }
+        updateAllPieces();
+    }
+
+    /**
+     * Moves the rook during castling.
+     *
+     * @param oldRookPosition The starting position of the rook.
+     * @param newRookPosition The ending position of the rook.
+     * @param alliance        The alliance of the rook.
+     */
+    private void moveRookForCastling(final int oldRookPosition, final int newRookPosition, final Alliance alliance) {
+        final long oldMask = 1L << oldRookPosition;
+        final long newMask = 1L << newRookPosition;
+
+        if (alliance.isWhite()) {
+            whiteRooks = (whiteRooks & ~oldMask) | newMask;
+            whitePieces = (whitePieces & ~oldMask) | newMask;
+        } else {
+            blackRooks = (blackRooks & ~oldMask) | newMask;
+            blackPieces = (blackPieces & ~oldMask) | newMask;
+        }
+        updateAllPieces();
+    }
+
+    /**
+     * Updates the piece-specific bitboard when a piece moves from one tile to another.
+     */
+    private void updateBitBoardForPiece(final Piece piece, final long fromMask, final long toMask) {
+        if (piece.getAlliance().isWhite()) {
+            switch (piece.getType()) {
+                case PAWN -> whitePawns = (whitePawns & fromMask) | toMask;
+                case KNIGHT -> whiteKnights = (whiteKnights & fromMask) | toMask;
+                case BISHOP -> whiteBishops = (whiteBishops & fromMask) | toMask;
+                case ROOK -> whiteRooks = (whiteRooks & fromMask) | toMask;
+                case QUEEN -> whiteQueens = (whiteQueens & fromMask) | toMask;
+                case KING -> whiteKing = (whiteKing & fromMask) | toMask;
             }
-            case KNIGHT -> {
-                return alliance.isWhite() ? whiteKnights : blackKnights;
+        } else {
+            switch (piece.getType()) {
+                case PAWN -> blackPawns = (blackPawns & fromMask) | toMask;
+                case KNIGHT -> blackKnights = (blackKnights & fromMask) | toMask;
+                case BISHOP -> blackBishops = (blackBishops & fromMask) | toMask;
+                case ROOK -> blackRooks = (blackRooks & fromMask) | toMask;
+                case QUEEN -> blackQueens = (blackQueens & fromMask) | toMask;
+                case KING -> blackKing = (blackKing & fromMask) | toMask;
             }
-            case BISHOP -> {
-                return alliance.isWhite() ? whiteBishops : blackBishops;
-            }
-            case ROOK -> {
-                return alliance.isWhite() ? whiteRooks : blackRooks;
-            }
-            case QUEEN -> {
-                return alliance.isWhite() ? whiteQueens : blackQueens;
-            }
-            case KING -> {
-                return alliance.isWhite() ? whiteKing : blackKing;
-            }
-            default -> throw new ChessException("Invalid piece type", ChessExceptionCodes.INVALID_PIECE_TYPE);
         }
     }
 
     /**
-     * Returns the bitboard for all pieces of a specific alliance.
-     *
-     * @param alliance The alliance (white or black).
-     * @return The bitboard for all pieces of the specified alliance.
+     * Recalculates whitePieces and blackPieces
+     * from the piece-specific white and black bitboards.
      */
-    public long getAllianceBitBoard(final Alliance alliance) {
-        return alliance.isWhite() ? whitePieces : blackPieces;
+    private void updateAllianceBitBoards() {
+        whitePieces = whitePawns | whiteKnights | whiteBishops | whiteRooks | whiteQueens | whiteKing;
+        blackPieces = blackPawns | blackKnights | blackBishops | blackRooks | blackQueens | blackKing;
+    }
+
+    /**
+     * Updates the allPieces bitboard as the union of white and black bitboards.
+     */
+    private void updateAllPieces() {
+        allPieces = whitePieces | blackPieces;
     }
 }
