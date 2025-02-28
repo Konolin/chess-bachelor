@@ -99,7 +99,7 @@ public class BitBoardUtils {
 
         for (int i = 0; i < bitsInMask; i++) {
             // get the index of the least significant set bit in the attack mask
-            int tile = getLs1bIndex(attackMask);
+            int tile = Long.numberOfTrailingZeros(attackMask);
             // remove the least significant set bit from the attack mask
             attackMask = popBit(attackMask, tile);
             // check if the current bit in 'index' is set
@@ -110,24 +110,6 @@ public class BitBoardUtils {
         }
 
         return occupancy;
-    }
-
-    /**
-     * Computes the index of the least significant set bit in a given bitboard.
-     *
-     * @param bitboard The bitboard for which the index of the least significant set bit is to be calculated.
-     * @return The index of the least significant set bit in the bitboard.
-     */
-    public static int getLs1bIndex(long bitboard) {
-        if (bitboard != 0) {
-            // isolate the least significant set bit
-            long isolatedBit = bitboard & -bitboard;
-            // count trailing zeros before the LS1B
-            return Long.bitCount(isolatedBit - 1);
-        } else {
-            // return an illegal index if the bitboard is 0
-            return -1;
-        }
     }
 
     /**

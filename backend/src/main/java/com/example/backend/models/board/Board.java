@@ -6,7 +6,6 @@ import com.example.backend.models.bitboards.PiecesBitBoards;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveHistoryEntry;
 import com.example.backend.models.pieces.*;
-import com.example.backend.utils.BitBoardUtils;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
 import lombok.Getter;
@@ -294,8 +293,8 @@ public class Board {
     public boolean isAllianceInCheck(final Alliance alliance) {
         // find the position of the king for the given alliance
         int kingPosition = alliance.isWhite()
-                ? BitBoardUtils.getLs1bIndex(piecesBitBoards.getWhiteKing())
-                : BitBoardUtils.getLs1bIndex(piecesBitBoards.getBlackKing());
+                ? Long.numberOfTrailingZeros(piecesBitBoards.getWhiteKing())
+                : Long.numberOfTrailingZeros(piecesBitBoards.getBlackKing());
 
         // get the attacking positions bitboard for the opponent
         long opponentAttackBitboard = getAlliancesLegalMovesBitBoard(alliance.getOpponent());

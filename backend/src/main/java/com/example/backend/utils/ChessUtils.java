@@ -177,7 +177,7 @@ public class ChessUtils {
         knightBitboard &= ~toTileMask;
         // loop over all the knights and get the attacks
         while (knightBitboard != 0L) {
-            final int knightPosition = BitBoardUtils.getLs1bIndex(knightBitboard);
+            final int knightPosition = Long.numberOfTrailingZeros(knightBitboard);
             allAttacksMask |= BitBoardUtils.getKnightAttackMask(knightPosition);
             knightBitboard &= knightBitboard - 1;
         }
@@ -186,7 +186,7 @@ public class ChessUtils {
         long bishopBitboard = piecesBitBoards.getPieceBitBoard(PieceType.BISHOP, opponentAlliance);
         bishopBitboard &= ~toTileMask;
         while (bishopBitboard != 0L) {
-            final int bishopPosition = BitBoardUtils.getLs1bIndex(bishopBitboard);
+            final int bishopPosition = Long.numberOfTrailingZeros(bishopBitboard);
             allAttacksMask |= MagicBitBoards.getBishopAttacks(bishopPosition, occupancyMask);
             bishopBitboard &= bishopBitboard - 1;
         }
@@ -195,7 +195,7 @@ public class ChessUtils {
         long rookBitboard = piecesBitBoards.getPieceBitBoard(PieceType.ROOK, opponentAlliance);
         rookBitboard &= ~toTileMask;
         while (rookBitboard != 0L) {
-            final int rookPosition = BitBoardUtils.getLs1bIndex(rookBitboard);
+            final int rookPosition = Long.numberOfTrailingZeros(rookBitboard);
             allAttacksMask |= MagicBitBoards.getRookAttacks(rookPosition, occupancyMask);
             rookBitboard &= rookBitboard - 1;
         }
@@ -204,7 +204,7 @@ public class ChessUtils {
         long queenBitboard = piecesBitBoards.getPieceBitBoard(PieceType.QUEEN, opponentAlliance);
         queenBitboard &= ~toTileMask;
         while (queenBitboard != 0L) {
-            final int queenPosition = BitBoardUtils.getLs1bIndex(queenBitboard);
+            final int queenPosition = Long.numberOfTrailingZeros(queenBitboard);
             allAttacksMask |= MagicBitBoards.getRookAttacks(queenPosition, occupancyMask);
             allAttacksMask |= MagicBitBoards.getBishopAttacks(queenPosition, occupancyMask);
             queenBitboard &= queenBitboard - 1;
@@ -220,7 +220,7 @@ public class ChessUtils {
 
         // add the attacks from the king
         long kingBitboard = piecesBitBoards.getPieceBitBoard(PieceType.KING, opponentAlliance);
-        final int kingPosition = BitBoardUtils.getLs1bIndex(kingBitboard);
+        final int kingPosition = Long.numberOfTrailingZeros(kingBitboard);
         allAttacksMask |= BitBoardUtils.getKingAttackMask(kingPosition);
 
         // get the bitboard of friendly king
