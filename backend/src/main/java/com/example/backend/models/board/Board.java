@@ -133,10 +133,7 @@ public class Board {
         MoveHistoryEntry moveHistoryEntry = new MoveHistoryEntry(move, movingPiece, capturedPiece, movingPiece.isFirstMove());
 
         // update the bitboard of the moving piece
-        piecesBitBoards.updateMove(movingPiece, fromTileIndex, toTileIndex);
-        if (move.getMoveType().isAttack()) {
-            piecesBitBoards.updateCapture(toTileIndex, moveMaker.getOpponent());
-        }
+        piecesBitBoards.updateMove(move, movingPiece);
 
         // update the moving piece
         movingPiece.setPosition(toTileIndex);
@@ -151,9 +148,6 @@ public class Board {
             // promote the piece
             Piece promotedPiece = ChessUtils.createPieceFromTypePositionAlliace(move.getPromotedPieceType(), moveMaker, toTileIndex);
 
-            // update the bitboard following the promotion
-            piecesBitBoards.updatePromotion(toTileIndex, move.getPromotedPieceType(), moveMaker);
-
             // set the promoted piece to the destination tile
             tiles.set(toTileIndex, Tile.createTile(promotedPiece, toTileIndex));
         } else {
@@ -163,7 +157,6 @@ public class Board {
 
         // handle enPassant move (remove captured enPassantPawn)
         if (move.getMoveType().isEnPassant()) {
-            piecesBitBoards.updateEnPassant(enPassantPawn.getPosition(), moveMaker.getOpponent());
             tiles.set(enPassantPawn.getPosition(), Tile.getEmptyTileForPosition(enPassantPawn.getPosition()));
             moveHistoryEntry.setCapturedPiece(enPassantPawn);
         }
@@ -188,7 +181,6 @@ public class Board {
                 tiles.set(oldRookPosition, Tile.getEmptyTileForPosition(fromTileIndex));
             }
             tiles.set(newRookPosition, Tile.createTile(rook, newRookPosition));
-            piecesBitBoards.updateCastling(oldRookPosition, newRookPosition, moveMaker);
         }
 
         // update castle capabilities
@@ -217,6 +209,7 @@ public class Board {
         // change moveMaker
         moveMaker = moveMaker.getOpponent();
 
+        // get the last move history entry
         final MoveHistoryEntry moveHistoryEntry = moveHistory.pop();
 
         // get the last executed move
