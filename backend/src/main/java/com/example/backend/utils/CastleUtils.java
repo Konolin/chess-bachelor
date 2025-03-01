@@ -3,11 +3,9 @@ package com.example.backend.utils;
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.board.Board;
-import com.example.backend.models.board.Tile;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.Alliance;
-import com.example.backend.models.pieces.PieceType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +23,7 @@ public class CastleUtils {
      * Castling is only allowed if both the king and rook have not moved, and if
      * the squares between them are empty and not attacked by the opponent.
      *
-     * @param board   The current game board.
+     * @param board    The current game board.
      * @param alliance The alliance (color) of the player requesting the castling move.
      * @return A list of valid castling moves for the specified alliance.
      */
@@ -66,42 +64,45 @@ public class CastleUtils {
     }
 
     /**
-     * Checks if the rook at the given position is eligible for castling.
-     * A rook is eligible if it has not moved and belongs to the given alliance.
+     * Checks if the rook is eligible for castling.
      *
-     * @param board The current game board.
+     * @param board        The current game board.
      * @param rookPosition The position of the rook to check.
-     * @param alliance The alliance (color) of the player requesting the castling move.
+     * @param alliance     The alliance (color) of the player requesting the castling move.
      * @return true if the rook is eligible for castling, false otherwise.
      */
     private static boolean isRookEligibleForCastle(Board board, int rookPosition, Alliance alliance) {
-        Tile tile = board.getTileAtCoordinate(rookPosition);
-        return tile.isOccupied() &&
-                tile.getOccupyingPiece().getType() == PieceType.ROOK &&
-                tile.getOccupyingPiece().isFirstMove() &&
-                tile.getOccupyingPiece().getAlliance() == alliance;
+        if (alliance.isBlack()) {
+            return rookPosition == 7 && board.isBlackKingSideCastleCapable() ||
+                    rookPosition == 0 && board.isBlackQueenSideCastleCapable();
+        } else {
+            return rookPosition == 63 && board.isWhiteKingSideCastleCapable() ||
+                    rookPosition == 56 && board.isWhiteQueenSideCastleCapable();
+        }
     }
 
     /**
      * Checks if the tiles between the king and rook are safe for castling.
      * A tile is safe if it is unoccupied and not under attack by the opponent.
      *
-     * @param board The current game board.
+     * @param board        The current game board.
      * @param kingPosition The current position of the king.
-     * @param offsets The offsets representing the tiles between the king and rook.
+     * @param offsets      The offsets representing the tiles between the king and rook.
      * @return true if the tiles between the king and rook are safe for castling, false otherwise.
      */
     private static boolean areTilesSafeForCastle(Board board, int kingPosition, int[] offsets) {
         Alliance alliance = board.getMoveMaker();
 
         // calculate the bitboard of the opponent's legal moves (additionally, check the squares attacked by the opponent's pawns)
-        long opponentPawnBitBoard = alliance.isWhite() ? board.getPiecesBitBoards().getBlackPawns() : board.getPiecesBitBoards().getWhitePawns();
+        long opponentPawnBitBoard = alliance.isWhite()
+                ? board.getPiecesBitBoards().getBlackBitboards()[BitBoardUtils.PAWN_INDEX]
+                : board.getPiecesBitBoards().getWhiteBitboards()[BitBoardUtils.PAWN_INDEX];
         long attackBitBoard = board.getAlliancesLegalMovesBitBoard(alliance.getOpponent()) |
                 BitBoardUtils.calculatePawnAttackingBitboard(opponentPawnBitBoard, alliance.getOpponent());
 
         for (int offset : offsets) {
             // check if tile is occupied
-            if (board.getTileAtCoordinate(kingPosition + offset).isOccupied()) {
+            if (board.isTileOccupied(kingPosition + offset)) {
                 return false;
             }
             // check if the tile is attacked by the opponent (offset -3 does not need to be checked for attacks)
@@ -110,36 +111,5 @@ public class CastleUtils {
             }
         }
         return true;
-    }
-
-    /**
-     * Checks if the king of the given alliance is eligible for castling.
-     * The king is eligible if it has not moved and is present on the board.
-     *
-     * @param alliance The alliance (color) of the player.
-     * @param tiles The list of tiles on the board.
-     * @return true if the king is eligible for castling, false otherwise.
-     */
-    public static boolean calculateAlliancesKingEligibleForCastle(final Alliance alliance, final List<Tile> tiles) {
-        final int position = alliance.isWhite() ? 60 : 4;
-        return tiles.get(position).isOccupied() &&
-                tiles.get(position).getOccupyingPiece().getType() == PieceType.KING &&
-                tiles.get(position).getOccupyingPiece().isFirstMove();
-    }
-
-    /**
-     * Checks if the rook of the given alliance, at the specified offset, is eligible for castling.
-     * The rook is eligible if it has not moved and is present on the board.
-     *
-     * @param alliance The alliance (color) of the player.
-     * @param tiles The list of tiles on the board.
-     * @param offset The offset to determine the position of the rook (0 for king-side, 7 for queen-side).
-     * @return true if the rook is eligible for castling, false otherwise.
-     */
-    public static boolean calculateAlliancesRookEligibleForCastle(final Alliance alliance, final List<Tile> tiles, final int offset) {
-        final int position = alliance.isWhite() ? 60 + offset : 4 + offset;
-        return tiles.get(position).isOccupied() &&
-                tiles.get(position).getOccupyingPiece().getType() == PieceType.ROOK &&
-                tiles.get(position).getOccupyingPiece().isFirstMove();
     }
 }

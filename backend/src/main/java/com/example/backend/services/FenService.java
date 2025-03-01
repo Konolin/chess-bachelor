@@ -2,9 +2,9 @@ package com.example.backend.services;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
-import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.pieces.*;
+import com.example.backend.utils.ChessUtils;
 
 /**
  * This service handles the creation and parsing of FEN (Forsyth-Edwards Notation) strings.
@@ -73,7 +73,7 @@ public class FenService {
         while (i < boardTiles.length) {
             switch (boardTiles[i]) {
                 case 'r':
-                    builder.setPieceAtPosition(new Rook(i, Alliance.BLACK, true));
+                    builder.setPieceAtPosition(new Rook(i, Alliance.BLACK, false));
                     i++;
                     break;
                 case 'n':
@@ -89,7 +89,7 @@ public class FenService {
                     i++;
                     break;
                 case 'k':
-                    builder.setPieceAtPosition(new King(i, Alliance.BLACK, canBlackKingCastle(fenPartitions[2])));
+                    builder.setPieceAtPosition(new King(i, Alliance.BLACK, false));
                     i++;
                     break;
                 case 'p':
@@ -101,7 +101,7 @@ public class FenService {
                     i++;
                     break;
                 case 'R':
-                    builder.setPieceAtPosition(new Rook(i, Alliance.WHITE, true));
+                    builder.setPieceAtPosition(new Rook(i, Alliance.WHITE, false));
                     i++;
                     break;
                 case 'N':
@@ -117,7 +117,7 @@ public class FenService {
                     i++;
                     break;
                 case 'K':
-                    builder.setPieceAtPosition(new King(i, Alliance.WHITE, canWhiteKingCastle(fenPartitions[2])));
+                    builder.setPieceAtPosition(new King(i, Alliance.WHITE, false));
                     i++;
                     break;
                 case 'P':
@@ -136,8 +136,25 @@ public class FenService {
             }
         }
 
+        builder.setCastleCapabilities(calculateCastleCapabilities(fenPartitions[2]));
         builder.setMoveMaker(moveMaker(fenPartitions[1]));
         return builder.build();
+    }
+
+    /**
+     * Calculates the castling capabilities of the board based on the FEN string.
+     *
+     * @param castleString The castling rights portion of the FEN string.
+     * @return An array of booleans representing the castling capabilities of the board.
+     * The array is ordered as follows: [blackKingSide, blackQueenSide, whiteKingSide, whiteQueenSide].
+     */
+    private static boolean[] calculateCastleCapabilities(final String castleString) {
+        return new boolean[]{
+                castleString.contains("k"),
+                castleString.contains("q"),
+                castleString.contains("K"),
+                castleString.contains("Q")
+        };
     }
 
     /**
@@ -178,7 +195,7 @@ public class FenService {
     private static String calculateBoardText(final Board board) {
         final StringBuilder builder = new StringBuilder();
         for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
-            final String tileText = board.getTileAtCoordinate(i).toString();
+            final String tileText = board.getPieceStringAtPosition(i);
             builder.append(tileText);
         }
 
@@ -248,25 +265,5 @@ public class FenService {
             return ChessUtils.getAlgebraicNotationAtCoordinate(enPassantPawnPosition);
         }
         return "-";
-    }
-
-    /**
-     * Determines if the white king can castle based on the FEN string's castling rights.
-     *
-     * @param fenCastleString The castling rights section from the FEN string.
-     * @return True if the white king can castle, false otherwise.
-     */
-    private static boolean canWhiteKingCastle(final String fenCastleString) {
-        return fenCastleString.contains("K") || fenCastleString.contains("Q");
-    }
-
-    /**
-     * Determines if the black king can castle based on the FEN string's castling rights.
-     *
-     * @param fenCastleString The castling rights section from the FEN string.
-     * @return True if the black king can castle, false otherwise.
-     */
-    private static boolean canBlackKingCastle(final String fenCastleString) {
-        return fenCastleString.contains("k") || fenCastleString.contains("q");
     }
 }

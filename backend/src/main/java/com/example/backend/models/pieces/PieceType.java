@@ -17,6 +17,7 @@ public enum PieceType {
     KING("King");
 
     static final PieceType[] PROMOTABLE_TYPES = {PieceType.ROOK, PieceType.KNIGHT, PieceType.BISHOP, PieceType.QUEEN};
+    public static final PieceType[] ALL_TYPES = {PieceType.PAWN, PieceType.KNIGHT, PieceType.BISHOP, PieceType.ROOK, PieceType.QUEEN, PieceType.KING};
     private final String name;
     private final String algebraicSymbol;
 

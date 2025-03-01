@@ -5,6 +5,14 @@ import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.pieces.Alliance;
 
 public class BitBoardUtils {
+    // indices for piece types in the bitboard arrays
+    public static final int PAWN_INDEX = 0;
+    public static final int KNIGHT_INDEX = 1;
+    public static final int BISHOP_INDEX = 2;
+    public static final int ROOK_INDEX = 3;
+    public static final int QUEEN_INDEX = 4;
+    public static final int KING_INDEX = 5;
+
     // bishop relevant attack mask bit count for every square on board
     private static final int[] BISHOP_RELEVANT_BITS = {
             6, 5, 5, 5, 5, 5, 5, 6,

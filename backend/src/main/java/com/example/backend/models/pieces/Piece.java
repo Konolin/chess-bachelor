@@ -1,7 +1,9 @@
 package com.example.backend.models.pieces;
 
-import com.example.backend.models.moves.Move;
+import com.example.backend.exceptions.ChessException;
+import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.board.Board;
+import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,21 +18,21 @@ import java.util.List;
  */
 @Getter
 public abstract class Piece {
+    private final Alliance alliance;
+    private final int cachedHashCode;
+    private final PieceType type;
     @Setter
     private int position;
     @Setter
     private boolean isFirstMove;
-    private final Alliance alliance;
-    private final int cachedHashCode;
-    private final PieceType type;
 
     /**
      * Constructs a Piece with the given position, alliance, first move status, and type.
      *
-     * @param position The position of the piece on the board.
-     * @param alliance The alliance (color) of the piece.
+     * @param position    The position of the piece on the board.
+     * @param alliance    The alliance (color) of the piece.
      * @param isFirstMove Whether this is the piece's first move.
-     * @param type The type of the piece.
+     * @param type        The type of the piece.
      */
     protected Piece(final int position, final Alliance alliance, final boolean isFirstMove, final PieceType type) {
         this.position = position;
@@ -44,25 +46,26 @@ public abstract class Piece {
      * Generates a list of legal moves for the piece based on the current board state.
      * It calculates both normal moves and attack moves (moves to capture opponent pieces).
      *
-     * @param board The current state of the chess board.
+     * @param board         The current state of the chess board.
+     * @param piecePosition The position of the piece whose moves we are generating.
      * @return A list of legal moves available for this piece.
      */
-    public List<Move> generateLegalMovesList(final Board board) {
+    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition) {
         List<Move> legalMoves = new ArrayList<>();
 
         // Generate the bitboard of all possible legal moves for this piece
-        long legalMovesBitBoard = generateLegalMovesBitBoard(board);
+        long legalMovesBitBoard = generateLegalMovesBitBoard(board, piecePosition);
 
         // Get the bitboard of the opponent's pieces
-        long opponentPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(this.getAlliance().getOpponent());
+        long opponentPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(board.getMoveMaker().getOpponent());
 
         // Separate the attack moves (moves to opponent pieces) and normal moves (empty squares)
         long attackMoves = legalMovesBitBoard & opponentPiecesBitBoard;
         long normalMoves = legalMovesBitBoard & ~opponentPiecesBitBoard;
 
         // Convert the bitboards to Move objects and add them to the legal moves list
-        legalMoves.addAll(bitBoardToMoveList(normalMoves, MoveType.NORMAL));
-        legalMoves.addAll(bitBoardToMoveList(attackMoves, MoveType.ATTACK));
+        legalMoves.addAll(bitBoardToMoveList(normalMoves, MoveType.NORMAL, piecePosition));
+        legalMoves.addAll(bitBoardToMoveList(attackMoves, MoveType.ATTACK, piecePosition));
 
         return legalMoves;
     }
@@ -74,22 +77,25 @@ public abstract class Piece {
      * @param board The current state of the chess board.
      * @return A bitboard representing the legal move positions for the piece.
      */
-    public abstract long generateLegalMovesBitBoard(final Board board);
+    public static long generateLegalMovesBitBoard(final Board board, final int piecePosition){
+        throw new ChessException("This method should be overridden by subclasses", ChessExceptionCodes.ILLEGAL_STATE);
+    }
 
     /**
      * Converts a bitboard of legal moves into a list of Move objects.
      *
-     * @param bitBoard The bitboard representing legal moves.
-     * @param moveType The type of move (normal or attack).
+     * @param bitBoard      The bitboard representing legal moves.
+     * @param moveType      The type of move (normal or attack).
+     * @param piecePosition The position of the piece making the move.
      * @return A list of Move objects representing the legal moves.
      */
-    protected List<Move> bitBoardToMoveList(long bitBoard, final MoveType moveType) {
+    protected static List<Move> bitBoardToMoveList(long bitBoard, final MoveType moveType, final int piecePosition) {
         int bitCount = Long.bitCount(bitBoard);
         List<Move> legalMoves = new ArrayList<>(bitCount);
         while (bitBoard != 0) {
             int destination = Long.numberOfTrailingZeros(bitBoard);
             bitBoard &= bitBoard - 1;
-            legalMoves.add(new Move(this.getPosition(), destination, moveType));
+            legalMoves.add(new Move(piecePosition, destination, moveType));
         }
         return legalMoves;
     }
@@ -143,7 +149,7 @@ public abstract class Piece {
     /**
      * Moves the piece to a new position on the board.
      *
-     * @param alliance The alliance (color) of the piece.
+     * @param alliance       The alliance (color) of the piece.
      * @param toTilePosition The new position to which the piece is moved.
      * @return A new instance of the piece at the specified position.
      */

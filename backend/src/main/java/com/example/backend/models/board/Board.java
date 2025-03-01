@@ -5,10 +5,8 @@ import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.bitboards.PiecesBitBoards;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveHistoryEntry;
-import com.example.backend.models.pieces.Alliance;
-import com.example.backend.models.pieces.Pawn;
-import com.example.backend.models.pieces.Piece;
-import com.example.backend.models.pieces.Rook;
+import com.example.backend.models.pieces.*;
+import com.example.backend.utils.BitBoardUtils;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
 import lombok.Getter;
@@ -23,7 +21,6 @@ public class Board {
 
     private final Deque<MoveHistoryEntry> moveHistory = new ArrayDeque<>();
 
-    private final List<Tile> tiles;
     private final PiecesBitBoards piecesBitBoards;
     private List<Move> whiteLegalMoves;
     private List<Move> blackLegalMoves;
@@ -39,16 +36,14 @@ public class Board {
     private boolean isWhiteQueenSideCastleCapable;
 
     private Board(Builder builder) {
-        this.tiles = this.createTiles(builder);
         this.moveMaker = builder.moveMaker;
-
         this.enPassantPawnPosition = builder.enPassantPawnPosition;
 
         // initialize the BitBoards object
         this.piecesBitBoards = new PiecesBitBoards(builder.boardConfig);
 
         // calculate castle capabilities for both sides (used for fen string generation)
-        calculateCastleCapabilities();
+        initCastleCapabilities(builder.castleCapabilities);
 
         this.whiteLegalMoves = calculateAlliancesLegalMoves(Alliance.WHITE);
         this.blackLegalMoves = calculateAlliancesLegalMoves(Alliance.BLACK);
@@ -60,63 +55,220 @@ public class Board {
         this.blackLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
     }
 
-    private List<Tile> createTiles(final Builder builder) {
-        final Tile[] tilesArray = new Tile[ChessUtils.TILES_NUMBER];
-        for (int position = 0; position < ChessUtils.TILES_NUMBER; position++) {
-            tilesArray[position] = Tile.createTile(builder.boardConfig.get(position), position);
-        }
-        return new ArrayList<>(Arrays.asList(tilesArray));
-    }
-
     public List<Move> calculateAlliancesLegalMoves(final Alliance alliance) {
         List<Move> legalMoves = new ArrayList<>();
-        long piecesBitBoard = alliance.isWhite() ? piecesBitBoards.getWhitePieces() : piecesBitBoards.getBlackPieces();
-        while (piecesBitBoard != 0) {
-            final int tileIndex = Long.numberOfTrailingZeros(piecesBitBoard);
-            legalMoves.addAll(tiles.get(tileIndex).getOccupyingPiece().generateLegalMovesList(this));
-            piecesBitBoard &= piecesBitBoard - 1;
+
+        if (alliance.isWhite()) {
+            long pawns = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.PAWN_INDEX];
+            while (pawns > 0) {
+                final int pawnPosition = Long.numberOfTrailingZeros(pawns);
+                legalMoves.addAll(Pawn.generateLegalMovesList(this, pawnPosition));
+                pawns &= pawns - 1;
+            }
+
+            long knights = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.KNIGHT_INDEX];
+            while (knights > 0) {
+                final int knightPosition = Long.numberOfTrailingZeros(knights);
+                legalMoves.addAll(Knight.generateLegalMovesList(this, knightPosition));
+                knights &= knights - 1;
+            }
+
+            long bishops = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.BISHOP_INDEX];
+            while (bishops > 0) {
+                final int bishopPosition = Long.numberOfTrailingZeros(bishops);
+                legalMoves.addAll(Bishop.generateLegalMovesList(this, bishopPosition));
+                bishops &= bishops - 1;
+            }
+
+            long rooks = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.ROOK_INDEX];
+            while (rooks > 0) {
+                final int rookPosition = Long.numberOfTrailingZeros(rooks);
+                legalMoves.addAll(Rook.generateLegalMovesList(this, rookPosition));
+                rooks &= rooks - 1;
+            }
+
+            long queens = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.QUEEN_INDEX];
+            while (queens > 0) {
+                final int queenPosition = Long.numberOfTrailingZeros(queens);
+                legalMoves.addAll(Queen.generateLegalMovesList(this, queenPosition));
+                queens &= queens - 1;
+            }
+
+            long king = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.KING_INDEX];
+            final int kingPosition = Long.numberOfTrailingZeros(king);
+            legalMoves.addAll(King.generateLegalMovesList(this, kingPosition));
+        } else {
+            long pawns = piecesBitBoards.getBlackBitboards()[BitBoardUtils.PAWN_INDEX];
+            while (pawns > 0) {
+                final int pawnPosition = Long.numberOfTrailingZeros(pawns);
+                legalMoves.addAll(Pawn.generateLegalMovesList(this, pawnPosition));
+                pawns &= pawns - 1;
+            }
+
+            long knights = piecesBitBoards.getBlackBitboards()[BitBoardUtils.KNIGHT_INDEX];
+            while (knights > 0) {
+                final int knightPosition = Long.numberOfTrailingZeros(knights);
+                legalMoves.addAll(Knight.generateLegalMovesList(this, knightPosition));
+                knights &= knights - 1;
+            }
+
+            long bishops = piecesBitBoards.getBlackBitboards()[BitBoardUtils.BISHOP_INDEX];
+            while (bishops > 0) {
+                final int bishopPosition = Long.numberOfTrailingZeros(bishops);
+                legalMoves.addAll(Bishop.generateLegalMovesList(this, bishopPosition));
+                bishops &= bishops - 1;
+            }
+
+            long rooks = piecesBitBoards.getBlackBitboards()[BitBoardUtils.ROOK_INDEX];
+            while (rooks > 0) {
+                final int rookPosition = Long.numberOfTrailingZeros(rooks);
+                legalMoves.addAll(Rook.generateLegalMovesList(this, rookPosition));
+                rooks &= rooks - 1;
+            }
+
+            long queens = piecesBitBoards.getBlackBitboards()[BitBoardUtils.QUEEN_INDEX];
+            while (queens > 0) {
+                final int queenPosition = Long.numberOfTrailingZeros(queens);
+                legalMoves.addAll(Queen.generateLegalMovesList(this, queenPosition));
+                queens &= queens - 1;
+            }
+
+            long king = piecesBitBoards.getBlackBitboards()[BitBoardUtils.KING_INDEX];
+            final int kingPosition = Long.numberOfTrailingZeros(king);
+            legalMoves.addAll(King.generateLegalMovesList(this, kingPosition));
         }
+
         return legalMoves;
     }
 
     private long calculateLegalMovesBitBoard(final Alliance alliance) {
         long attackingPositionsBitBoard = 0L;
-        long piecesBitBoard = alliance.isWhite() ? piecesBitBoards.getWhitePieces() : piecesBitBoards.getBlackPieces();
 
-        while (piecesBitBoard != 0) {
-            final int tileIndex = Long.numberOfTrailingZeros(piecesBitBoard);
-            attackingPositionsBitBoard |= tiles.get(tileIndex).getOccupyingPiece().generateLegalMovesBitBoard(this);
-            piecesBitBoard &= piecesBitBoard - 1;
+        if (alliance.isWhite()) {
+            long pawns = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.PAWN_INDEX];
+            while (pawns != 0) {
+                final int pawnPosition = Long.numberOfTrailingZeros(pawns);
+                attackingPositionsBitBoard |= Pawn.generateLegalMovesBitBoard(this, pawnPosition);
+                pawns &= pawns - 1;
+            }
+
+            long knights = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.KNIGHT_INDEX];
+            while (knights != 0) {
+                final int knightPosition = Long.numberOfTrailingZeros(knights);
+                attackingPositionsBitBoard |= Knight.generateLegalMovesBitBoard(this, knightPosition);
+                knights &= knights - 1;
+            }
+
+            long bishops = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.BISHOP_INDEX];
+            while (bishops != 0) {
+                final int bishopPosition = Long.numberOfTrailingZeros(bishops);
+                attackingPositionsBitBoard |= Bishop.generateLegalMovesBitBoard(this, bishopPosition);
+                bishops &= bishops - 1;
+            }
+
+            long rooks = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.ROOK_INDEX];
+            while (rooks != 0) {
+                final int rookPosition = Long.numberOfTrailingZeros(rooks);
+                attackingPositionsBitBoard |= Rook.generateLegalMovesBitBoard(this, rookPosition);
+                rooks &= rooks - 1;
+            }
+
+            long queens = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.QUEEN_INDEX];
+            while (queens != 0) {
+                final int queenPosition = Long.numberOfTrailingZeros(queens);
+                attackingPositionsBitBoard |= Queen.generateLegalMovesBitBoard(this, queenPosition);
+                queens &= queens - 1;
+            }
+
+            long king = piecesBitBoards.getWhiteBitboards()[BitBoardUtils.KING_INDEX];
+            final int kingPosition = Long.numberOfTrailingZeros(king);
+            attackingPositionsBitBoard |= King.generateLegalMovesBitBoard(this, kingPosition);
+        } else {
+            long pawns = piecesBitBoards.getBlackBitboards()[BitBoardUtils.PAWN_INDEX];
+            while (pawns != 0) {
+                final int pawnPosition = Long.numberOfTrailingZeros(pawns);
+                attackingPositionsBitBoard |= Pawn.generateLegalMovesBitBoard(this, pawnPosition);
+                pawns &= pawns - 1;
+            }
+
+            long knights = piecesBitBoards.getBlackBitboards()[BitBoardUtils.KNIGHT_INDEX];
+            while (knights != 0) {
+                final int knightPosition = Long.numberOfTrailingZeros(knights);
+                attackingPositionsBitBoard |= Knight.generateLegalMovesBitBoard(this, knightPosition);
+                knights &= knights - 1;
+            }
+
+            long bishops = piecesBitBoards.getBlackBitboards()[BitBoardUtils.BISHOP_INDEX];
+            while (bishops != 0) {
+                final int bishopPosition = Long.numberOfTrailingZeros(bishops);
+                attackingPositionsBitBoard |= Bishop.generateLegalMovesBitBoard(this, bishopPosition);
+                bishops &= bishops - 1;
+            }
+
+            long rooks = piecesBitBoards.getBlackBitboards()[BitBoardUtils.ROOK_INDEX];
+            while (rooks != 0) {
+                final int rookPosition = Long.numberOfTrailingZeros(rooks);
+                attackingPositionsBitBoard |= Rook.generateLegalMovesBitBoard(this, rookPosition);
+                rooks &= rooks - 1;
+            }
+
+            long queens = piecesBitBoards.getBlackBitboards()[BitBoardUtils.QUEEN_INDEX];
+            while (queens != 0) {
+                final int queenPosition = Long.numberOfTrailingZeros(queens);
+                attackingPositionsBitBoard |= Queen.generateLegalMovesBitBoard(this, queenPosition);
+                queens &= queens - 1;
+            }
+
+            long king = piecesBitBoards.getBlackBitboards()[BitBoardUtils.KING_INDEX];
+            final int kingPosition = Long.numberOfTrailingZeros(king);
+            attackingPositionsBitBoard |= King.generateLegalMovesBitBoard(this, kingPosition);
         }
 
         return attackingPositionsBitBoard;
     }
 
-    private void calculateCastleCapabilities() {
-        isBlackKingSideCastleCapable = false;
-        isBlackQueenSideCastleCapable = false;
-        isWhiteKingSideCastleCapable = false;
-        isWhiteQueenSideCastleCapable = false;
+    private void initCastleCapabilities(final boolean[] castleCapabilities) {
+        isBlackKingSideCastleCapable = castleCapabilities[0];
+        isBlackQueenSideCastleCapable = castleCapabilities[1];
+        isWhiteKingSideCastleCapable = castleCapabilities[2];
+        isWhiteQueenSideCastleCapable = castleCapabilities[3];
+    }
 
-        // calculate castle capabilities for white
-        if (CastleUtils.calculateAlliancesKingEligibleForCastle(Alliance.WHITE, tiles)) {
-            if (CastleUtils.calculateAlliancesRookEligibleForCastle(Alliance.WHITE, tiles, 3)) {
-                isWhiteKingSideCastleCapable = true;
-            }
-            if (CastleUtils.calculateAlliancesRookEligibleForCastle(Alliance.WHITE, tiles, -4)) {
-                isWhiteQueenSideCastleCapable = true;
+    private void updateCastleCapabilities(final PieceType movingPieceType, final int fromTileIndex) {
+        // remove castle capabilities if the king moves
+        if (movingPieceType == PieceType.KING) {
+            if (moveMaker.isWhite()) {
+                isWhiteKingSideCastleCapable = false;
+                isWhiteQueenSideCastleCapable = false;
+            } else {
+                isBlackKingSideCastleCapable = false;
+                isBlackQueenSideCastleCapable = false;
             }
         }
 
-        // calculate castle capabilities for black
-        if (CastleUtils.calculateAlliancesKingEligibleForCastle(Alliance.BLACK, tiles)) {
-            if (CastleUtils.calculateAlliancesRookEligibleForCastle(Alliance.BLACK, tiles, 3)) {
-                isBlackKingSideCastleCapable = true;
-            }
-            if (CastleUtils.calculateAlliancesRookEligibleForCastle(Alliance.BLACK, tiles, -4)) {
-                isBlackQueenSideCastleCapable = true;
+        // remove castle capabilities if the rook moves
+        if (movingPieceType == PieceType.ROOK) {
+            if (moveMaker.isWhite()) {
+                if (fromTileIndex == 63) {
+                    isWhiteKingSideCastleCapable = false;
+                } else if (fromTileIndex == 56) {
+                    isWhiteQueenSideCastleCapable = false;
+                }
+            } else {
+                if (fromTileIndex == 7) {
+                    isBlackKingSideCastleCapable = false;
+                } else if (fromTileIndex == 0) {
+                    isBlackQueenSideCastleCapable = false;
+                }
             }
         }
+    }
+
+    private void resetCastleCapabilities(MoveHistoryEntry moveHistoryEntry) {
+        this.isWhiteKingSideCastleCapable = moveHistoryEntry.isWhiteKingSideCastleCapableBefore();
+        this.isWhiteQueenSideCastleCapable = moveHistoryEntry.isWhiteQueenSideCastleCapableBefore();
+        this.isBlackKingSideCastleCapable = moveHistoryEntry.isBlackKingSideCastleCapableBefore();
+        this.isBlackQueenSideCastleCapable = moveHistoryEntry.isBlackQueenSideCastleCapableBefore();
     }
 
     public void executeMove(final Move move) {
@@ -124,65 +276,35 @@ public class Board {
         final int toTileIndex = move.getToTileIndex();
 
         // get the pieces involved in this move
-        Piece movingPiece = getTileAtCoordinate(fromTileIndex).getOccupyingPiece();
-        Piece capturedPiece = getTileAtCoordinate(toTileIndex).getOccupyingPiece();
+        PieceType movingPiece = getPieceTypeOfTile(fromTileIndex);
+        PieceType capturedPiece = getPieceTypeOfTile(toTileIndex);
 
         // create the move history entry
-        MoveHistoryEntry moveHistoryEntry = new MoveHistoryEntry(move, movingPiece, capturedPiece, movingPiece.isFirstMove(), enPassantPawnPosition);
+        MoveHistoryEntry moveHistoryEntry = new MoveHistoryEntry(
+                move,
+                movingPiece,
+                capturedPiece,
+                enPassantPawnPosition,
+                moveMaker,
+                isWhiteKingSideCastleCapable,
+                isWhiteQueenSideCastleCapable,
+                isBlackKingSideCastleCapable,
+                isBlackQueenSideCastleCapable
+        );
 
         // update the bitboard of the moving piece
-        piecesBitBoards.updateMove(move, movingPiece);
-
-        // update the moving piece
-        movingPiece.setPosition(toTileIndex);
-        movingPiece.setFirstMove(false);
-
-        // empty the staring tile
-        tiles.set(fromTileIndex, Tile.getEmptyTileForPosition(fromTileIndex));
-
-        // add the moving piece to the destination tile
-        // (if it's a promotion move, set the new piece type)
-        if (move.getMoveType().isPromotion()) {
-            // promote the piece
-            Piece promotedPiece = ChessUtils.createPieceFromTypePositionAlliace(move.getPromotedPieceType(), moveMaker, toTileIndex);
-
-            // set the promoted piece to the destination tile
-            tiles.set(toTileIndex, Tile.createTile(promotedPiece, toTileIndex));
-        } else {
-            // set the moving piece to the destination tile
-            tiles.set(toTileIndex, Tile.createTile(movingPiece, toTileIndex));
-        }
+        piecesBitBoards.updateMove(move, movingPiece, moveMaker);
 
         // handle enPassant move (remove captured enPassantPawn)
         if (move.getMoveType().isEnPassant()) {
-            moveHistoryEntry.setCapturedPiece(tiles.get(enPassantPawnPosition).getOccupyingPiece());
-            tiles.set(enPassantPawnPosition, Tile.getEmptyTileForPosition(enPassantPawnPosition));
+            moveHistoryEntry.setCapturedPiece(getPieceTypeOfTile(enPassantPawnPosition));
         }
 
         // update enPassantPawnPosition
-        enPassantPawnPosition = move.getMoveType().isDoublePawnAdvance() ? movingPiece.getPosition() : -1;
-
-        // handle castle move (move rook and change its firstMove flag)
-        if (move.getMoveType().isCastleMove()) {
-            final int newRookPosition;
-            final int oldRookPosition;
-            final Rook rook;
-            if (move.getMoveType().isKingSideCastle()) {
-                newRookPosition = fromTileIndex + 1;
-                oldRookPosition = fromTileIndex + 3;
-                rook = new Rook(fromTileIndex + 1, moveMaker, false);
-                tiles.set(oldRookPosition, Tile.getEmptyTileForPosition(fromTileIndex));
-            } else {
-                newRookPosition = fromTileIndex - 1;
-                oldRookPosition = fromTileIndex - 4;
-                rook = new Rook(fromTileIndex - 1, moveMaker, false);
-                tiles.set(oldRookPosition, Tile.getEmptyTileForPosition(fromTileIndex));
-            }
-            tiles.set(newRookPosition, Tile.createTile(rook, newRookPosition));
-        }
+        enPassantPawnPosition = move.getMoveType().isDoublePawnAdvance() ? toTileIndex : -1;
 
         // update castle capabilities
-        calculateCastleCapabilities();
+        updateCastleCapabilities(movingPiece, fromTileIndex);
 
         // update legal moves
         whiteLegalMoves = calculateAlliancesLegalMoves(Alliance.WHITE);
@@ -210,58 +332,14 @@ public class Board {
         // get the last move history entry
         final MoveHistoryEntry moveHistoryEntry = moveHistory.pop();
 
-        // get the last executed move
-        final Move move = moveHistoryEntry.getMove();
-        final int fromTileIndex = move.getFromTileIndex();
-        final int toTileIndex = move.getToTileIndex();
-
-        // get the pieces involved in this move
-        Piece movingPiece = moveHistoryEntry.getMovingPiece();
-        Piece capturedPiece = moveHistoryEntry.getCapturedPiece();
-        boolean movingPieceFirstMove = moveHistoryEntry.isFirstMove();
-
-        // put the moving piece back to its original position and replace it in the pieces list
-        movingPiece.setPosition(fromTileIndex);
-        movingPiece.setFirstMove(movingPieceFirstMove);
-        tiles.set(fromTileIndex, Tile.createTile(movingPiece, fromTileIndex));
-        tiles.set(toTileIndex, Tile.getEmptyTileForPosition(toTileIndex));
-
         // restore the previous enPassantPawnPosition
         enPassantPawnPosition = moveHistoryEntry.getEnPassantPawnPosition();
-
-        // handle enPassant move (put back the captured enPassantPawn)
-        if (move.getMoveType().isEnPassant()) {
-            tiles.set(enPassantPawnPosition, Tile.createTile(new Pawn(enPassantPawnPosition, moveMaker.getOpponent(), false), enPassantPawnPosition));
-        } else {
-            // put the captured piece back to its original position
-            if (capturedPiece != null) {
-                tiles.set(toTileIndex, Tile.createTile(capturedPiece, toTileIndex));
-            } else {
-                tiles.set(toTileIndex, Tile.getEmptyTileForPosition(toTileIndex));
-            }
-        }
-
-        // handle castle move (move rook and change its firstMove flag)
-        if (move.getMoveType().isCastleMove()) {
-            final int rookNewPosition;
-            final Rook rook;
-            if (move.getMoveType().isKingSideCastle()) {
-                rookNewPosition = fromTileIndex + 3;
-                rook = new Rook(fromTileIndex + 3, moveMaker, true);
-                tiles.set(fromTileIndex + 1, Tile.getEmptyTileForPosition(fromTileIndex));
-            } else {
-                rookNewPosition = fromTileIndex - 4;
-                rook = new Rook(fromTileIndex - 4, moveMaker, true);
-                tiles.set(fromTileIndex - 1, Tile.getEmptyTileForPosition(fromTileIndex));
-            }
-            tiles.set(rookNewPosition, Tile.createTile(rook, rookNewPosition));
-        }
 
         // update pieceBitBoards
         piecesBitBoards.undoMove(moveHistoryEntry);
 
         // update castle capabilities
-        calculateCastleCapabilities();
+        resetCastleCapabilities(moveHistoryEntry);
 
         // update legal moves
         whiteLegalMoves = calculateAlliancesLegalMoves(Alliance.WHITE);
@@ -280,10 +358,10 @@ public class Board {
         if (!ChessUtils.isValidPosition(position)) {
             throw new ChessException("Invalid position " + position, ChessExceptionCodes.INVALID_POSITION);
         }
-        if (tiles.get(position).isEmpty()) {
+        if (!isTileOccupied(position)) {
             return null;
         }
-        return tiles.get(position).getOccupyingPiece().getAlliance();
+        return getAllianceOfTile(position);
     }
 
     public boolean isAllianceInCheckMate(final Alliance alliance) {
@@ -293,8 +371,8 @@ public class Board {
     public boolean isAllianceInCheck(final Alliance alliance) {
         // find the position of the king for the given alliance
         int kingPosition = alliance.isWhite()
-                ? Long.numberOfTrailingZeros(piecesBitBoards.getWhiteKing())
-                : Long.numberOfTrailingZeros(piecesBitBoards.getBlackKing());
+                ? Long.numberOfTrailingZeros(piecesBitBoards.getWhiteBitboards()[BitBoardUtils.KING_INDEX])
+                : Long.numberOfTrailingZeros(piecesBitBoards.getBlackBitboards()[BitBoardUtils.KING_INDEX]);
 
         // get the attacking positions bitboard for the opponent
         long opponentAttackBitboard = getAlliancesLegalMovesBitBoard(alliance.getOpponent());
@@ -310,8 +388,37 @@ public class Board {
         return isBlackKingSideCastleCapable || isBlackQueenSideCastleCapable;
     }
 
-    public Tile getTileAtCoordinate(final int tileCoordinate) {
-        return this.tiles.get(tileCoordinate);
+    public boolean isTileOccupied(final int tileCoordinate) {
+        return piecesBitBoards.getBitAtPosition(tileCoordinate) != 0;
+    }
+
+    public Alliance getAllianceOfTile(final int tileCoordinate) {
+        return piecesBitBoards.getAllianceOfTile(tileCoordinate);
+    }
+
+    public PieceType getPieceTypeOfTile(final int tileCoordinate) {
+        return piecesBitBoards.getPieceTypeOfTile(tileCoordinate);
+    }
+
+    public String getPieceStringAtPosition(final int position) {
+        // check if the tile is empty
+        if (!isTileOccupied(position)) {
+            return "-";
+        }
+
+        // get the piece type
+        PieceType pieceType = getPieceTypeOfTile(position);
+        String pieceString = "";
+        switch (pieceType) {
+            case PAWN -> pieceString = "P";
+            case KNIGHT -> pieceString = "N";
+            case BISHOP -> pieceString = "B";
+            case ROOK -> pieceString = "R";
+            case QUEEN -> pieceString = "Q";
+            case KING -> pieceString = "K";
+        }
+
+        return getAllianceOfTile(position).isWhite() ? pieceString : pieceString.toLowerCase();
     }
 
     public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
@@ -328,7 +435,7 @@ public class Board {
     public String toString() {
         final StringBuilder builder = new StringBuilder();
         for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
-            final String tileText = this.tiles.get(i).toString();
+            final String tileText = getPieceStringAtPosition(i);
             builder.append(String.format("%3s", tileText));
             if ((i + 1) % ChessUtils.TILES_PER_ROW == 0) {
                 builder.append("\n");
@@ -341,6 +448,7 @@ public class Board {
         private final Map<Integer, Piece> boardConfig;
         private Alliance moveMaker;
         private int enPassantPawnPosition;
+        private boolean[] castleCapabilities = new boolean[4];
 
         public Builder() {
             this.boardConfig = new HashMap<>();
@@ -358,6 +466,11 @@ public class Board {
 
         public Builder setEnPassantPawnPosition(int enPassantPawnPosition) {
             this.enPassantPawnPosition = enPassantPawnPosition;
+            return this;
+        }
+
+        public Builder setCastleCapabilities(boolean[] castleCapabilities) {
+            this.castleCapabilities = castleCapabilities;
             return this;
         }
 

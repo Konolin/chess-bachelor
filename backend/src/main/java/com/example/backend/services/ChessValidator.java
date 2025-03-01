@@ -41,7 +41,7 @@ public class ChessValidator {
         validatePosition(move.getToTileIndex());
 
         // check if there is a piece at the starting tile
-        if (board.getTileAtCoordinate(move.getFromTileIndex()).isEmpty()) {
+        if (!board.isTileOccupied(move.getFromTileIndex())) {
             throw new ChessException("No piece is at the selected starting tile", ChessExceptionCodes.INVALID_MOVE);
         }
 

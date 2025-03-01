@@ -1,7 +1,6 @@
 package com.example.backend.models.pieces;
 
 import com.example.backend.models.board.Board;
-import com.example.backend.models.board.Tile;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.utils.ChessUtils;
@@ -16,87 +15,79 @@ public class Pawn extends Piece {
         super(position, alliance, isFirstMove, PieceType.PAWN);
     }
 
-    @Override
-    public List<Move> generateLegalMovesList(final Board board) {
+    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition) {
         List<Move> legalMoves = new ArrayList<>();
 
         for (final int offset : MOVE_OFFSETS) {
-            final int directedOffset = offset * this.getAlliance().getDirection();
-            int candidatePosition = this.getPosition() + directedOffset;
+            final int directedOffset = offset * board.getMoveMaker().getDirection();
+            int candidatePosition = piecePosition + directedOffset;
 
             // skip invalid moves
-            if (isContinueCase(directedOffset, candidatePosition)) {
+            if (isContinueCase(directedOffset, candidatePosition, piecePosition, board.getMoveMaker())) {
                 continue;
             }
-
-            // get candidate tile
-            final Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
 
             // attack move
             if (offset == 7 || offset == 9) {
                 // normal attack move
-                if (candidateTile.isOccupied() && candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) {
-                    if (this.getAlliance().isPromotionSquare(candidatePosition)) {
+                if (board.isTileOccupied(candidatePosition) && board.getAllianceOfTile(candidatePosition) != board.getMoveMaker()) {
+                    if (board.getMoveMaker().isPromotionSquare(candidatePosition)) {
                         // promote and attack
                         for (PieceType promotableType : PieceType.PROMOTABLE_TYPES) {
-                            legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION_ATTACK, promotableType));
+                            legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.PROMOTION_ATTACK, promotableType));
                         }
                     } else {
-                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.ATTACK));
+                        legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.ATTACK));
                     }
                     // en passant attack move
-                } else if (candidateTile.isEmpty() && isEnPassantMove(board, candidateTile, offset)) {
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.EN_PASSANT));
+                } else if (!board.isTileOccupied(candidatePosition) && isEnPassantMove(board, candidatePosition, offset, piecePosition)) {
+                    legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.EN_PASSANT));
                 }
                 // normal 1 tile move
-            } else if (offset == 8 && candidateTile.isEmpty()) {
-                if (this.getAlliance().isPromotionSquare(candidatePosition)) {
+            } else if (offset == 8 && !board.isTileOccupied(candidatePosition)) {
+                if (board.getMoveMaker().isPromotionSquare(candidatePosition)) {
                     // promote
                     for (PieceType promotableType : PieceType.PROMOTABLE_TYPES) {
-                        legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.PROMOTION_ATTACK, promotableType));
+                        legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.PROMOTION_ATTACK, promotableType));
                     }
                 } else {
-                    legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.NORMAL));
+                    legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.NORMAL));
                 }
                 // normal 2 tile move
-            } else if (isFirstMove() && offset == 16 && candidateTile.isEmpty() &&
-                    board.getTileAtCoordinate(candidatePosition - 8 * this.getAlliance().getDirection()).isEmpty()) {
-                legalMoves.add(new Move(this.getPosition(), candidatePosition, MoveType.DOUBLE_PAWN_ADVANCE));
+            } else if (isDoublePawnAdvanceable(piecePosition, board.getMoveMaker()) && offset == 16 && !board.isTileOccupied(candidatePosition) &&
+                    !board.isTileOccupied(candidatePosition - 8 * board.getMoveMaker().getDirection())) {
+                legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.DOUBLE_PAWN_ADVANCE));
             }
         }
 
         return legalMoves;
     }
 
-    @Override
-    public long generateLegalMovesBitBoard(Board board) {
+    public static long generateLegalMovesBitBoard(Board board, final int piecePosition) {
         long legalMovesBitboard = 0L;
 
         for (final int offset : MOVE_OFFSETS) {
-            final int directedOffset = offset * this.getAlliance().getDirection();
-            int candidatePosition = this.getPosition() + directedOffset;
+            final int directedOffset = offset * board.getMoveMaker().getDirection();
+            int candidatePosition = piecePosition + directedOffset;
 
             // skip invalid moves
-            if (isContinueCase(directedOffset, candidatePosition)) {
+            if (isContinueCase(directedOffset, candidatePosition, piecePosition, board.getMoveMaker())) {
                 continue;
             }
-
-            // get candidate tile
-            final Tile candidateTile = board.getTileAtCoordinate(candidatePosition);
 
             // attack move
             if (offset == 7 || offset == 9) {
                 // normal attack move or en passant attack move
-                if ((candidateTile.isOccupied() && candidateTile.getOccupyingPiece().getAlliance() != this.getAlliance()) ||
-                        (candidateTile.isEmpty() && isEnPassantMove(board, candidateTile, offset))) {
+                if ((board.isTileOccupied(candidatePosition) && board.getAllianceOfTile(candidatePosition) != board.getMoveMaker()) ||
+                        (!board.isTileOccupied(candidatePosition) && isEnPassantMove(board, candidatePosition, offset, piecePosition))) {
                     legalMovesBitboard |= 1L << candidatePosition;
                 }
                 // normal 1-tile move
-            } else if (offset == 8 && candidateTile.isEmpty()) {
+            } else if (offset == 8 && !board.isTileOccupied(candidatePosition)) {
                 legalMovesBitboard |= 1L << candidatePosition;
                 // normal 2-tile move
-            } else if (isFirstMove() && offset == 16 && candidateTile.isEmpty() &&
-                    board.getTileAtCoordinate(candidatePosition - 8 * this.getAlliance().getDirection()).isEmpty()) {
+            } else if (isDoublePawnAdvanceable(piecePosition, board.getMoveMaker()) && offset == 16 && !board.isTileOccupied(candidatePosition) &&
+                    !board.isTileOccupied(candidatePosition - 8 * board.getMoveMaker().getDirection())) {
                 legalMovesBitboard |= 1L << candidatePosition;
             }
         }
@@ -104,33 +95,36 @@ public class Pawn extends Piece {
         return legalMovesBitboard;
     }
 
-    private boolean isEnPassantMove(final Board board, final Tile candidateTile, final int offset) {
-        final int neighbourPosition = this.getPosition() + (offset == 7 ? -1 : 1) * this.getAlliance().getDirection();
-        final Tile neighbourTile = board.getTileAtCoordinate(neighbourPosition);
+    private static boolean isEnPassantMove(final Board board, final int candidatePosition, final int offset, final int piecePosition) {
+        final int neighbourPosition = piecePosition + (offset == 7 ? -1 : 1) * board.getMoveMaker().getDirection();
 
-        if (!neighbourTile.isOccupied()) {
+        if (!board.isTileOccupied(neighbourPosition)) {
             return false;
         }
 
-        final Piece neighbourPiece = neighbourTile.getOccupyingPiece();
-        return candidateTile.isEmpty() && neighbourPiece.getAlliance() != this.getAlliance() &&
-                neighbourPiece.getPosition() == board.getEnPassantPawnPosition();
+        return !board.isTileOccupied(candidatePosition) && board.getAllianceOfTile(neighbourPosition) != board.getMoveMaker() &&
+                neighbourPosition == board.getEnPassantPawnPosition();
+    }
+
+    private static boolean isContinueCase(final int offset, final int candidatePosition, final int piecePosition, final Alliance alliance) {
+        return !ChessUtils.isValidPosition(candidatePosition) ||
+                isFirstOrEighthColumnExclusion(piecePosition, offset) ||
+                Math.abs(offset) == 16 && !isDoublePawnAdvanceable(piecePosition, alliance);
+    }
+
+    private static boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
+        return ChessUtils.isPositionInColumn(currentPosition, 1) && (offset == 7 || offset == -9) ||
+                ChessUtils.isPositionInColumn(currentPosition, 8) && (offset == -7 || offset == 9);
+    }
+
+    private static boolean isDoublePawnAdvanceable(final int piecePosition, final Alliance alliance) {
+        return alliance.isWhite() && ChessUtils.isPositionInRow(piecePosition, 7) ||
+                alliance.isBlack() && ChessUtils.isPositionInRow(piecePosition, 2);
     }
 
     @Override
     public Pawn movePiece(final Alliance alliance, final int toTilePosition) {
         return new Pawn(toTilePosition, alliance, false);
-    }
-
-    private boolean isContinueCase(final int offset, final int candidatePosition) {
-        return !ChessUtils.isValidPosition(candidatePosition) ||
-                isFirstOrEighthColumnExclusion(this.getPosition(), offset) ||
-                Math.abs(offset) == 16 && !this.isFirstMove();
-    }
-
-    private boolean isFirstOrEighthColumnExclusion(final int currentPosition, final int offset) {
-        return ChessUtils.isPositionInColumn(currentPosition, 1) && (offset == 7 || offset == -9) ||
-                ChessUtils.isPositionInColumn(currentPosition, 8) && (offset == -7 || offset == 9);
     }
 
     @Override

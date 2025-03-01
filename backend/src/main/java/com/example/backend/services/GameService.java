@@ -1,14 +1,11 @@
 package com.example.backend.services;
 
-import com.example.backend.models.pieces.PieceType;
+import com.example.backend.models.pieces.*;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
-import com.example.backend.models.board.Tile;
 import com.example.backend.models.dtos.BoardStateDTO;
 import com.example.backend.models.moves.Move;
-import com.example.backend.models.pieces.Alliance;
-import com.example.backend.models.pieces.Piece;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -64,15 +61,25 @@ public class GameService {
         // validate the input position
         validator.validatePosition(position);
 
-        final Tile candidateTile = board.getTileAtCoordinate(position);
-        final List<Move> legalMoves;
+        List<Move> legalMoves;
 
-        if (candidateTile.isOccupied()) {
-            final Piece piece = candidateTile.getOccupyingPiece();
+        if (board.isTileOccupied(position)) {
+            final PieceType pieceTypeAtPosition = board.getPieceTypeOfTile(position);
+
             // get the legal moves that do not result in check
-            legalMoves = ChessUtils.filterMovesResultingInCheck(piece.generateLegalMovesList(board), board);
+            legalMoves = switch (pieceTypeAtPosition) {
+                case PAWN -> Pawn.generateLegalMovesList(board, position);
+                case KNIGHT -> Knight.generateLegalMovesList(board, position);
+                case BISHOP -> Bishop.generateLegalMovesList(board, position);
+                case ROOK -> Rook.generateLegalMovesList(board, position);
+                case QUEEN -> Queen.generateLegalMovesList(board, position);
+                case KING -> King.generateLegalMovesList(board, position);
+            };
+
+            legalMoves = ChessUtils.filterMovesResultingInCheck(legalMoves, board);
+
             // add the castle moves if the piece is a king
-            if (piece.getType() == PieceType.KING) {
+            if (pieceTypeAtPosition == PieceType.KING) {
                 legalMoves.addAll(CastleUtils.calculateCastleMoves(board, board.getMoveMaker()));
             }
         } else {
