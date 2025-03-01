@@ -114,7 +114,7 @@ public class Pawn extends Piece {
 
         final Piece neighbourPiece = neighbourTile.getOccupyingPiece();
         return candidateTile.isEmpty() && neighbourPiece.getAlliance() != this.getAlliance() &&
-                neighbourPiece.equals(board.getEnPassantPawn());
+                neighbourPiece.getPosition() == board.getEnPassantPawnPosition();
     }
 
     @Override

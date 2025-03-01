@@ -47,7 +47,7 @@ public class GameService {
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
-        boardStateDTO.setWinnerFlag(0);  // No winner initially
+        boardStateDTO.setWinnerFlag(0);
 
         return boardStateDTO;
     }

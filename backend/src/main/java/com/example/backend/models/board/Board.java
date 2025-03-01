@@ -5,7 +5,10 @@ import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.bitboards.PiecesBitBoards;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveHistoryEntry;
-import com.example.backend.models.pieces.*;
+import com.example.backend.models.pieces.Alliance;
+import com.example.backend.models.pieces.Pawn;
+import com.example.backend.models.pieces.Piece;
+import com.example.backend.models.pieces.Rook;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
 import lombok.Getter;
@@ -21,19 +24,14 @@ public class Board {
     private final Deque<MoveHistoryEntry> moveHistory = new ArrayDeque<>();
 
     private final List<Tile> tiles;
-
+    private final PiecesBitBoards piecesBitBoards;
     private List<Move> whiteLegalMoves;
     private List<Move> blackLegalMoves;
-
     // now only used for checking if the king is in check and castle moves
     private long whiteLegalMovesBitBoard;
     private long blackLegalMovesBitBoard;
-
-    private Pawn enPassantPawn;
+    private int enPassantPawnPosition;
     private Alliance moveMaker;
-
-    private final PiecesBitBoards piecesBitBoards;
-
     // castle capabilities used for fen string generation
     private boolean isBlackKingSideCastleCapable;
     private boolean isBlackQueenSideCastleCapable;
@@ -44,7 +42,7 @@ public class Board {
         this.tiles = this.createTiles(builder);
         this.moveMaker = builder.moveMaker;
 
-        this.enPassantPawn = builder.enPassantPawn;
+        this.enPassantPawnPosition = builder.enPassantPawnPosition;
 
         // initialize the BitBoards object
         this.piecesBitBoards = new PiecesBitBoards(builder.boardConfig);
@@ -130,7 +128,7 @@ public class Board {
         Piece capturedPiece = getTileAtCoordinate(toTileIndex).getOccupyingPiece();
 
         // create the move history entry
-        MoveHistoryEntry moveHistoryEntry = new MoveHistoryEntry(move, movingPiece, capturedPiece, movingPiece.isFirstMove());
+        MoveHistoryEntry moveHistoryEntry = new MoveHistoryEntry(move, movingPiece, capturedPiece, movingPiece.isFirstMove(), enPassantPawnPosition);
 
         // update the bitboard of the moving piece
         piecesBitBoards.updateMove(move, movingPiece);
@@ -157,12 +155,12 @@ public class Board {
 
         // handle enPassant move (remove captured enPassantPawn)
         if (move.getMoveType().isEnPassant()) {
-            tiles.set(enPassantPawn.getPosition(), Tile.getEmptyTileForPosition(enPassantPawn.getPosition()));
-            moveHistoryEntry.setCapturedPiece(enPassantPawn);
+            moveHistoryEntry.setCapturedPiece(tiles.get(enPassantPawnPosition).getOccupyingPiece());
+            tiles.set(enPassantPawnPosition, Tile.getEmptyTileForPosition(enPassantPawnPosition));
         }
 
-        // update enPassantPawn
-        enPassantPawn = move.getMoveType().isDoublePawnAdvance() ? (Pawn) movingPiece : null;
+        // update enPassantPawnPosition
+        enPassantPawnPosition = move.getMoveType().isDoublePawnAdvance() ? movingPiece.getPosition() : -1;
 
         // handle castle move (move rook and change its firstMove flag)
         if (move.getMoveType().isCastleMove()) {
@@ -228,14 +226,12 @@ public class Board {
         tiles.set(fromTileIndex, Tile.createTile(movingPiece, fromTileIndex));
         tiles.set(toTileIndex, Tile.getEmptyTileForPosition(toTileIndex));
 
-        // check the move before the current one to see if it was a move that set the enPassantPawn
-        if (!moveHistory.isEmpty() && moveHistory.peek().getMove().getMoveType().isDoublePawnAdvance()) {
-           enPassantPawn = (Pawn) moveHistory.peek().getMovingPiece();
-        }
+        // restore the previous enPassantPawnPosition
+        enPassantPawnPosition = moveHistoryEntry.getEnPassantPawnPosition();
 
         // handle enPassant move (put back the captured enPassantPawn)
         if (move.getMoveType().isEnPassant()) {
-            tiles.set(enPassantPawn.getPosition(), Tile.createTile(enPassantPawn, enPassantPawn.getPosition()));
+            tiles.set(enPassantPawnPosition, Tile.createTile(new Pawn(enPassantPawnPosition, moveMaker.getOpponent(), false), enPassantPawnPosition));
         } else {
             // put the captured piece back to its original position
             if (capturedPiece != null) {
@@ -344,7 +340,7 @@ public class Board {
     public static class Builder {
         private final Map<Integer, Piece> boardConfig;
         private Alliance moveMaker;
-        private Pawn enPassantPawn;
+        private int enPassantPawnPosition;
 
         public Builder() {
             this.boardConfig = new HashMap<>();
@@ -360,8 +356,8 @@ public class Board {
             return this;
         }
 
-        public Builder setEnPassantPawn(Pawn enPassantPawn) {
-            this.enPassantPawn = enPassantPawn;
+        public Builder setEnPassantPawnPosition(int enPassantPawnPosition) {
+            this.enPassantPawnPosition = enPassantPawnPosition;
             return this;
         }
 

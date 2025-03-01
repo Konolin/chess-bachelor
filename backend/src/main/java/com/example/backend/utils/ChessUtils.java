@@ -166,7 +166,7 @@ public class ChessUtils {
         long occupancyMask = piecesBitBoards.getAllPieces() & ~fromTileMask | toTileMask;
         // remove the enPassant pawn if the move is enPassant
         if (isEnPassant) {
-            final int enPassantPawnPosition = board.getEnPassantPawn().getPosition();
+            final int enPassantPawnPosition = board.getEnPassantPawnPosition();
             occupancyMask &= ~(1L << enPassantPawnPosition);
         }
 
@@ -213,7 +213,7 @@ public class ChessUtils {
         // add the attacks from pawns
         long pawnBitboard = piecesBitBoards.getPieceBitBoard(PieceType.PAWN, opponentAlliance);
         // update the bitmask if a pawn was captured
-        pawnBitboard &= isEnPassant ? ~(1L << board.getEnPassantPawn().getPosition()) : ~toTileMask;
+        pawnBitboard &= isEnPassant ? ~(1L << board.getEnPassantPawnPosition()) : ~toTileMask;
         // get the mask of all the attacks from the opponent's pawns
         pawnBitboard = BitBoardUtils.calculatePawnAttackingBitboard(pawnBitboard, opponentAlliance);
         allAttacksMask |= pawnBitboard;

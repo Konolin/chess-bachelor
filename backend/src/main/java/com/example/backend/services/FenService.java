@@ -96,7 +96,7 @@ public class FenService {
                     builder.setPieceAtPosition(new Pawn(i, Alliance.BLACK, ChessUtils.isPositionInRow(i, 2)));
                     if (!enPassantString.equals("-") &&
                             ChessUtils.getAlgebraicNotationAtCoordinate(i - 8).equals(enPassantString)) {
-                        builder.setEnPassantPawn(new Pawn(i, Alliance.BLACK, false));
+                        builder.setEnPassantPawnPosition(i);
                     }
                     i++;
                     break;
@@ -124,7 +124,7 @@ public class FenService {
                     builder.setPieceAtPosition(new Pawn(i, Alliance.WHITE, ChessUtils.isPositionInRow(i, 7)));
                     if (!enPassantString.equals("-") &&
                             ChessUtils.getAlgebraicNotationAtCoordinate(i + 8).equals(enPassantString)) {
-                        builder.setEnPassantPawn(new Pawn(i, Alliance.WHITE, false));
+                        builder.setEnPassantPawnPosition(i);
                     }
                     i++;
                     break;
@@ -242,11 +242,10 @@ public class FenService {
      * @return The en passant target square (e.g., "e3" or "-").
      */
     private static String calculateEnPassantText(final Board board) {
-        final Pawn enPassantPawn = board.getEnPassantPawn();
-        if (enPassantPawn != null) {
+        final int enPassantPawnPosition = board.getEnPassantPawnPosition();
+        if (enPassantPawnPosition != -1) {
             // the position behind the pawn
-            return ChessUtils.getAlgebraicNotationAtCoordinate(enPassantPawn.getPosition() +
-                    8 * enPassantPawn.getAlliance().getOppositeDirection());
+            return ChessUtils.getAlgebraicNotationAtCoordinate(enPassantPawnPosition);
         }
         return "-";
     }

@@ -17,6 +17,7 @@ public class MoveHistoryEntry {
     @Setter
     private Piece capturedPiece;
     private final boolean isFirstMove;
+    private final int enPassantPawnPosition;
 
     /**
      * Constructor for MoveHistoryEntry that initializes the move, moving piece, and captured piece.
@@ -30,11 +31,13 @@ public class MoveHistoryEntry {
             final Move move,
             final Piece movingPiece,
             final Piece capturedPiece,
-            final boolean isFirstMove) {
+            final boolean isFirstMove,
+            final int enPassantPawnPosition){
         this.move = move;
         this.movingPiece = movingPiece;
         this.capturedPiece = capturedPiece;
         this.isFirstMove = isFirstMove;
+        this.enPassantPawnPosition = enPassantPawnPosition;
     }
 
     @Override
