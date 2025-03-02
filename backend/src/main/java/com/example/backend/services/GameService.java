@@ -69,9 +69,10 @@ public class GameService {
             final PieceType pieceTypeAtPosition = board.getPieceTypeOfTile(position);
 
             // get the moves and filter the ones that result in the check of the current player
-            legalMoves = Piece.generateLegalMovesList(board, position, board.getMoveMaker(), pieceTypeAtPosition);
-            legalMoves = ChessUtils.filterMovesResultingInCheck(
-                    legalMoves, board.getPiecesBitBoards(), board.getEnPassantPawnPosition(), board.getMoveMaker().getOpponent());
+            legalMoves = Piece.generateLegalMovesList(board, position, board.getMoveMaker(),
+                    pieceTypeAtPosition, board.getAlliancesLegalMovesBitBoards(board.getMoveMaker()).get(position));
+            legalMoves = ChessUtils.filterMovesResultingInCheck(legalMoves, board.getPiecesBitBoards(),
+                    board.getEnPassantPawnPosition(), board.getMoveMaker().getOpponent());
 
             // add the castle moves if the piece is a king
             if (pieceTypeAtPosition == PieceType.KING) {

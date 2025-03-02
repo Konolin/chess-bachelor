@@ -23,11 +23,8 @@ public class Piece {
         this.type = type;
     }
 
-    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition, final Alliance alliance, final PieceType type) {
+    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition, final Alliance alliance, final PieceType type, long legalMovesBitBoard) {
         List<Move> legalMoves = new ArrayList<>();
-
-        // Generate the bitboard of all possible legal moves for this piece
-        long legalMovesBitBoard = generateLegalMovesBitBoard(board, piecePosition, alliance, type);
 
         // Get the bitboard of the opponent's pieces
         long opponentPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance.getOpponent());
