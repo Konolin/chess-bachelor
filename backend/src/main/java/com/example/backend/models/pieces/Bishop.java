@@ -22,7 +22,7 @@ public class Bishop extends Piece {
      * @param alliance The alliance (color) of the Bishop (White or Black).
      */
     public Bishop(final int position, final Alliance alliance) {
-        super(position, alliance, false, PieceType.BISHOP);
+        super(position, alliance, PieceType.BISHOP);
     }
 
     /**
@@ -70,18 +70,6 @@ public class Bishop extends Piece {
         // filter out the squares occupied by friendly pieces
         long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance);
         return allMovesBitBoard & ~friendlyPiecesBitBoard;
-    }
-
-    /**
-     * Moves the Bishop to a new position on the board.
-     *
-     * @param alliance       The alliance (color) of the Bishop (White or Black).
-     * @param toTilePosition The new position to which the Bishop is moved.
-     * @return A new Bishop instance at the specified position with the same alliance.
-     */
-    @Override
-    public Bishop movePiece(final Alliance alliance, final int toTilePosition) {
-        return new Bishop(toTilePosition, alliance);
     }
 
     /**

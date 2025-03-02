@@ -73,7 +73,7 @@ public class FenService {
         while (i < boardTiles.length) {
             switch (boardTiles[i]) {
                 case 'r':
-                    builder.setPieceAtPosition(new Rook(i, Alliance.BLACK, false));
+                    builder.setPieceAtPosition(new Rook(i, Alliance.BLACK));
                     i++;
                     break;
                 case 'n':
@@ -89,11 +89,11 @@ public class FenService {
                     i++;
                     break;
                 case 'k':
-                    builder.setPieceAtPosition(new King(i, Alliance.BLACK, false));
+                    builder.setPieceAtPosition(new King(i, Alliance.BLACK));
                     i++;
                     break;
                 case 'p':
-                    builder.setPieceAtPosition(new Pawn(i, Alliance.BLACK, ChessUtils.isPositionInRow(i, 2)));
+                    builder.setPieceAtPosition(new Pawn(i, Alliance.BLACK));
                     if (!enPassantString.equals("-") &&
                             ChessUtils.getAlgebraicNotationAtCoordinate(i - 8).equals(enPassantString)) {
                         builder.setEnPassantPawnPosition(i);
@@ -101,7 +101,7 @@ public class FenService {
                     i++;
                     break;
                 case 'R':
-                    builder.setPieceAtPosition(new Rook(i, Alliance.WHITE, false));
+                    builder.setPieceAtPosition(new Rook(i, Alliance.WHITE));
                     i++;
                     break;
                 case 'N':
@@ -117,11 +117,11 @@ public class FenService {
                     i++;
                     break;
                 case 'K':
-                    builder.setPieceAtPosition(new King(i, Alliance.WHITE, false));
+                    builder.setPieceAtPosition(new King(i, Alliance.WHITE));
                     i++;
                     break;
                 case 'P':
-                    builder.setPieceAtPosition(new Pawn(i, Alliance.WHITE, ChessUtils.isPositionInRow(i, 7)));
+                    builder.setPieceAtPosition(new Pawn(i, Alliance.WHITE));
                     if (!enPassantString.equals("-") &&
                             ChessUtils.getAlgebraicNotationAtCoordinate(i + 8).equals(enPassantString)) {
                         builder.setEnPassantPawnPosition(i);

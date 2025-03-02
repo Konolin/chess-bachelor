@@ -46,25 +46,6 @@ public class ChessUtils {
     }
 
     /**
-     * Creates a chess piece based on its type, alliance, and position.
-     *
-     * @param type     the type of the piece
-     * @param alliance the alliance (white or black) of the piece
-     * @param position the position of the piece on the board
-     * @return the corresponding {@link Piece} object
-     */
-    public static Piece createPieceFromTypePositionAlliace(final PieceType type, final Alliance alliance, final int position) {
-        return switch (type) {
-            case QUEEN -> new Queen(position, alliance);
-            case ROOK -> new Rook(position, alliance, false);
-            case KNIGHT -> new Knight(position, alliance);
-            case BISHOP -> new Bishop(position, alliance);
-            case PAWN -> new Pawn(position, alliance, false);
-            case KING -> new King(position, alliance, false);
-        };
-    }
-
-    /**
      * Initializes a boolean array representing a specific column on the chessboard.
      *
      * @param columnNumber the index of the column (0-based)

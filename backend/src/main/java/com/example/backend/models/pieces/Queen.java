@@ -21,7 +21,7 @@ public class Queen extends Piece {
      * @param alliance The alliance (color) of the Queen (White or Black).
      */
     public Queen(final int position, final Alliance alliance) {
-        super(position, alliance, false, PieceType.QUEEN);
+        super(position, alliance, PieceType.QUEEN);
     }
 
     /**
@@ -70,18 +70,6 @@ public class Queen extends Piece {
         // filter out the moves that are blocked by friendly pieces
         long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance);
         return allMovesBitBoard & ~friendlyPiecesBitBoard;
-    }
-
-    /**
-     * Moves the Queen to a new position on the board.
-     *
-     * @param alliance       The alliance (color) of the Queen (White or Black).
-     * @param toTilePosition The new position to which the Queen is moved.
-     * @return A new Queen instance at the specified position with the same alliance.
-     */
-    @Override
-    public Queen movePiece(final Alliance alliance, final int toTilePosition) {
-        return new Queen(toTilePosition, alliance);
     }
 
     /**

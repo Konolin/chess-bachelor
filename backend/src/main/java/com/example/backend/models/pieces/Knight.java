@@ -21,7 +21,7 @@ public class Knight extends Piece {
      * @param alliance The alliance (color) of the Knight (White or Black).
      */
     public Knight(final int position, final Alliance alliance) {
-        super(position, alliance, false, PieceType.KNIGHT);
+        super(position, alliance, PieceType.KNIGHT);
     }
 
     /**
@@ -66,18 +66,6 @@ public class Knight extends Piece {
         // filter out squares occupied by friendly pieces
         long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance);
         return legalMovesBitboard & ~friendlyPiecesBitBoard;
-    }
-
-    /**
-     * Moves the Knight to a new position on the board.
-     *
-     * @param alliance The alliance (color) of the Knight (White or Black).
-     * @param toTilePosition The new position to which the Knight is moved.
-     * @return A new Knight instance at the specified position with the same alliance.
-     */
-    @Override
-    public Knight movePiece(final Alliance alliance, final int toTilePosition) {
-        return new Knight(toTilePosition, alliance);
     }
 
     /**

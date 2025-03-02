@@ -20,21 +20,17 @@ public abstract class Piece {
     private final PieceType type;
     @Setter
     private int position;
-    @Setter
-    private boolean isFirstMove;
 
     /**
      * Constructs a Piece with the given position, alliance, first move status, and type.
      *
      * @param position    The position of the piece on the board.
      * @param alliance    The alliance (color) of the piece.
-     * @param isFirstMove Whether this is the piece's first move.
      * @param type        The type of the piece.
      */
-    protected Piece(final int position, final Alliance alliance, final boolean isFirstMove, final PieceType type) {
+    protected Piece(final int position, final Alliance alliance, final PieceType type) {
         this.position = position;
         this.alliance = alliance;
-        this.isFirstMove = isFirstMove;
         this.type = type;
         this.cachedHashCode = computeHashCode();
     }
@@ -76,8 +72,7 @@ public abstract class Piece {
         }
 
         return position == otherPiece.getPosition() &&
-                alliance == otherPiece.getAlliance() &&
-                isFirstMove == otherPiece.isFirstMove();
+                alliance == otherPiece.getAlliance();
     }
 
     /**
@@ -100,16 +95,6 @@ public abstract class Piece {
         final int prime = 31;
         int result = alliance.hashCode();
         result = prime * result + position;
-        result = prime * result + (isFirstMove ? 1 : 0);
         return result;
     }
-
-    /**
-     * Moves the piece to a new position on the board.
-     *
-     * @param alliance       The alliance (color) of the piece.
-     * @param toTilePosition The new position to which the piece is moved.
-     * @return A new instance of the piece at the specified position.
-     */
-    public abstract Piece movePiece(final Alliance alliance, final int toTilePosition);
 }

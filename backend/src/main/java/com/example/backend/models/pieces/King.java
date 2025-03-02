@@ -19,10 +19,9 @@ public class King extends Piece {
      *
      * @param position The current position of the King on the board.
      * @param alliance The alliance (color) of the King (White or Black).
-     * @param isFirstMove Indicates whether this is the King's first move.
      */
-    public King(final int position, final Alliance alliance, final boolean isFirstMove) {
-        super(position, alliance, isFirstMove, PieceType.KING);
+    public King(final int position, final Alliance alliance) {
+        super(position, alliance, PieceType.KING);
     }
 
     /**
@@ -68,18 +67,6 @@ public class King extends Piece {
         // filter out moves that are blocked by friendly pieces
         long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance);
         return legalMovesBitboard & ~friendlyPiecesBitBoard;
-    }
-
-    /**
-     * Moves the King to a new position on the board.
-     *
-     * @param alliance The alliance (color) of the King (White or Black).
-     * @param toTilePosition The new position to which the King is moved.
-     * @return A new King instance at the specified position with the same alliance and updated first move status.
-     */
-    @Override
-    public King movePiece(final Alliance alliance, final int toTilePosition) {
-        return new King(toTilePosition, alliance, false);
     }
 
     /**

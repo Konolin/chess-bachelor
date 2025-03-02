@@ -11,8 +11,8 @@ import java.util.List;
 public class Pawn extends Piece {
     private static final int[] MOVE_OFFSETS = {7, 8, 9, 16};
 
-    public Pawn(final int position, final Alliance alliance, final boolean isFirstMove) {
-        super(position, alliance, isFirstMove, PieceType.PAWN);
+    public Pawn(final int position, final Alliance alliance) {
+        super(position, alliance, PieceType.PAWN);
     }
 
     public static List<Move> generateLegalMovesList(final Board board, final int piecePosition, final Alliance alliance) {
@@ -120,11 +120,6 @@ public class Pawn extends Piece {
     private static boolean isDoublePawnAdvanceable(final int piecePosition, final Alliance alliance) {
         return alliance.isWhite() && ChessUtils.isPositionInRow(piecePosition, 7) ||
                 alliance.isBlack() && ChessUtils.isPositionInRow(piecePosition, 2);
-    }
-
-    @Override
-    public Pawn movePiece(final Alliance alliance, final int toTilePosition) {
-        return new Pawn(toTilePosition, alliance, false);
     }
 
     @Override
