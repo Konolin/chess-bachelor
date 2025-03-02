@@ -121,9 +121,4 @@ public class Pawn extends Piece {
         return alliance.isWhite() && ChessUtils.isPositionInRow(piecePosition, 7) ||
                 alliance.isBlack() && ChessUtils.isPositionInRow(piecePosition, 2);
     }
-
-    @Override
-    public String toString() {
-        return this.getAlliance().isWhite() ? "P" : "p";
-    }
 }
