@@ -66,16 +66,8 @@ public class GameService {
         if (board.isTileOccupied(position)) {
             final PieceType pieceTypeAtPosition = board.getPieceTypeOfTile(position);
 
-            // get the legal moves that do not result in check
-            legalMoves = switch (pieceTypeAtPosition) {
-                case PAWN -> Pawn.generateLegalMovesList(board, position, board.getMoveMaker());
-                case KNIGHT -> Knight.generateLegalMovesList(board, position, board.getMoveMaker());
-                case BISHOP -> Bishop.generateLegalMovesList(board, position, board.getMoveMaker());
-                case ROOK -> Rook.generateLegalMovesList(board, position, board.getMoveMaker());
-                case QUEEN -> Queen.generateLegalMovesList(board, position, board.getMoveMaker());
-                case KING -> King.generateLegalMovesList(board, position, board.getMoveMaker());
-            };
-
+            // get the moves and filter the ones that result in the check of the current player
+            legalMoves = Piece.generateLegalMovesList(board, position, board.getMoveMaker(), pieceTypeAtPosition);
             legalMoves = ChessUtils.filterMovesResultingInCheck(legalMoves, board);
 
             // add the castle moves if the piece is a king

@@ -6,7 +6,8 @@ import com.example.backend.models.bitboards.MagicBitBoards;
 import com.example.backend.models.bitboards.PiecesBitBoards;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.Move;
-import com.example.backend.models.pieces.*;
+import com.example.backend.models.pieces.Alliance;
+import com.example.backend.models.pieces.PieceType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -243,6 +244,27 @@ public class ChessUtils {
             case 1 -> IS_FIRST_COLUMN[position];
             case 8 -> IS_EIGHTH_COLUMN[position];
             default -> false;
+        };
+    }
+
+    /**
+     * Check if a position is on the starting rank (7th rank for White, 2nd for Black),
+     * which is needed for a double pawn push.
+     */
+    public static boolean isOnStartingRank(int position, Alliance alliance) {
+        return alliance.isWhite() && ChessUtils.isPositionInRow(position, 7)
+                || alliance.isBlack() && ChessUtils.isPositionInRow(position, 2);
+    }
+
+    public static PieceType getPieceTypeByIndex(final int index) {
+        return switch (index) {
+            case 0 -> PieceType.PAWN;
+            case 1 -> PieceType.KNIGHT;
+            case 2 -> PieceType.BISHOP;
+            case 3 -> PieceType.ROOK;
+            case 4 -> PieceType.QUEEN;
+            case 5 -> PieceType.KING;
+            default -> throw new ChessException("Invalid piece type", ChessExceptionCodes.INVALID_PIECE_TYPE);
         };
     }
 }
