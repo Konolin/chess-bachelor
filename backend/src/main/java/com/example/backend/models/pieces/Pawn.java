@@ -15,23 +15,23 @@ public class Pawn extends Piece {
         super(position, alliance, isFirstMove, PieceType.PAWN);
     }
 
-    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition) {
+    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition, final Alliance alliance) {
         List<Move> legalMoves = new ArrayList<>();
 
         for (final int offset : MOVE_OFFSETS) {
-            final int directedOffset = offset * board.getMoveMaker().getDirection();
+            final int directedOffset = offset * alliance.getDirection();
             int candidatePosition = piecePosition + directedOffset;
 
             // skip invalid moves
-            if (isContinueCase(directedOffset, candidatePosition, piecePosition, board.getMoveMaker())) {
+            if (isContinueCase(directedOffset, candidatePosition, piecePosition, alliance)) {
                 continue;
             }
 
             // attack move
             if (offset == 7 || offset == 9) {
                 // normal attack move
-                if (board.isTileOccupied(candidatePosition) && board.getAllianceOfTile(candidatePosition) != board.getMoveMaker()) {
-                    if (board.getMoveMaker().isPromotionSquare(candidatePosition)) {
+                if (board.isTileOccupied(candidatePosition) && board.getAllianceOfTile(candidatePosition) != alliance) {
+                    if (alliance.isPromotionSquare(candidatePosition)) {
                         // promote and attack
                         for (PieceType promotableType : PieceType.PROMOTABLE_TYPES) {
                             legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.PROMOTION_ATTACK, promotableType));
@@ -40,12 +40,12 @@ public class Pawn extends Piece {
                         legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.ATTACK));
                     }
                     // en passant attack move
-                } else if (!board.isTileOccupied(candidatePosition) && isEnPassantMove(board, candidatePosition, offset, piecePosition)) {
+                } else if (!board.isTileOccupied(candidatePosition) && isEnPassantMove(board, candidatePosition, offset, piecePosition, alliance)) {
                     legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.EN_PASSANT));
                 }
                 // normal 1 tile move
             } else if (offset == 8 && !board.isTileOccupied(candidatePosition)) {
-                if (board.getMoveMaker().isPromotionSquare(candidatePosition)) {
+                if (alliance.isPromotionSquare(candidatePosition)) {
                     // promote
                     for (PieceType promotableType : PieceType.PROMOTABLE_TYPES) {
                         legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.PROMOTION_ATTACK, promotableType));
@@ -54,8 +54,8 @@ public class Pawn extends Piece {
                     legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.NORMAL));
                 }
                 // normal 2 tile move
-            } else if (isDoublePawnAdvanceable(piecePosition, board.getMoveMaker()) && offset == 16 && !board.isTileOccupied(candidatePosition) &&
-                    !board.isTileOccupied(candidatePosition - 8 * board.getMoveMaker().getDirection())) {
+            } else if (isDoublePawnAdvanceable(piecePosition, alliance) && offset == 16 && !board.isTileOccupied(candidatePosition) &&
+                    !board.isTileOccupied(candidatePosition - 8 * alliance.getDirection())) {
                 legalMoves.add(new Move(piecePosition, candidatePosition, MoveType.DOUBLE_PAWN_ADVANCE));
             }
         }
@@ -63,31 +63,31 @@ public class Pawn extends Piece {
         return legalMoves;
     }
 
-    public static long generateLegalMovesBitBoard(Board board, final int piecePosition) {
+    public static long generateLegalMovesBitBoard(Board board, final int piecePosition, final Alliance alliance) {
         long legalMovesBitboard = 0L;
 
         for (final int offset : MOVE_OFFSETS) {
-            final int directedOffset = offset * board.getMoveMaker().getDirection();
+            final int directedOffset = offset * alliance.getDirection();
             int candidatePosition = piecePosition + directedOffset;
 
             // skip invalid moves
-            if (isContinueCase(directedOffset, candidatePosition, piecePosition, board.getMoveMaker())) {
+            if (isContinueCase(directedOffset, candidatePosition, piecePosition, alliance)) {
                 continue;
             }
 
             // attack move
             if (offset == 7 || offset == 9) {
                 // normal attack move or en passant attack move
-                if ((board.isTileOccupied(candidatePosition) && board.getAllianceOfTile(candidatePosition) != board.getMoveMaker()) ||
-                        (!board.isTileOccupied(candidatePosition) && isEnPassantMove(board, candidatePosition, offset, piecePosition))) {
+                if ((board.isTileOccupied(candidatePosition) && board.getAllianceOfTile(candidatePosition) != alliance) ||
+                        (!board.isTileOccupied(candidatePosition) && isEnPassantMove(board, candidatePosition, offset, piecePosition, alliance))) {
                     legalMovesBitboard |= 1L << candidatePosition;
                 }
                 // normal 1-tile move
             } else if (offset == 8 && !board.isTileOccupied(candidatePosition)) {
                 legalMovesBitboard |= 1L << candidatePosition;
                 // normal 2-tile move
-            } else if (isDoublePawnAdvanceable(piecePosition, board.getMoveMaker()) && offset == 16 && !board.isTileOccupied(candidatePosition) &&
-                    !board.isTileOccupied(candidatePosition - 8 * board.getMoveMaker().getDirection())) {
+            } else if (isDoublePawnAdvanceable(piecePosition, alliance) && offset == 16 && !board.isTileOccupied(candidatePosition) &&
+                    !board.isTileOccupied(candidatePosition - 8 * alliance.getDirection())) {
                 legalMovesBitboard |= 1L << candidatePosition;
             }
         }
@@ -95,14 +95,14 @@ public class Pawn extends Piece {
         return legalMovesBitboard;
     }
 
-    private static boolean isEnPassantMove(final Board board, final int candidatePosition, final int offset, final int piecePosition) {
-        final int neighbourPosition = piecePosition + (offset == 7 ? -1 : 1) * board.getMoveMaker().getDirection();
+    private static boolean isEnPassantMove(final Board board, final int candidatePosition, final int offset, final int piecePosition, final Alliance alliance) {
+        final int neighbourPosition = piecePosition + (offset == 7 ? -1 : 1) * alliance.getDirection();
 
         if (!board.isTileOccupied(neighbourPosition)) {
             return false;
         }
 
-        return !board.isTileOccupied(candidatePosition) && board.getAllianceOfTile(neighbourPosition) != board.getMoveMaker() &&
+        return !board.isTileOccupied(candidatePosition) && board.getAllianceOfTile(neighbourPosition) != alliance &&
                 neighbourPosition == board.getEnPassantPawnPosition();
     }
 

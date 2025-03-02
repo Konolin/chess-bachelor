@@ -40,7 +40,8 @@ public class GameService {
      * @return A BoardStateDTO containing the initial board setup in FEN format and winner flag.
      */
     public BoardStateDTO initializeBoardState() {
-        board = FenService.createGameFromFEN(ChessUtils.STARTING_FEN);
+//        board = FenService.createGameFromFEN(ChessUtils.STARTING_FEN);
+        board = FenService.createGameFromFEN("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -");
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
@@ -68,12 +69,12 @@ public class GameService {
 
             // get the legal moves that do not result in check
             legalMoves = switch (pieceTypeAtPosition) {
-                case PAWN -> Pawn.generateLegalMovesList(board, position);
-                case KNIGHT -> Knight.generateLegalMovesList(board, position);
-                case BISHOP -> Bishop.generateLegalMovesList(board, position);
-                case ROOK -> Rook.generateLegalMovesList(board, position);
-                case QUEEN -> Queen.generateLegalMovesList(board, position);
-                case KING -> King.generateLegalMovesList(board, position);
+                case PAWN -> Pawn.generateLegalMovesList(board, position, board.getMoveMaker());
+                case KNIGHT -> Knight.generateLegalMovesList(board, position, board.getMoveMaker());
+                case BISHOP -> Bishop.generateLegalMovesList(board, position, board.getMoveMaker());
+                case ROOK -> Rook.generateLegalMovesList(board, position, board.getMoveMaker());
+                case QUEEN -> Queen.generateLegalMovesList(board, position, board.getMoveMaker());
+                case KING -> King.generateLegalMovesList(board, position, board.getMoveMaker());
             };
 
             legalMoves = ChessUtils.filterMovesResultingInCheck(legalMoves, board);

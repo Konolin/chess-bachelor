@@ -33,14 +33,14 @@ public class Bishop extends Piece {
      * @param piecePosition The position of the piece whose moves we are generating.
      * @return A list of legal moves available for this piece.
      */
-    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition) {
+    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition, final Alliance alliance) {
         List<Move> legalMoves = new ArrayList<>();
 
         // Generate the bitboard of all possible legal moves for this piece
-        long legalMovesBitBoard = generateLegalMovesBitBoard(board, piecePosition);
+        long legalMovesBitBoard = generateLegalMovesBitBoard(board, piecePosition, alliance);
 
         // Get the bitboard of the opponent's pieces
-        long opponentPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(board.getMoveMaker().getOpponent());
+        long opponentPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance.getOpponent());
 
         // Separate the attack moves (moves to opponent pieces) and normal moves (empty squares)
         long attackMoves = legalMovesBitBoard & opponentPiecesBitBoard;
@@ -62,13 +62,13 @@ public class Bishop extends Piece {
      * @param piecePosition The current position of the Bishop on the board.
      * @return A bitboard representing the legal move positions for the Bishop.
      */
-    public static long generateLegalMovesBitBoard(final Board board, final int piecePosition) {
+    public static long generateLegalMovesBitBoard(final Board board, final int piecePosition, final Alliance alliance) {
         // get the occupancy bitboard for all pieces on the board
         long occupancyBitBoard = board.getPiecesBitBoards().getAllPieces();
         // get the bitboard of all possible attacks for this position and occupancy
         long allMovesBitBoard = MagicBitBoards.getBishopAttacks(piecePosition, occupancyBitBoard);
         // filter out the squares occupied by friendly pieces
-        long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(board.getMoveMaker());
+        long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance);
         return allMovesBitBoard & ~friendlyPiecesBitBoard;
     }
 

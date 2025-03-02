@@ -173,7 +173,11 @@ public class PiecesBitBoards {
 
         // 3) If something was captured (including en passant), restore it
         if (captured != null) {
-            addPieceToBitBoard(captured, moveMaker.getOpponent(), toTileIndex);
+            if (move.getMoveType().isEnPassant()) {
+                addPieceToBitBoard(captured, moveMaker.getOpponent(), toTileIndex - 8 * moveMaker.getDirection());
+            } else {
+                addPieceToBitBoard(captured, moveMaker.getOpponent(), toTileIndex);
+            }
         }
 
         // 4) Recalculate whitePieces / blackPieces, then allPieces

@@ -1,8 +1,5 @@
 package com.example.backend.models.pieces;
 
-import com.example.backend.exceptions.ChessException;
-import com.example.backend.exceptions.ChessExceptionCodes;
-import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveType;
 import lombok.Getter;
@@ -40,45 +37,6 @@ public abstract class Piece {
         this.isFirstMove = isFirstMove;
         this.type = type;
         this.cachedHashCode = computeHashCode();
-    }
-
-    /**
-     * Generates a list of legal moves for the piece based on the current board state.
-     * It calculates both normal moves and attack moves (moves to capture opponent pieces).
-     *
-     * @param board         The current state of the chess board.
-     * @param piecePosition The position of the piece whose moves we are generating.
-     * @return A list of legal moves available for this piece.
-     */
-    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition) {
-        List<Move> legalMoves = new ArrayList<>();
-
-        // Generate the bitboard of all possible legal moves for this piece
-        long legalMovesBitBoard = generateLegalMovesBitBoard(board, piecePosition);
-
-        // Get the bitboard of the opponent's pieces
-        long opponentPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(board.getMoveMaker().getOpponent());
-
-        // Separate the attack moves (moves to opponent pieces) and normal moves (empty squares)
-        long attackMoves = legalMovesBitBoard & opponentPiecesBitBoard;
-        long normalMoves = legalMovesBitBoard & ~opponentPiecesBitBoard;
-
-        // Convert the bitboards to Move objects and add them to the legal moves list
-        legalMoves.addAll(bitBoardToMoveList(normalMoves, MoveType.NORMAL, piecePosition));
-        legalMoves.addAll(bitBoardToMoveList(attackMoves, MoveType.ATTACK, piecePosition));
-
-        return legalMoves;
-    }
-
-    /**
-     * Abstract method for generating a bitboard of legal moves for the piece.
-     * The actual implementation is provided by subclasses representing specific pieces.
-     *
-     * @param board The current state of the chess board.
-     * @return A bitboard representing the legal move positions for the piece.
-     */
-    public static long generateLegalMovesBitBoard(final Board board, final int piecePosition){
-        throw new ChessException("This method should be overridden by subclasses", ChessExceptionCodes.ILLEGAL_STATE);
     }
 
     /**

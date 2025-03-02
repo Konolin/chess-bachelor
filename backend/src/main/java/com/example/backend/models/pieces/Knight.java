@@ -32,14 +32,14 @@ public class Knight extends Piece {
      * @param piecePosition The position of the piece whose moves we are generating.
      * @return A list of legal moves available for this piece.
      */
-    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition) {
+    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition, final Alliance alliance) {
         List<Move> legalMoves = new ArrayList<>();
 
         // Generate the bitboard of all possible legal moves for this piece
-        long legalMovesBitBoard = generateLegalMovesBitBoard(board, piecePosition);
+        long legalMovesBitBoard = generateLegalMovesBitBoard(board, piecePosition, alliance);
 
         // Get the bitboard of the opponent's pieces
-        long opponentPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(board.getMoveMaker().getOpponent());
+        long opponentPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance.getOpponent());
 
         // Separate the attack moves (moves to opponent pieces) and normal moves (empty squares)
         long attackMoves = legalMovesBitBoard & opponentPiecesBitBoard;
@@ -60,11 +60,11 @@ public class Knight extends Piece {
      * @param board The current state of the chess board.
      * @return A bitboard representing the legal move positions for the Knight.
      */
-    public static long generateLegalMovesBitBoard(final Board board, final int piecePosition) {
+    public static long generateLegalMovesBitBoard(final Board board, final int piecePosition, final Alliance alliance) {
         // get the attack mask for the Knight based on its current position
         long legalMovesBitboard = BitBoardUtils.getKnightAttackMask(piecePosition);
         // filter out squares occupied by friendly pieces
-        long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(board.getMoveMaker());
+        long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance);
         return legalMovesBitboard & ~friendlyPiecesBitBoard;
     }
 
