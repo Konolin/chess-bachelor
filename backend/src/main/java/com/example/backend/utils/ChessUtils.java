@@ -4,7 +4,6 @@ import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.bitboards.MagicBitBoards;
 import com.example.backend.models.bitboards.PiecesBitBoards;
-import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.PieceType;
@@ -105,11 +104,16 @@ public class ChessUtils {
     /**
      * Filters a list of moves to exclude those that leave the player's king in check.
      *
-     * @param allMoves the list of all possible moves
-     * @param board    the current state of the board
+     * @param allMoves          the list of all possible moves
+     * @param piecesBitBoards   the bitboards of all pieces on the board
+     * @param enPassantPosition the position of the en passant pawn, or -1 if not applicable
+     * @param opponentsAlliance the alliance of the opponent
      * @return a list of valid moves that do not result in check
      */
-    public static List<Move> filterMovesResultingInCheck(final List<Move> allMoves, final Board board) {
+    public static List<Move> filterMovesResultingInCheck(final List<Move> allMoves,
+                                                         final PiecesBitBoards piecesBitBoards,
+                                                         final int enPassantPosition,
+                                                         final Alliance opponentsAlliance) {
         final List<Move> validMoves = new ArrayList<>();
 
         for (final Move move : allMoves) {
@@ -118,7 +122,8 @@ public class ChessUtils {
             long toTileMask = 1L << move.getToTileIndex();
 
             // check if the move leaves the opponent's king in check
-            if (!isSquareAttacked(board, fromTileMask, toTileMask, move.getMoveType().isEnPassant())) {
+            if (!isSquareAttacked(piecesBitBoards, fromTileMask, toTileMask, enPassantPosition,
+                    opponentsAlliance, move.getMoveType().isEnPassant())) {
                 validMoves.add(move);
             }
         }
@@ -129,27 +134,28 @@ public class ChessUtils {
     /**
      * Determines if a square is attacked by any opponent piece.
      *
-     * @param board        the current board state
-     * @param fromTileMask the bitmask of the tile where the piece is moving from
-     * @param toTileMask   the bitmask of the tile where the piece is moving to
-     * @param isEnPassant  {@code true} if the move is an en passant capture, {@code false} otherwise
+     * @param piecesBitBoards   the bitboards of all pieces on the board
+     * @param fromTileMask      the mask of the tile the piece is moving from
+     * @param toTileMask        the mask of the tile the piece is moving to
+     * @param enPassantPosition the position of the en passant pawn, or -1 if not applicable
+     * @param opponentAlliance  the alliance of the opponent
+     * @param isEnPassant       {@code true} if the move is an en passant capture, {@code false} otherwise
      * @return {@code true} if the square is attacked, {@code false} otherwise
      */
     private static boolean isSquareAttacked(
-            final Board board,
+            final PiecesBitBoards piecesBitBoards,
             final long fromTileMask,
             final long toTileMask,
+            final int enPassantPosition,
+            final Alliance opponentAlliance,
             final boolean isEnPassant) {
-        final PiecesBitBoards piecesBitBoards = board.getPiecesBitBoards();
-        final Alliance opponentAlliance = board.getMoveMaker().getOpponent();
         // get the mask of all the attacks from the opponent
         long allAttacksMask = 0L;
         // get the occupancy mask for the current move
         long occupancyMask = piecesBitBoards.getAllPieces() & ~fromTileMask | toTileMask;
         // remove the enPassant pawn if the move is enPassant
         if (isEnPassant) {
-            final int enPassantPawnPosition = board.getEnPassantPawnPosition();
-            occupancyMask &= ~(1L << enPassantPawnPosition);
+            occupancyMask &= ~(1L << enPassantPosition);
         }
 
         // add the attacks from knights
@@ -195,7 +201,7 @@ public class ChessUtils {
         // add the attacks from pawns
         long pawnBitboard = piecesBitBoards.getPieceBitBoard(PieceType.PAWN, opponentAlliance);
         // update the bitmask if a pawn was captured
-        pawnBitboard &= isEnPassant ? ~(1L << board.getEnPassantPawnPosition()) : ~toTileMask;
+        pawnBitboard &= isEnPassant ? ~(1L << enPassantPosition) : ~toTileMask;
         // get the mask of all the attacks from the opponent's pawns
         pawnBitboard = BitBoardUtils.calculatePawnAttackingBitboard(pawnBitboard, opponentAlliance);
         allAttacksMask |= pawnBitboard;
@@ -206,7 +212,7 @@ public class ChessUtils {
         allAttacksMask |= BitBoardUtils.getKingAttackMask(kingPosition);
 
         // get the bitboard of friendly king
-        long friendlyKingBitboard = piecesBitBoards.getPieceBitBoard(PieceType.KING, board.getMoveMaker());
+        long friendlyKingBitboard = piecesBitBoards.getPieceBitBoard(PieceType.KING, opponentAlliance.getOpponent());
         // update the bitmask if the king made the move
         if ((friendlyKingBitboard & ~fromTileMask) == 0L) {
             friendlyKingBitboard = toTileMask;

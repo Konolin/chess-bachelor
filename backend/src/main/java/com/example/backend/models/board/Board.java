@@ -5,7 +5,9 @@ import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.bitboards.PiecesBitBoards;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveHistoryEntry;
-import com.example.backend.models.pieces.*;
+import com.example.backend.models.pieces.Alliance;
+import com.example.backend.models.pieces.Piece;
+import com.example.backend.models.pieces.PieceType;
 import com.example.backend.utils.BitBoardUtils;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
@@ -63,7 +65,7 @@ public class Board {
             PieceType type = ChessUtils.getPieceTypeByIndex(i);
             long allianceBitBoard = alliancePiecesBitBoards[i];
 
-            while(allianceBitBoard != 0) {
+            while (allianceBitBoard != 0) {
                 // isolate the lowest set bit
                 long lsb = Long.lowestOneBit(allianceBitBoard);
                 final int piecePosition = Long.numberOfTrailingZeros(allianceBitBoard);
@@ -84,7 +86,7 @@ public class Board {
             PieceType type = ChessUtils.getPieceTypeByIndex(i);
             long allianceBitBoard = alliancePiecesBitBoards[i];
 
-            while(allianceBitBoard != 0) {
+            while (allianceBitBoard != 0) {
                 // isolate the lowest set bit
                 long lsb = Long.lowestOneBit(allianceBitBoard);
                 final int piecePosition = Long.numberOfTrailingZeros(allianceBitBoard);
@@ -313,8 +315,10 @@ public class Board {
 
     public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
         return alliance.isWhite()
-                ? ChessUtils.filterMovesResultingInCheck(whiteLegalMoves, this)
-                : ChessUtils.filterMovesResultingInCheck(blackLegalMoves, this);
+                ? ChessUtils.filterMovesResultingInCheck(
+                whiteLegalMoves, piecesBitBoards, enPassantPawnPosition, moveMaker.getOpponent())
+                : ChessUtils.filterMovesResultingInCheck(
+                blackLegalMoves, piecesBitBoards, enPassantPawnPosition, moveMaker.getOpponent());
     }
 
     public long getAlliancesLegalMovesBitBoard(final Alliance alliance) {
