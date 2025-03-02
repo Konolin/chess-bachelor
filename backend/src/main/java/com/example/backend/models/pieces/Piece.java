@@ -16,7 +16,6 @@ import java.util.List;
 @Getter
 public abstract class Piece {
     private final Alliance alliance;
-    private final int cachedHashCode;
     private final PieceType type;
     @Setter
     private int position;
@@ -32,7 +31,6 @@ public abstract class Piece {
         this.position = position;
         this.alliance = alliance;
         this.type = type;
-        this.cachedHashCode = computeHashCode();
     }
 
     /**
@@ -52,49 +50,5 @@ public abstract class Piece {
             legalMoves.add(new Move(piecePosition, destination, moveType));
         }
         return legalMoves;
-    }
-
-    /**
-     * Checks whether this piece is equal to another object.
-     * Two pieces are considered equal if they have the same position, alliance, and first move status.
-     *
-     * @param other The other object to compare.
-     * @return true if the pieces are equal, false otherwise.
-     */
-    @Override
-    public boolean equals(final Object other) {
-        if (this == other) {
-            return true;
-        }
-
-        if (!(other instanceof Piece otherPiece)) {
-            return false;
-        }
-
-        return position == otherPiece.getPosition() &&
-                alliance == otherPiece.getAlliance();
-    }
-
-    /**
-     * Returns the hash code for this piece.
-     * The hash code is computed based on the position, alliance, and first move status.
-     *
-     * @return The hash code for this piece.
-     */
-    @Override
-    public int hashCode() {
-        return this.cachedHashCode;
-    }
-
-    /**
-     * Computes the hash code for the piece.
-     *
-     * @return The computed hash code.
-     */
-    private int computeHashCode() {
-        final int prime = 31;
-        int result = alliance.hashCode();
-        result = prime * result + position;
-        return result;
     }
 }
