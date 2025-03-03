@@ -2,9 +2,9 @@ package com.example.backend.services;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
-import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.pieces.*;
+import com.example.backend.utils.ChessUtils;
 
 /**
  * This service handles the creation and parsing of FEN (Forsyth-Edwards Notation) strings.
@@ -73,58 +73,58 @@ public class FenService {
         while (i < boardTiles.length) {
             switch (boardTiles[i]) {
                 case 'r':
-                    builder.setPieceAtPosition(new Rook(i, Alliance.BLACK, true));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.BLACK, PieceType.ROOK));
                     i++;
                     break;
                 case 'n':
-                    builder.setPieceAtPosition(new Knight(i, Alliance.BLACK));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.BLACK, PieceType.KNIGHT));
                     i++;
                     break;
                 case 'b':
-                    builder.setPieceAtPosition(new Bishop(i, Alliance.BLACK));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.BLACK, PieceType.BISHOP));
                     i++;
                     break;
                 case 'q':
-                    builder.setPieceAtPosition(new Queen(i, Alliance.BLACK));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.BLACK, PieceType.QUEEN));
                     i++;
                     break;
                 case 'k':
-                    builder.setPieceAtPosition(new King(i, Alliance.BLACK, canBlackKingCastle(fenPartitions[2])));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.BLACK, PieceType.KING));
                     i++;
                     break;
                 case 'p':
-                    builder.setPieceAtPosition(new Pawn(i, Alliance.BLACK, ChessUtils.isPositionInRow(i, 2)));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.BLACK, PieceType.PAWN));
                     if (!enPassantString.equals("-") &&
                             ChessUtils.getAlgebraicNotationAtCoordinate(i - 8).equals(enPassantString)) {
-                        builder.setEnPassantPawn(new Pawn(i, Alliance.BLACK, false));
+                        builder.setEnPassantPawnPosition(i);
                     }
                     i++;
                     break;
                 case 'R':
-                    builder.setPieceAtPosition(new Rook(i, Alliance.WHITE, true));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.WHITE, PieceType.ROOK));
                     i++;
                     break;
                 case 'N':
-                    builder.setPieceAtPosition(new Knight(i, Alliance.WHITE));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.WHITE, PieceType.KNIGHT));
                     i++;
                     break;
                 case 'B':
-                    builder.setPieceAtPosition(new Bishop(i, Alliance.WHITE));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.WHITE, PieceType.BISHOP));
                     i++;
                     break;
                 case 'Q':
-                    builder.setPieceAtPosition(new Queen(i, Alliance.WHITE));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.WHITE, PieceType.QUEEN));
                     i++;
                     break;
                 case 'K':
-                    builder.setPieceAtPosition(new King(i, Alliance.WHITE, canWhiteKingCastle(fenPartitions[2])));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.WHITE, PieceType.KING));
                     i++;
                     break;
                 case 'P':
-                    builder.setPieceAtPosition(new Pawn(i, Alliance.WHITE, ChessUtils.isPositionInRow(i, 7)));
+                    builder.setPieceAtPosition(new Piece(i, Alliance.WHITE, PieceType.PAWN));
                     if (!enPassantString.equals("-") &&
                             ChessUtils.getAlgebraicNotationAtCoordinate(i + 8).equals(enPassantString)) {
-                        builder.setEnPassantPawn(new Pawn(i, Alliance.WHITE, false));
+                        builder.setEnPassantPawnPosition(i);
                     }
                     i++;
                     break;
@@ -136,8 +136,25 @@ public class FenService {
             }
         }
 
+        builder.setCastleCapabilities(calculateCastleCapabilities(fenPartitions[2]));
         builder.setMoveMaker(moveMaker(fenPartitions[1]));
         return builder.build();
+    }
+
+    /**
+     * Calculates the castling capabilities of the board based on the FEN string.
+     *
+     * @param castleString The castling rights portion of the FEN string.
+     * @return An array of booleans representing the castling capabilities of the board.
+     * The array is ordered as follows: [blackKingSide, blackQueenSide, whiteKingSide, whiteQueenSide].
+     */
+    private static boolean[] calculateCastleCapabilities(final String castleString) {
+        return new boolean[]{
+                castleString.contains("k"),
+                castleString.contains("q"),
+                castleString.contains("K"),
+                castleString.contains("Q")
+        };
     }
 
     /**
@@ -178,7 +195,7 @@ public class FenService {
     private static String calculateBoardText(final Board board) {
         final StringBuilder builder = new StringBuilder();
         for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
-            final String tileText = board.getTileAtCoordinate(i).toString();
+            final String tileText = board.getPiecesAlgebraicNotationAtPosition(i);
             builder.append(tileText);
         }
 
@@ -242,32 +259,11 @@ public class FenService {
      * @return The en passant target square (e.g., "e3" or "-").
      */
     private static String calculateEnPassantText(final Board board) {
-        final Pawn enPassantPawn = board.getEnPassantPawn();
-        if (enPassantPawn != null) {
+        final int enPassantPawnPosition = board.getEnPassantPawnPosition();
+        if (enPassantPawnPosition != -1) {
             // the position behind the pawn
-            return ChessUtils.getAlgebraicNotationAtCoordinate(enPassantPawn.getPosition() +
-                    8 * enPassantPawn.getAlliance().getOppositeDirection());
+            return ChessUtils.getAlgebraicNotationAtCoordinate(enPassantPawnPosition);
         }
         return "-";
-    }
-
-    /**
-     * Determines if the white king can castle based on the FEN string's castling rights.
-     *
-     * @param fenCastleString The castling rights section from the FEN string.
-     * @return True if the white king can castle, false otherwise.
-     */
-    private static boolean canWhiteKingCastle(final String fenCastleString) {
-        return fenCastleString.contains("K") || fenCastleString.contains("Q");
-    }
-
-    /**
-     * Determines if the black king can castle based on the FEN string's castling rights.
-     *
-     * @param fenCastleString The castling rights section from the FEN string.
-     * @return True if the black king can castle, false otherwise.
-     */
-    private static boolean canBlackKingCastle(final String fenCastleString) {
-        return fenCastleString.contains("k") || fenCastleString.contains("q");
     }
 }

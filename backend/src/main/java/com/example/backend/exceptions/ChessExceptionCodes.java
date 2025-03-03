@@ -27,10 +27,6 @@ public enum ChessExceptionCodes {
      */
     INVALID_FEN_STRING("invalid_fen_string"),
     /**
-     * Indicates that an invalid character was used to represent a chess piece.
-     */
-    INVALID_PIECE_CHARACTER("invalid_piece_character"),
-    /**
      * Represents an invalid type for a chess piece.
      */
     INVALID_PIECE_TYPE("invalid_piece_type"),

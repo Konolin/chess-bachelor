@@ -5,6 +5,14 @@ import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.pieces.Alliance;
 
 public class BitBoardUtils {
+    // indices for piece types in the bitboard arrays
+    public static final int PAWN_INDEX = 0;
+    public static final int KNIGHT_INDEX = 1;
+    public static final int BISHOP_INDEX = 2;
+    public static final int ROOK_INDEX = 3;
+    public static final int QUEEN_INDEX = 4;
+    public static final int KING_INDEX = 5;
+
     // bishop relevant attack mask bit count for every square on board
     private static final int[] BISHOP_RELEVANT_BITS = {
             6, 5, 5, 5, 5, 5, 5, 6,
@@ -99,7 +107,7 @@ public class BitBoardUtils {
 
         for (int i = 0; i < bitsInMask; i++) {
             // get the index of the least significant set bit in the attack mask
-            int tile = getLs1bIndex(attackMask);
+            int tile = Long.numberOfTrailingZeros(attackMask);
             // remove the least significant set bit from the attack mask
             attackMask = popBit(attackMask, tile);
             // check if the current bit in 'index' is set
@@ -110,24 +118,6 @@ public class BitBoardUtils {
         }
 
         return occupancy;
-    }
-
-    /**
-     * Computes the index of the least significant set bit in a given bitboard.
-     *
-     * @param bitboard The bitboard for which the index of the least significant set bit is to be calculated.
-     * @return The index of the least significant set bit in the bitboard.
-     */
-    public static int getLs1bIndex(long bitboard) {
-        if (bitboard != 0) {
-            // isolate the least significant set bit
-            long isolatedBit = bitboard & -bitboard;
-            // count trailing zeros before the LS1B
-            return Long.bitCount(isolatedBit - 1);
-        } else {
-            // return an illegal index if the bitboard is 0
-            return -1;
-        }
     }
 
     /**

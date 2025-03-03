@@ -58,4 +58,13 @@ public enum MoveType {
     public boolean isEnPassant() {
         return this == EN_PASSANT;
     }
+
+    /**
+     * Checks if the move type is a double pawn advance.
+     *
+     * @return true if the move is an en passant move, false otherwise.
+     */
+    public boolean isDoublePawnAdvance() {
+        return this == DOUBLE_PAWN_ADVANCE;
+    }
 }

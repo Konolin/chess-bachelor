@@ -6,9 +6,10 @@ import { Tile } from '../../../../shared/types/tile';
 import { NgClass } from '@angular/common';
 import { BoardState } from '../../../../shared/types/board-state';
 import { Move } from '../../../../shared/types/move';
-import { isAttack, isCastle, isPromotion } from '../../../../shared/types/move-type';
+import { isAttack, isCastle, isPromotion } from '../../../../shared/enums/move-type-enum';
 import { DialogModule } from 'primeng/dialog';
 import { ImageModule } from 'primeng/image';
+import { getPieceTypeFromChar } from '../../../../shared/enums/piece-type-enum';
 
 /**
  * BoardComponent: Main UI component for displaying a chess game board and handling game interactions.
@@ -131,7 +132,7 @@ export class BoardComponent implements OnInit {
     }
 
     // Complete the promotion move by adding the selected piece
-    this.previousMove!.promotedPieceChar = piece;
+    this.previousMove!.promotedPieceType = getPieceTypeFromChar(piece);
 
     this.gameService
       .makeMove(this.previousMove!)
@@ -179,6 +180,19 @@ export class BoardComponent implements OnInit {
     }
 
     this.resetSelection();
+  }
+
+  /**
+   * Undoes the last move and last move by using the service to contact the server.
+   * Updates the boardState.
+   */
+  protected undoLastMove(): void {
+    this.gameService
+      .undoLastMove()
+      .pipe(take(1))
+      .subscribe((response) => {
+        this.updateGameState(response);
+      });
   }
 
   /**

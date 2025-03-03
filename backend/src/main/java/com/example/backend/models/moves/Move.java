@@ -1,5 +1,6 @@
 package com.example.backend.models.moves;
 
+import com.example.backend.models.pieces.PieceType;
 import com.example.backend.utils.ChessUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +10,7 @@ import lombok.Setter;
 /**
  * The Move class represents a chess move from one tile to another.
  * It encapsulates information about the source and destination tiles, the type of move (e.g., regular move, castling, promotion),
- * and any special information related to the move (e.g., promoted piece).
+ * and any special information related to the move (e.g., promoted piece type).
  */
 @Getter
 @Setter
@@ -19,7 +20,7 @@ public class Move {
     private int fromTileIndex;
     private int toTileIndex;
     private MoveType moveType;
-    private String promotedPieceChar;
+    private PieceType promotedPieceType;
 
     /**
      * Constructor for creating a move with a specified from and to tile index, move type, and no promoted piece.
@@ -32,7 +33,7 @@ public class Move {
         this.fromTileIndex = fromTileIndex;
         this.toTileIndex = toTileIndex;
         this.moveType = moveType;
-        this.promotedPieceChar = null;
+        this.promotedPieceType = null;
     }
 
     /**
@@ -67,7 +68,7 @@ public class Move {
             sb.append(ChessUtils.getAlgebraicNotationAtCoordinate(toTileIndex));
 
             if (moveType.isPromotion()) {
-                sb.append("=").append(promotedPieceChar.toUpperCase());
+                sb.append("=").append(promotedPieceType.getAlgebraicSymbol());
             }
         }
 

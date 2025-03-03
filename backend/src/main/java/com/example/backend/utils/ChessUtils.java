@@ -4,9 +4,9 @@ import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.bitboards.MagicBitBoards;
 import com.example.backend.models.bitboards.PiecesBitBoards;
-import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.Move;
-import com.example.backend.models.pieces.*;
+import com.example.backend.models.pieces.Alliance;
+import com.example.backend.models.pieces.PieceType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,48 +43,6 @@ public class ChessUtils {
      */
     public static boolean isValidPosition(final int position) {
         return position >= 0 && position < 64;
-    }
-
-    /**
-     * Creates a chess piece based on its character representation and position.
-     *
-     * @param pieceChar the character representation of the piece
-     * @param position  the position of the piece on the board
-     * @return the corresponding {@link Piece} object
-     * @throws ChessException if the piece character is invalid
-     */
-    public static Piece createPieceFromCharAndPosition(final String pieceChar, final int position) {
-        return switch (pieceChar) {
-            case "q" -> new Queen(position, Alliance.BLACK);
-            case "r" -> new Rook(position, Alliance.BLACK, false);
-            case "n" -> new Knight(position, Alliance.BLACK);
-            case "b" -> new Bishop(position, Alliance.BLACK);
-            case "Q" -> new Queen(position, Alliance.WHITE);
-            case "R" -> new Rook(position, Alliance.WHITE, false);
-            case "N" -> new Knight(position, Alliance.WHITE);
-            case "B" -> new Bishop(position, Alliance.WHITE);
-            default ->
-                    throw new ChessException("Invalid piece character " + pieceChar, ChessExceptionCodes.INVALID_PIECE_CHARACTER);
-        };
-    }
-
-    /**
-     * Creates a chess piece based on its type, alliance, and position.
-     *
-     * @param type     the type of the piece
-     * @param alliance the alliance (white or black) of the piece
-     * @param position the position of the piece on the board
-     * @return the corresponding {@link Piece} object
-     */
-    public static Piece createPieceFromTypeAndPosition(final PieceType type, final Alliance alliance, final int position) {
-        return switch (type) {
-            case QUEEN -> new Queen(position, alliance);
-            case ROOK -> new Rook(position, alliance, false);
-            case KNIGHT -> new Knight(position, alliance);
-            case BISHOP -> new Bishop(position, alliance);
-            case PAWN -> new Pawn(position, alliance, false);
-            case KING -> new King(position, alliance, false);
-        };
     }
 
     /**
@@ -146,11 +104,16 @@ public class ChessUtils {
     /**
      * Filters a list of moves to exclude those that leave the player's king in check.
      *
-     * @param allMoves the list of all possible moves
-     * @param board    the current state of the board
+     * @param allMoves          the list of all possible moves
+     * @param piecesBitBoards   the bitboards of all pieces on the board
+     * @param enPassantPosition the position of the en passant pawn, or -1 if not applicable
+     * @param opponentsAlliance the alliance of the opponent
      * @return a list of valid moves that do not result in check
      */
-    public static List<Move> filterMovesResultingInCheck(final List<Move> allMoves, final Board board) {
+    public static List<Move> filterMovesResultingInCheck(final List<Move> allMoves,
+                                                         final PiecesBitBoards piecesBitBoards,
+                                                         final int enPassantPosition,
+                                                         final Alliance opponentsAlliance) {
         final List<Move> validMoves = new ArrayList<>();
 
         for (final Move move : allMoves) {
@@ -159,7 +122,8 @@ public class ChessUtils {
             long toTileMask = 1L << move.getToTileIndex();
 
             // check if the move leaves the opponent's king in check
-            if (!isSquareAttacked(board, fromTileMask, toTileMask, move.getMoveType().isEnPassant())) {
+            if (!isSquareAttacked(piecesBitBoards, fromTileMask, toTileMask, enPassantPosition,
+                    opponentsAlliance, move.getMoveType().isEnPassant())) {
                 validMoves.add(move);
             }
         }
@@ -170,27 +134,28 @@ public class ChessUtils {
     /**
      * Determines if a square is attacked by any opponent piece.
      *
-     * @param board        the current board state
-     * @param fromTileMask the bitmask of the tile where the piece is moving from
-     * @param toTileMask   the bitmask of the tile where the piece is moving to
-     * @param isEnPassant  {@code true} if the move is an en passant capture, {@code false} otherwise
+     * @param piecesBitBoards   the bitboards of all pieces on the board
+     * @param fromTileMask      the mask of the tile the piece is moving from
+     * @param toTileMask        the mask of the tile the piece is moving to
+     * @param enPassantPosition the position of the en passant pawn, or -1 if not applicable
+     * @param opponentAlliance  the alliance of the opponent
+     * @param isEnPassant       {@code true} if the move is an en passant capture, {@code false} otherwise
      * @return {@code true} if the square is attacked, {@code false} otherwise
      */
     private static boolean isSquareAttacked(
-            final Board board,
+            final PiecesBitBoards piecesBitBoards,
             final long fromTileMask,
             final long toTileMask,
+            final int enPassantPosition,
+            final Alliance opponentAlliance,
             final boolean isEnPassant) {
-        final PiecesBitBoards piecesBitBoards = board.getPiecesBitBoards();
-        final Alliance opponentAlliance = board.getMoveMaker().getOpponent();
         // get the mask of all the attacks from the opponent
         long allAttacksMask = 0L;
         // get the occupancy mask for the current move
         long occupancyMask = piecesBitBoards.getAllPieces() & ~fromTileMask | toTileMask;
         // remove the enPassant pawn if the move is enPassant
         if (isEnPassant) {
-            final int enPassantPawnPosition = board.getEnPassantPawn().getPosition();
-            occupancyMask &= ~(1L << enPassantPawnPosition);
+            occupancyMask &= ~(1L << enPassantPosition);
         }
 
         // add the attacks from knights
@@ -200,7 +165,7 @@ public class ChessUtils {
         knightBitboard &= ~toTileMask;
         // loop over all the knights and get the attacks
         while (knightBitboard != 0L) {
-            final int knightPosition = BitBoardUtils.getLs1bIndex(knightBitboard);
+            final int knightPosition = Long.numberOfTrailingZeros(knightBitboard);
             allAttacksMask |= BitBoardUtils.getKnightAttackMask(knightPosition);
             knightBitboard &= knightBitboard - 1;
         }
@@ -209,7 +174,7 @@ public class ChessUtils {
         long bishopBitboard = piecesBitBoards.getPieceBitBoard(PieceType.BISHOP, opponentAlliance);
         bishopBitboard &= ~toTileMask;
         while (bishopBitboard != 0L) {
-            final int bishopPosition = BitBoardUtils.getLs1bIndex(bishopBitboard);
+            final int bishopPosition = Long.numberOfTrailingZeros(bishopBitboard);
             allAttacksMask |= MagicBitBoards.getBishopAttacks(bishopPosition, occupancyMask);
             bishopBitboard &= bishopBitboard - 1;
         }
@@ -218,7 +183,7 @@ public class ChessUtils {
         long rookBitboard = piecesBitBoards.getPieceBitBoard(PieceType.ROOK, opponentAlliance);
         rookBitboard &= ~toTileMask;
         while (rookBitboard != 0L) {
-            final int rookPosition = BitBoardUtils.getLs1bIndex(rookBitboard);
+            final int rookPosition = Long.numberOfTrailingZeros(rookBitboard);
             allAttacksMask |= MagicBitBoards.getRookAttacks(rookPosition, occupancyMask);
             rookBitboard &= rookBitboard - 1;
         }
@@ -227,7 +192,7 @@ public class ChessUtils {
         long queenBitboard = piecesBitBoards.getPieceBitBoard(PieceType.QUEEN, opponentAlliance);
         queenBitboard &= ~toTileMask;
         while (queenBitboard != 0L) {
-            final int queenPosition = BitBoardUtils.getLs1bIndex(queenBitboard);
+            final int queenPosition = Long.numberOfTrailingZeros(queenBitboard);
             allAttacksMask |= MagicBitBoards.getRookAttacks(queenPosition, occupancyMask);
             allAttacksMask |= MagicBitBoards.getBishopAttacks(queenPosition, occupancyMask);
             queenBitboard &= queenBitboard - 1;
@@ -236,18 +201,18 @@ public class ChessUtils {
         // add the attacks from pawns
         long pawnBitboard = piecesBitBoards.getPieceBitBoard(PieceType.PAWN, opponentAlliance);
         // update the bitmask if a pawn was captured
-        pawnBitboard &= isEnPassant ? ~(1L << board.getEnPassantPawn().getPosition()) : ~toTileMask;
+        pawnBitboard &= isEnPassant ? ~(1L << enPassantPosition) : ~toTileMask;
         // get the mask of all the attacks from the opponent's pawns
         pawnBitboard = BitBoardUtils.calculatePawnAttackingBitboard(pawnBitboard, opponentAlliance);
         allAttacksMask |= pawnBitboard;
 
         // add the attacks from the king
         long kingBitboard = piecesBitBoards.getPieceBitBoard(PieceType.KING, opponentAlliance);
-        final int kingPosition = BitBoardUtils.getLs1bIndex(kingBitboard);
+        final int kingPosition = Long.numberOfTrailingZeros(kingBitboard);
         allAttacksMask |= BitBoardUtils.getKingAttackMask(kingPosition);
 
         // get the bitboard of friendly king
-        long friendlyKingBitboard = piecesBitBoards.getPieceBitBoard(PieceType.KING, board.getMoveMaker());
+        long friendlyKingBitboard = piecesBitBoards.getPieceBitBoard(PieceType.KING, opponentAlliance.getOpponent());
         // update the bitmask if the king made the move
         if ((friendlyKingBitboard & ~fromTileMask) == 0L) {
             friendlyKingBitboard = toTileMask;
@@ -285,6 +250,27 @@ public class ChessUtils {
             case 1 -> IS_FIRST_COLUMN[position];
             case 8 -> IS_EIGHTH_COLUMN[position];
             default -> false;
+        };
+    }
+
+    /**
+     * Check if a position is on the starting rank (7th rank for White, 2nd for Black),
+     * which is needed for a double pawn push.
+     */
+    public static boolean isOnStartingRank(int position, Alliance alliance) {
+        return alliance.isWhite() && ChessUtils.isPositionInRow(position, 7)
+                || alliance.isBlack() && ChessUtils.isPositionInRow(position, 2);
+    }
+
+    public static PieceType getPieceTypeByIndex(final int index) {
+        return switch (index) {
+            case 0 -> PieceType.PAWN;
+            case 1 -> PieceType.KNIGHT;
+            case 2 -> PieceType.BISHOP;
+            case 3 -> PieceType.ROOK;
+            case 4 -> PieceType.QUEEN;
+            case 5 -> PieceType.KING;
+            default -> throw new ChessException("Invalid piece type", ChessExceptionCodes.INVALID_PIECE_TYPE);
         };
     }
 }

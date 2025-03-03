@@ -1,16 +1,14 @@
 package com.example.backend.services;
 
-import com.example.backend.utils.CastleUtils;
-import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
-import com.example.backend.models.board.Tile;
 import com.example.backend.models.dtos.BoardStateDTO;
 import com.example.backend.models.moves.Move;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
+import com.example.backend.models.pieces.PieceType;
+import com.example.backend.utils.CastleUtils;
+import com.example.backend.utils.ChessUtils;
 import lombok.Setter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +21,6 @@ import java.util.List;
  */
 @Service
 public class GameService {
-
     private final ChessValidator validator;
     @Setter
     private Board board;
@@ -49,7 +46,7 @@ public class GameService {
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
-        boardStateDTO.setWinnerFlag(0);  // No winner initially
+        boardStateDTO.setWinnerFlag(0);
 
         return boardStateDTO;
     }
@@ -66,15 +63,19 @@ public class GameService {
         // validate the input position
         validator.validatePosition(position);
 
-        final Tile candidateTile = board.getTileAtCoordinate(position);
-        final List<Move> legalMoves;
+        List<Move> legalMoves;
 
-        if (candidateTile.isOccupied()) {
-            final Piece piece = candidateTile.getOccupyingPiece();
-            // get the legal moves that do not result in check
-            legalMoves = ChessUtils.filterMovesResultingInCheck(piece.generateLegalMovesList(board), board);
+        if (board.isTileOccupied(position)) {
+            final PieceType pieceTypeAtPosition = board.getPieceTypeOfTile(position);
+
+            // get the moves and filter the ones that result in the check of the current player
+            legalMoves = Piece.generateLegalMovesList(board, position, board.getMoveMaker(),
+                    pieceTypeAtPosition, board.getAlliancesLegalMovesBitBoards(board.getMoveMaker()).get(position));
+            legalMoves = ChessUtils.filterMovesResultingInCheck(legalMoves, board.getPiecesBBs(),
+                    board.getEnPassantPawnPosition(), board.getMoveMaker().getOpponent());
+
             // add the castle moves if the piece is a king
-            if (piece.isKing()) {
+            if (pieceTypeAtPosition == PieceType.KING) {
                 legalMoves.addAll(CastleUtils.calculateCastleMoves(board, board.getMoveMaker()));
             }
         } else {
@@ -94,10 +95,19 @@ public class GameService {
     public BoardStateDTO makeMove(final Move move) {
         validator.makeMoveInputValidator(board, move);
 
-        board = board.executeMove(move);
+        board.executeMove(move);
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
         boardStateDTO.setWinnerFlag(getWinnerFlag());
+
+        return boardStateDTO;
+    }
+
+    public BoardStateDTO undoLastMove() {
+        board.undoLastMove();
+        BoardStateDTO boardStateDTO = new BoardStateDTO();
+        boardStateDTO.setFen(FenService.createFENFromGame(board));
+        boardStateDTO.setWinnerFlag(0);
 
         return boardStateDTO;
     }
@@ -107,9 +117,9 @@ public class GameService {
      * A player wins if their king is in check and they have no legal moves left.
      *
      * @return An integer representing the winner flag:
-     *         -1 for White's win,
-     *         1 for Black's win,
-     *         0 if there is no winner yet.
+     * -1 for White's win,
+     * 1 for Black's win,
+     * 0 if there is no winner yet.
      */
     private int getWinnerFlag() {
         final Alliance moveMaker = board.getMoveMaker();

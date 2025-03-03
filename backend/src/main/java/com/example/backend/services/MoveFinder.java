@@ -3,70 +3,122 @@ package com.example.backend.services;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.Move;
 
+import java.util.List;
+
 public class MoveFinder {
     public static Move findBestMove(Board board, int depth) {
+        float alpha = Float.NEGATIVE_INFINITY;
+        float beta = Float.POSITIVE_INFINITY;
+
         Move bestMove = null;
-        float highestEvaluation = Float.MIN_VALUE;
-        float lowestEvaluation = Float.MAX_VALUE;
-        float currentEvaluation;
 
-        for (final Move move : board.getAlliancesLegalMoves(board.getMoveMaker())) {
-            Board candidateBoard = board.executeMove(move);
-            currentEvaluation = board.getMoveMaker().isWhite()
-                    ? min(candidateBoard, depth - 1, highestEvaluation, Float.MAX_VALUE)
-                    : max(candidateBoard, depth - 1, Float.MIN_VALUE, lowestEvaluation);
+        List<Move> moves = board.getAlliancesLegalMoves(board.getMoveMaker());
 
-            if (board.getMoveMaker().isWhite() && currentEvaluation >= highestEvaluation) {
-                highestEvaluation = currentEvaluation;
-                bestMove = move;
-            } else if (board.getMoveMaker().isBlack() && currentEvaluation <= lowestEvaluation) {
-                lowestEvaluation = currentEvaluation;
-                bestMove = move;
+        if (board.getMoveMaker().isWhite()) {
+            float bestVal = Float.NEGATIVE_INFINITY;
+
+            for (Move move : moves) {
+                board.executeMove(move);
+
+                float value = min(board, depth - 1, alpha, beta);
+
+                board.undoLastMove();
+
+                if (value > bestVal) {
+                    bestVal = value;
+                    bestMove = move;
+                }
+
+                alpha = Math.max(alpha, bestVal);
+
+                if (alpha >= beta) {
+                    break;
+                }
+            }
+        } else {
+            float bestVal = Float.POSITIVE_INFINITY;
+
+            for (Move move : moves) {
+                board.executeMove(move);
+
+                float value = max(board, depth - 1, alpha, beta);
+
+                board.undoLastMove();
+
+                if (value < bestVal) {
+                    bestVal = value;
+                    bestMove = move;
+                }
+
+                beta = Math.min(beta, bestVal);
+
+                if (beta <= alpha) {
+                    break;
+                }
             }
         }
-
         return bestMove;
     }
 
-    private static float min(final Board board, final int depth, final float alpha, float beta) {
+    private static float max(Board board, int depth, float alpha, float beta) {
         if (depth == 0 || board.isAllianceInCheckMate(board.getMoveMaker().getOpponent())) {
-            return ModelService.makePrediction(FenService.createFENFromGame(board));
+            return evaluate(board);
         }
-        float lowestEvaluation = Float.MAX_VALUE;
-        for (final Move move : board.getAlliancesLegalMoves(board.getMoveMaker())) {
-            final Board candidateBoard = board.executeMove(move);
 
-            final float currentEvaluation = max(candidateBoard, depth - 1, alpha, beta);
-            if (currentEvaluation <= lowestEvaluation) {
-                lowestEvaluation = currentEvaluation;
+        float bestValue = Float.NEGATIVE_INFINITY;
+
+        List<Move> moves = board.getAlliancesLegalMoves(board.getMoveMaker());
+        for (Move move : moves) {
+            board.executeMove(move);
+
+            float value = min(board, depth - 1, alpha, beta);
+
+            board.undoLastMove();
+
+            bestValue = Math.max(bestValue, value);
+            alpha = Math.max(alpha, bestValue);
+
+            if (alpha >= beta) {
+                break;
             }
-            if (lowestEvaluation <= alpha) {
-                return lowestEvaluation;
-            }
-            beta = Math.min(beta, lowestEvaluation);
         }
-        return lowestEvaluation;
+        return bestValue;
     }
 
-    private static float max(final Board board, final int depth, final float alpha, float beta) {
+    private static float min(Board board, int depth, float alpha, float beta) {
         if (depth == 0 || board.isAllianceInCheckMate(board.getMoveMaker().getOpponent())) {
-            return ModelService.makePrediction(FenService.createFENFromGame(board));
+            return evaluate(board);
         }
-        float highestEvaluation = Float.MIN_VALUE;
-        for (final Move move : board.getAlliancesLegalMoves(board.getMoveMaker())) {
-            final Board candidateBoard = board.executeMove(move);
 
-            final float currentValue = min(candidateBoard, depth - 1, alpha, beta);
-            if (currentValue >= highestEvaluation) {
-                highestEvaluation = currentValue;
+        float bestValue = Float.POSITIVE_INFINITY;
+
+        List<Move> moves = board.getAlliancesLegalMoves(board.getMoveMaker());
+        for (Move move : moves) {
+            board.executeMove(move);
+
+            float value = max(board, depth - 1, alpha, beta);
+
+            board.undoLastMove();
+
+            bestValue = Math.min(bestValue, value);
+            beta = Math.min(beta, bestValue);
+
+            if (beta <= alpha) {
+                break;
             }
-            if (highestEvaluation >= beta) {
-                return highestEvaluation;
-            }
-            beta = Math.max(beta, highestEvaluation);
         }
-        return highestEvaluation;
+        return bestValue;
     }
+
+    /**
+     * Evaluate the board state using a neural network or heuristic
+     * @param board the board to evaluate
+     * @return the evaluation of the board, a float
+     */
+    private static float evaluate(Board board) {
+        return ModelService.makePrediction(FenService.createFENFromGame(board));
+    }
+
 
     public static void main(String[] args) {
         Board board = FenService.createGameFromFEN("bqrnnkrb/pppppppp/8/8/8/8/PPPPPPPP/BQRNNKRB w - - 0 1");
