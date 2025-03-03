@@ -63,6 +63,13 @@ public class CastleUtils {
         return castleMoves;
     }
 
+    /**
+     * Checks if the alliance is still capable of castling.
+     *
+     * @param board    The current game board.
+     * @param alliance The alliance (color) of the player requesting the castling move.
+     * @return true if the alliance is still capable of castling, false otherwise.
+     */
     private static boolean isAllianceCastleCapable(final Board board, final Alliance alliance) {
         if (alliance.isWhite()) {
             return board.isWhiteKingSideCastleCapable() || board.isWhiteQueenSideCastleCapable();

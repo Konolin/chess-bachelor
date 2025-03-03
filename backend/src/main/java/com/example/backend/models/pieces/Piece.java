@@ -11,25 +11,52 @@ import lombok.Getter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The Piece class represents a chess piece on the board.
+ * It encapsulates information about the piece's type, position, and alliance (color).
+ * It also provides methods for generating legal moves for the piece.
+ */
 @Getter
 public class Piece {
     private final Alliance alliance;
     private final PieceType type;
     private final int position;
 
+    /**
+     * Creates a new Piece object with the specified position, alliance, and type.
+     *
+     * @param position The position of the piece on the board.
+     * @param alliance The alliance (color) of the piece.
+     * @param type     The type of the piece (e.g., Pawn, Rook, Knight).
+     */
     public Piece(final int position, final Alliance alliance, final PieceType type) {
         this.position = position;
         this.alliance = alliance;
         this.type = type;
     }
 
-    public static List<Move> generateLegalMovesList(final Board board, final int piecePosition, final Alliance alliance, final PieceType type, long legalMovesBitBoard) {
+    /**
+     * Generates a list of legal moves for the given piece on the board.
+     * The legal moves are based on the current board state and the piece's position.
+     *
+     * @param board              The current board state.
+     * @param piecePosition      The position of the piece on the board.
+     * @param alliance           The alliance (color) of the piece.
+     * @param type               The type of the piece (e.g., Pawn, Rook, Knight).
+     * @param legalMovesBitBoard The bitboard representing all possible legal moves for the piece.
+     * @return A list of legal moves for the piece.
+     */
+    public static List<Move> generateLegalMovesList(final Board board,
+                                                    final int piecePosition,
+                                                    final Alliance alliance,
+                                                    final PieceType type,
+                                                    final long legalMovesBitBoard) {
         List<Move> legalMoves = new ArrayList<>();
 
-        // Get the bitboard of the opponent's pieces
+        // get the bitboard of the opponent's pieces
         long opponentPiecesBitBoard = board.getPiecesBBs().getAllianceBitBoard(alliance.getOpponent());
 
-        // Separate the attack moves (moves to opponent pieces) and normal moves (empty squares)
+        // separate the attack moves and normal moves (to empty squares)
         long attackMoves = legalMovesBitBoard & opponentPiecesBitBoard;
         long normalMoves = legalMovesBitBoard & ~opponentPiecesBitBoard;
 
@@ -45,7 +72,7 @@ public class Piece {
             legalMoves.addAll(bitboardToPawnMoves(board, piecePosition, normalMoves, alliance, false));
             legalMoves.addAll(bitboardToPawnMoves(board, piecePosition, attackMoves, alliance, true));
         } else {
-            // Convert the bitboards to Move objects and add them to the legal moves list
+            // convert the bitboards to Move objects and add them to the legal moves list
             legalMoves.addAll(bitBoardToMoveList(normalMoves, MoveType.NORMAL, piecePosition));
             legalMoves.addAll(bitBoardToMoveList(attackMoves, MoveType.ATTACK, piecePosition));
         }
@@ -53,7 +80,21 @@ public class Piece {
         return legalMoves;
     }
 
-    public static long generateLegalMovesBitBoard(final Board board, final int piecePosition, final Alliance alliance, final PieceType type) {
+    /**
+     * Generates a bitboard representing all possible legal moves for the given piece on the board.
+     * This method takes all moves possible for a piece on the given board and filters out moves that
+     * are blocked by friendly pieces.
+     *
+     * @param board         the current board
+     * @param piecePosition the position of the piece
+     * @param alliance      the alliance of the piece
+     * @param type          the type of the piece
+     * @return a bitboard representing all possible legal moves for the piece
+     */
+    public static long generateLegalMovesBitBoard(final Board board,
+                                                  final int piecePosition,
+                                                  final Alliance alliance,
+                                                  final PieceType type) {
         // get the occupancy bitboard for all pieces on the board
         long occupancyBitBoard = board.getPiecesBBs().getAllPieces();
 
@@ -65,6 +106,18 @@ public class Piece {
         return allMovesBitBoard & ~friendlyPiecesBitBoard;
     }
 
+    /**
+     * Generates a bitboard representing all possible moves for the given piece on the board.
+     * This includes both legal and illegal moves, such as moves that put the king in check
+     * and capture of friendly pieces.
+     *
+     * @param type              the type of the piece
+     * @param piecePosition     the position of the piece
+     * @param occupancyBitBoard the occupancy bitboard for all pieces on the board
+     * @param board             the current board
+     * @param alliance          the alliance of the piece
+     * @return a bitboard representing all possible moves for the piece
+     */
     private static long getAllMovesBitBoard(final PieceType type,
                                             final int piecePosition,
                                             final long occupancyBitBoard,
@@ -81,7 +134,17 @@ public class Piece {
         };
     }
 
-    private static long generateLegalMovesBitBoardForPawns(final Board board, final int piecePosition, final Alliance alliance) {
+    /**
+     * Generates a bitboard representing all possible moves for pawns on the board.
+     *
+     * @param board         the current board
+     * @param piecePosition the position of the pawn
+     * @param alliance      the alliance of the pawn
+     * @return a bitboard representing all possible moves for the pawn
+     */
+    private static long generateLegalMovesBitBoardForPawns(final Board board,
+                                                           final int piecePosition,
+                                                           final Alliance alliance) {
         long movesBB = 0L;
         final int direction = alliance.getDirection();
         final int forwardOne = piecePosition + 8 * direction;
@@ -113,6 +176,21 @@ public class Piece {
         return movesBB;
     }
 
+    /**
+     * Checks if a pawn capture is valid. A pawn capture is valid if:
+     * - The candidate position is on the board.
+     * - The candidate position is not on the left edge of the board (if it's a left diagonal capture).
+     * - The candidate position is not on the right edge of the board (if it's a right diagonal capture).
+     * - There is an opponent piece at the candidate position.
+     * - The candidate position is the en passant square.
+     *
+     * @param board          the current board
+     * @param candidatePos   the candidate position
+     * @param alliance       the alliance of the pawn
+     * @param piecePosition  the position of the pawn
+     * @param isLeftDiagonal true if it's a left diagonal capture, false if it's a right diagonal capture
+     * @return true if the pawn capture is valid, false otherwise
+     */
     private static boolean isValidPawnCapture(Board board,
                                               int candidatePos,
                                               Alliance alliance,
@@ -148,6 +226,15 @@ public class Piece {
         return enPassantSquare != -1 && candidatePos == enPassantSquare + (alliance.isWhite() ? -8 : 8);
     }
 
+    /**
+     * Converts a bitboard to a list of Move objects.
+     * Works for all pieces except pawns.
+     *
+     * @param bitBoard the bitboard representing the possible moves
+     * @param moveType the type of the move (e.g., normal, attack)
+     * @param piecePosition the position of the piece
+     * @return a list of Move objects representing the possible moves
+     */
     private static List<Move> bitBoardToMoveList(long bitBoard, final MoveType moveType, final int piecePosition) {
         int bitCount = Long.bitCount(bitBoard);
         List<Move> legalMoves = new ArrayList<>(bitCount);
@@ -159,6 +246,16 @@ public class Piece {
         return legalMoves;
     }
 
+    /**
+     * Converts a bitboard representing possible pawn moves to a list of Move objects.
+     *
+     * @param board the current board
+     * @param piecePosition the position of the pawn
+     * @param squaresBB the bitboard representing the possible moves
+     * @param alliance the alliance of the pawn
+     * @param isCapture true if the move is a capture, false otherwise
+     * @return a list of Move objects representing the possible moves
+     */
     private static List<Move> bitboardToPawnMoves(Board board,
                                                   int piecePosition,
                                                   long squaresBB,
