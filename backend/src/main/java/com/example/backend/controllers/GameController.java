@@ -65,6 +65,11 @@ public class GameController {
         return ResponseEntity.ok(gameService.initializeBoardState());
     }
 
+    /**
+     * Undoes the last move made in the game.
+     *
+     * @return a {@code ResponseEntity} containing the updated {@code BoardStateDTO}
+     */
     @GetMapping("/undo-last-move")
     public ResponseEntity<BoardStateDTO> undoLastMove() {
         return ResponseEntity.ok(gameService.undoLastMove());

@@ -2,46 +2,39 @@ package com.example.backend.models.moves;
 
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.PieceType;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Map;
+
 /**
  * Represents a single move in the game history.
- * Contains the move itself, the piece that moved, and the piece that was captured (if any).
- * Also includes a flag indicating if the moving piece is making its first move.
- * This information is used to undo moves and restore the game state.
+ * Contains all the necessary information to undo the move, this includes the move itself,
+ * the moving piece type, the captured piece type, the en passant pawn position,
+ * the move maker before the move, the castling capabilities before the move,
+ * the map of legal moves bit boards for each piece and alliance before the move,
+ * and the attacked tiles bitboards of each alliance before the move.
  */
 @Getter
+@AllArgsConstructor
 public class MoveHistoryEntry {
     private final Move move;
-    private final PieceType movingPiece;
+    private final Alliance moveMaker;
     private final int enPassantPawnPosition;
+
     @Setter
-    private PieceType capturedPiece;
-    private final Alliance moveMakerBefore;
+    private PieceType capturedPieceType;
+    private final PieceType movingPieceType;
 
-    private final boolean whiteKingSideCastleCapableBefore;
-    private final boolean whiteQueenSideCastleCapableBefore;
-    private final boolean blackKingSideCastleCapableBefore;
-    private final boolean blackQueenSideCastleCapableBefore;
+    private final boolean whiteKingSideCastleCapable;
+    private final boolean whiteQueenSideCastleCapable;
+    private final boolean blackKingSideCastleCapable;
+    private final boolean blackQueenSideCastleCapable;
 
-    public MoveHistoryEntry(Move move,
-                            PieceType movingPiece,
-                            PieceType capturedPiece,
-                            int enPassantPawnPosition,
-                            Alliance moveMakerBefore,
-                            boolean whiteKingSideBefore,
-                            boolean whiteQueenSideBefore,
-                            boolean blackKingSideBefore,
-                            boolean blackQueenSideBefore) {
-        this.move = move;
-        this.movingPiece = movingPiece;
-        this.capturedPiece = capturedPiece;
-        this.enPassantPawnPosition = enPassantPawnPosition;
-        this.moveMakerBefore = moveMakerBefore;
-        this.whiteKingSideCastleCapableBefore = whiteKingSideBefore;
-        this.whiteQueenSideCastleCapableBefore = whiteQueenSideBefore;
-        this.blackKingSideCastleCapableBefore = blackKingSideBefore;
-        this.blackQueenSideCastleCapableBefore = blackQueenSideBefore;
-    }
+    private final Map<Integer, Long> whiteLegalMovesBitBoards;
+    private final Map<Integer, Long> blackLegalMovesBitBoards;
+
+    private final long whiteLegalMovesBitBoard;
+    private final long blackLegalMovesBitBoard;
 }

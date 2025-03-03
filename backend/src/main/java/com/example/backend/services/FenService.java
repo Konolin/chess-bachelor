@@ -195,7 +195,7 @@ public class FenService {
     private static String calculateBoardText(final Board board) {
         final StringBuilder builder = new StringBuilder();
         for (int i = 0; i < ChessUtils.TILES_NUMBER; i++) {
-            final String tileText = board.getPieceStringAtPosition(i);
+            final String tileText = board.getPiecesAlgebraicNotationAtPosition(i);
             builder.append(tileText);
         }
 

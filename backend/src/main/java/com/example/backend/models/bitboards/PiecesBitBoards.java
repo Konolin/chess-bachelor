@@ -127,9 +127,9 @@ public class PiecesBitBoards {
      */
     public void undoMove(final MoveHistoryEntry moveHistoryEntry) {
         final Move move = moveHistoryEntry.getMove();
-        final PieceType movingPiece = moveHistoryEntry.getMovingPiece();
-        final PieceType captured = moveHistoryEntry.getCapturedPiece();
-        final Alliance moveMaker = moveHistoryEntry.getMoveMakerBefore();
+        final PieceType movingPiece = moveHistoryEntry.getMovingPieceType();
+        final PieceType captured = moveHistoryEntry.getCapturedPieceType();
+        final Alliance moveMaker = moveHistoryEntry.getMoveMaker();
 
         final int fromTileIndex = move.getFromTileIndex();
         final int toTileIndex = move.getToTileIndex();

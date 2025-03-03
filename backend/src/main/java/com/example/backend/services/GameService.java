@@ -42,8 +42,7 @@ public class GameService {
      * @return A BoardStateDTO containing the initial board setup in FEN format and winner flag.
      */
     public BoardStateDTO initializeBoardState() {
-//        board = FenService.createGameFromFEN(ChessUtils.STARTING_FEN);
-        board = FenService.createGameFromFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
+        board = FenService.createGameFromFEN(ChessUtils.STARTING_FEN);
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
@@ -72,7 +71,7 @@ public class GameService {
             // get the moves and filter the ones that result in the check of the current player
             legalMoves = Piece.generateLegalMovesList(board, position, board.getMoveMaker(),
                     pieceTypeAtPosition, board.getAlliancesLegalMovesBitBoards(board.getMoveMaker()).get(position));
-            legalMoves = ChessUtils.filterMovesResultingInCheck(legalMoves, board.getPiecesBitBoards(),
+            legalMoves = ChessUtils.filterMovesResultingInCheck(legalMoves, board.getPiecesBBs(),
                     board.getEnPassantPawnPosition(), board.getMoveMaker().getOpponent());
 
             // add the castle moves if the piece is a king

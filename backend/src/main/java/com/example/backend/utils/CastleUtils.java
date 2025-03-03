@@ -31,7 +31,7 @@ public class CastleUtils {
         List<Move> castleMoves = new ArrayList<>();
 
         // check if castling is still possible for the given alliance
-        if (!board.isAllianceCastleCapable(alliance)) {
+        if (!isAllianceCastleCapable(board, alliance)) {
             return castleMoves;
         }
 
@@ -61,6 +61,13 @@ public class CastleUtils {
             }
         }
         return castleMoves;
+    }
+
+    private static boolean isAllianceCastleCapable(final Board board, final Alliance alliance) {
+        if (alliance.isWhite()) {
+            return board.isWhiteKingSideCastleCapable() || board.isWhiteQueenSideCastleCapable();
+        }
+        return board.isBlackKingSideCastleCapable() || board.isBlackQueenSideCastleCapable();
     }
 
     /**
@@ -95,8 +102,8 @@ public class CastleUtils {
 
         // calculate the bitboard of the opponent's legal moves (additionally, check the squares attacked by the opponent's pawns)
         long opponentPawnBitBoard = alliance.isWhite()
-                ? board.getPiecesBitBoards().getBlackBitboards()[BitBoardUtils.PAWN_INDEX]
-                : board.getPiecesBitBoards().getWhiteBitboards()[BitBoardUtils.PAWN_INDEX];
+                ? board.getPiecesBBs().getBlackBitboards()[BitBoardUtils.PAWN_INDEX]
+                : board.getPiecesBBs().getWhiteBitboards()[BitBoardUtils.PAWN_INDEX];
         long attackBitBoard = board.getAlliancesLegalMovesBitBoard(alliance.getOpponent()) |
                 BitBoardUtils.calculatePawnAttackingBitboard(opponentPawnBitBoard, alliance.getOpponent());
 

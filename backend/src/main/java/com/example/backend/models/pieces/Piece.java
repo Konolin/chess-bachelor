@@ -27,7 +27,7 @@ public class Piece {
         List<Move> legalMoves = new ArrayList<>();
 
         // Get the bitboard of the opponent's pieces
-        long opponentPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance.getOpponent());
+        long opponentPiecesBitBoard = board.getPiecesBBs().getAllianceBitBoard(alliance.getOpponent());
 
         // Separate the attack moves (moves to opponent pieces) and normal moves (empty squares)
         long attackMoves = legalMovesBitBoard & opponentPiecesBitBoard;
@@ -55,13 +55,13 @@ public class Piece {
 
     public static long generateLegalMovesBitBoard(final Board board, final int piecePosition, final Alliance alliance, final PieceType type) {
         // get the occupancy bitboard for all pieces on the board
-        long occupancyBitBoard = board.getPiecesBitBoards().getAllPieces();
+        long occupancyBitBoard = board.getPiecesBBs().getAllPieces();
 
         // get all the moves of the specified piece
         long allMovesBitBoard = getAllMovesBitBoard(type, piecePosition, occupancyBitBoard, board, alliance);
 
         // filter out moves that are blocked by friendly pieces
-        long friendlyPiecesBitBoard = board.getPiecesBitBoards().getAllianceBitBoard(alliance);
+        long friendlyPiecesBitBoard = board.getPiecesBBs().getAllianceBitBoard(alliance);
         return allMovesBitBoard & ~friendlyPiecesBitBoard;
     }
 
@@ -136,7 +136,7 @@ public class Piece {
 
         // if there's an opponent piece there, it's valid
         if (board.isTileOccupied(candidatePos)
-                && board.getAllianceOfTile(candidatePos) == alliance.getOpponent()) {
+                && board.getAllianceOfPieceAtPosition(candidatePos) == alliance.getOpponent()) {
             return true;
         }
 
