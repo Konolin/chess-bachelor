@@ -42,7 +42,8 @@ public class GameService {
      * @return A BoardStateDTO containing the initial board setup in FEN format and winner flag.
      */
     public BoardStateDTO initializeBoardState() {
-        board = FenService.createGameFromFEN(ChessUtils.STARTING_FEN);
+//        board = FenService.createGameFromFEN(ChessUtils.STARTING_FEN);
+        board = FenService.createGameFromFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
 
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));

@@ -24,8 +24,6 @@ public class Board {
     private final Deque<MoveHistoryEntry> moveHistory = new ArrayDeque<>();
 
     private final PiecesBitBoards piecesBitBoards;
-    private List<Move> whiteLegalMoves;
-    private List<Move> blackLegalMoves;
     // now only used for checking if the king is in check and castle moves
     private long whiteLegalMovesBitBoard = 0L;
     private long blackLegalMovesBitBoard = 0L;
@@ -51,38 +49,21 @@ public class Board {
 
         this.whiteLegalMovesBitBoards = calculateLegalMovesBitBoards(Alliance.WHITE);
         this.blackLegalMovesBitBoards = calculateLegalMovesBitBoards(Alliance.BLACK);
-
-        this.whiteLegalMoves = calculateAlliancesLegalMoves(Alliance.WHITE);
-        this.blackLegalMoves = calculateAlliancesLegalMoves(Alliance.BLACK);
-
-        this.whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.WHITE));
-        this.blackLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
     }
 
-    public List<Move> calculateAlliancesLegalMoves(final Alliance alliance) {
+    private List<Move> convertBitBoardsToMoves(final Map<Integer, Long> bitBoards) {
         List<Move> legalMoves = new ArrayList<>();
-        long[] alliancePiecesBitBoards = alliance.isWhite() ? piecesBitBoards.getWhiteBitboards() : piecesBitBoards.getBlackBitboards();
-
-        for (int i = 0; i < 6; i++) {
-            PieceType type = ChessUtils.getPieceTypeByIndex(i);
-            long allianceBitBoard = alliancePiecesBitBoards[i];
-
-            while (allianceBitBoard != 0) {
-                // isolate the lowest set bit
-                long lsb = Long.lowestOneBit(allianceBitBoard);
-                final int piecePosition = Long.numberOfTrailingZeros(allianceBitBoard);
-                legalMoves.addAll(Piece.generateLegalMovesList(this, piecePosition, alliance, type, getAlliancesLegalMovesBitBoards(alliance).get(piecePosition)));
-                // clear that bit
-                allianceBitBoard ^= lsb;
-            }
+        for (final Map.Entry<Integer, Long> entry : bitBoards.entrySet()) {
+            legalMoves.addAll(Piece.generateLegalMovesList(this, entry.getKey(), moveMaker, getPieceTypeOfTile(entry.getKey()), entry.getValue()));
         }
-
         return legalMoves;
     }
 
     private Map<Integer, Long> calculateLegalMovesBitBoards(final Alliance alliance) {
         Map<Integer, Long> legalMovesBitBoards = new HashMap<>();
         long[] alliancePiecesBitBoards = alliance.isWhite() ? piecesBitBoards.getWhiteBitboards() : piecesBitBoards.getBlackBitboards();
+        if (alliance.isWhite()) whiteLegalMovesBitBoard = 0L;
+        else blackLegalMovesBitBoard = 0L;
 
         for (int i = 0; i < 6; i++) {
             PieceType type = ChessUtils.getPieceTypeByIndex(i);
@@ -212,16 +193,8 @@ public class Board {
         whiteLegalMovesBitBoards = calculateLegalMovesBitBoards(Alliance.WHITE);
         blackLegalMovesBitBoards = calculateLegalMovesBitBoards(Alliance.BLACK);
 
-        // update legal moves
-        whiteLegalMoves = calculateAlliancesLegalMoves(Alliance.WHITE);
-        blackLegalMoves = calculateAlliancesLegalMoves(Alliance.BLACK);
-
         // change moveMaker
         moveMaker = moveMaker.getOpponent();
-
-        // add the castle moves to the legal moves
-        whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.WHITE));
-        blackLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
 
         // add the move to the move history
         moveHistory.push(moveHistoryEntry);
@@ -246,14 +219,6 @@ public class Board {
         // update legalMovesBitBoards
         whiteLegalMovesBitBoards = calculateLegalMovesBitBoards(Alliance.WHITE);
         blackLegalMovesBitBoards = calculateLegalMovesBitBoards(Alliance.BLACK);
-
-        // update legal moves
-        whiteLegalMoves = calculateAlliancesLegalMoves(Alliance.WHITE);
-        blackLegalMoves = calculateAlliancesLegalMoves(Alliance.BLACK);
-
-        // add the castle moves to the legal moves
-        whiteLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.WHITE));
-        blackLegalMoves.addAll(CastleUtils.calculateCastleMoves(this, Alliance.BLACK));
     }
 
     public Alliance getAllianceOfPieceAtPosition(final int position) {
@@ -324,11 +289,10 @@ public class Board {
     }
 
     public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
-        return alliance.isWhite()
-                ? ChessUtils.filterMovesResultingInCheck(
-                whiteLegalMoves, piecesBitBoards, enPassantPawnPosition, moveMaker.getOpponent())
-                : ChessUtils.filterMovesResultingInCheck(
-                blackLegalMoves, piecesBitBoards, enPassantPawnPosition, moveMaker.getOpponent());
+        List<Move> legalMoves = new ArrayList<>();
+        legalMoves.addAll(convertBitBoardsToMoves(getAlliancesLegalMovesBitBoards(alliance)));
+        legalMoves.addAll(CastleUtils.calculateCastleMoves(this, alliance));
+        return ChessUtils.filterMovesResultingInCheck(legalMoves, piecesBitBoards, enPassantPawnPosition, alliance.getOpponent());
     }
 
     public Map<Integer, Long> getAlliancesLegalMovesBitBoards(final Alliance alliance) {
