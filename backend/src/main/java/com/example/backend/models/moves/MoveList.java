@@ -33,6 +33,10 @@ public class MoveList {
         return moves[index];
     }
 
+    public void set(int index, int move) {
+        moves[index] = move;
+    }
+
     public int size() {
         return size;
     }

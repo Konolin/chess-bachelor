@@ -14,6 +14,7 @@ public class MoveFinder {
         int bestMove = -1;
 
         MoveList moves = board.getAlliancesLegalMoves(board.getMoveMaker());
+        MoveUtils.sortMoveListByMoveScore(moves, board);
 
         if (board.getMoveMaker().isWhite()) {
             float bestVal = Float.NEGATIVE_INFINITY;
@@ -71,6 +72,8 @@ public class MoveFinder {
         float bestValue = Float.NEGATIVE_INFINITY;
 
         MoveList moves = board.getAlliancesLegalMoves(board.getMoveMaker());
+        MoveUtils.sortMoveListByMoveScore(moves, board);
+
         for (int i = 0; i < moves.size(); i++) {
             board.executeMove(moves.get(i));
 
@@ -98,6 +101,8 @@ public class MoveFinder {
         float bestValue = Float.POSITIVE_INFINITY;
 
         MoveList moves = board.getAlliancesLegalMoves(board.getMoveMaker());
+        MoveUtils.sortMoveListByMoveScore(moves, board);
+
         for (int i = 0; i < moves.size(); i++) {
             board.executeMove(moves.get(i));
 

@@ -2,6 +2,7 @@ package com.example.backend.utils;
 
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
+import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.MoveDTO;
 import com.example.backend.models.moves.MoveList;
 import com.example.backend.models.moves.MoveType;
@@ -87,6 +88,70 @@ public class MoveUtils {
             moveDTOList.add(createMoveDTOFromMove(moveList.get(i)));
         }
         return moveDTOList;
+    }
+
+    public static void sortMoveListByMoveScore(MoveList moveList, Board board) {
+        if (moveList == null || moveList.size() < 2) {
+            return;
+        }
+        quicksort(moveList, 0, moveList.size() - 1, board);
+    }
+
+    private static void quicksort(MoveList list, int low, int high, Board board) {
+        if (low < high) {
+            int pivotIndex = partition(list, low, high, board);
+            quicksort(list, low, pivotIndex - 1, board);
+            quicksort(list, pivotIndex + 1, high, board);
+        }
+    }
+
+    private static int partition(MoveList list, int low, int high, Board board) {
+        int pivotScore = moveScore(list.get(high), board);
+        int i = low - 1;
+
+        for (int j = low; j < high; j++) {
+            if (moveScore(list.get(j), board) > pivotScore) {
+                i++;
+                swap(list, i, j);
+            }
+        }
+
+        swap(list, i + 1, high);
+        return i + 1;
+    }
+
+    private static void swap(MoveList list, int i, int j) {
+        if (i == j) return;
+        int temp = list.get(i);
+        list.set(i, list.get(j));
+        list.set(j, temp);
+    }
+
+    private static int moveScore(int move, Board board) {
+        int score = 0;
+
+        if (getMoveType(move).isAttack()) {
+            int victimValue = pieceValue(board.getPieceTypeOfTile(getToTileIndex(move)));
+            int attackerValue = pieceValue(board.getPieceTypeOfTile(getFromTileIndex(move)));
+            score += (victimValue * 100) - attackerValue;
+        }
+
+        PieceType promotedPiece = getPromotedPieceType(move);
+        if (promotedPiece != null) {
+            score += pieceValue(promotedPiece) * 10;
+        }
+
+        return score;
+    }
+
+    private static int pieceValue(PieceType pieceType) {
+        return switch (pieceType) {
+            case PAWN -> 1;
+            case KNIGHT, BISHOP -> 3;
+            case ROOK -> 5;
+            case QUEEN -> 9;
+            default -> 0;
+        };
     }
 
     /**
