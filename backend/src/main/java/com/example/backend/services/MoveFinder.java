@@ -3,9 +3,15 @@ package com.example.backend.services;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.MoveList;
 import com.example.backend.utils.MoveUtils;
+import com.example.backend.utils.ZobristUtils;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class MoveFinder {
     private static int evaulations = 0;
+    private static int zobristKeyUses = 0;
+    private static Map<Long, Float> transpositionTable = new HashMap<>();
 
     public static int findBestMove(Board board, int depth) {
         float alpha = Float.NEGATIVE_INFINITY;
@@ -120,20 +126,25 @@ public class MoveFinder {
         return bestValue;
     }
 
-    /**
-     * Evaluate the board state using a neural network or heuristic
-     *
-     * @param board the board to evaluate
-     * @return the evaluation of the board, a float
-     */
     private static float evaluate(Board board) {
         evaulations++;
-        return ModelService.makePrediction(FenService.createFENFromGame(board));
+        long zobristKey = ZobristUtils.computeZobristHash(board);
+        if (transpositionTable.containsKey(zobristKey)) {
+            zobristKeyUses++;
+            return transpositionTable.get(zobristKey);
+        }
+        float prediction = ModelService.makePrediction(FenService.createFENFromGame(board));
+        transpositionTable.put(zobristKey, prediction);
+        return prediction;
     }
 
     public static void main(String[] args) {
         Board board = FenService.createGameFromFEN("6k1/pp2Q1p1/2p4p/7r/8/6P1/Pq1r1P1P/4R1K1 w - - 0 1");
-        System.out.println(MoveUtils.toAlgebraic(findBestMove(board, 3)));
+        long start = System.currentTimeMillis();
+        System.out.println(MoveUtils.toAlgebraic(findBestMove(board, 4)));
+
+        System.out.println("Time taken in seconds: " + (System.currentTimeMillis() - start) / 1000);
         System.out.println("Evaluations: " + evaulations);
+        System.out.println("Zobrist key uses: " + zobristKeyUses);
     }
 }

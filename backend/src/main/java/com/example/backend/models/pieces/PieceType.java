@@ -9,20 +9,22 @@ import lombok.Getter;
  */
 @Getter
 public enum PieceType {
-    PAWN("Pawn"),
-    KNIGHT("Knight"),
-    BISHOP("Bishop"),
-    ROOK("Rook"),
-    QUEEN("Queen"),
-    KING("King");
+    PAWN("Pawn", 0),
+    KNIGHT("Knight", 1),
+    BISHOP("Bishop", 2),
+    ROOK("Rook", 3),
+    QUEEN("Queen", 4),
+    KING("King", 5);
 
-    static final PieceType[] PROMOTABLE_TYPES = {PieceType.ROOK, PieceType.KNIGHT, PieceType.BISHOP, PieceType.QUEEN};
     public static final PieceType[] ALL_TYPES = {PieceType.PAWN, PieceType.KNIGHT, PieceType.BISHOP, PieceType.ROOK, PieceType.QUEEN, PieceType.KING};
+    static final PieceType[] PROMOTABLE_TYPES = {PieceType.ROOK, PieceType.KNIGHT, PieceType.BISHOP, PieceType.QUEEN};
     private final String name;
     private final String algebraicSymbol;
+    private final int index;
 
-    PieceType(String name) {
+    PieceType(String name, int index) {
         this.name = name;
         this.algebraicSymbol = name.substring(0, 1);
+        this.index = index;
     }
 }
