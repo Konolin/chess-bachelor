@@ -1,7 +1,10 @@
 package com.example.backend.services;
 
+import com.example.backend.exceptions.ChessException;
+import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.utils.ChessUtils;
-import org.tensorflow.*;
+import org.tensorflow.SavedModelBundle;
+import org.tensorflow.Tensor;
 import org.tensorflow.ndarray.FloatNdArray;
 import org.tensorflow.ndarray.NdArrays;
 import org.tensorflow.ndarray.Shape;
@@ -11,6 +14,16 @@ import org.tensorflow.types.TFloat32;
 import java.util.Objects;
 
 public class ModelService {
+    private static final SavedModelBundle model;
+
+    private ModelService() {
+        throw new ChessException("Can not instantiate this class", ChessExceptionCodes.ILLEGAL_STATE);
+    }
+
+    static {
+        model = SavedModelBundle.load("src/main/resources/model", "serve");
+    }
+
     /**
      * Loads the model, encodes the inputs (fenString and extra features), and makes a prediction.
      *
@@ -18,59 +31,57 @@ public class ModelService {
      * @return The model's prediction as a float.
      */
     public static float makePrediction(String fenString) {
-        try (SavedModelBundle model = SavedModelBundle.load("src/main/resources/model", "serve")) {
-            // encode the FEN string into a 3D int array.
-            int[][][] encodedBoard = encodeFenString(fenString);
-            int rows = encodedBoard.length;
-            int columns = encodedBoard[0].length;
-            int channels = encodedBoard[0][0].length;
+        // encode the FEN string into a 3D int array.
+        int[][][] encodedBoard = encodeFenString(fenString);
+        int rows = encodedBoard.length;
+        int columns = encodedBoard[0].length;
+        int channels = encodedBoard[0][0].length;
 
-            // add a batch dimension to create a 4D float array: [1, rows, columns, channels]
-            float[][][][] inputData = new float[1][rows][columns][channels];
-            for (int i = 0; i < rows; i++) {
-                for (int j = 0; j < columns; j++) {
-                    for (int k = 0; k < channels; k++) {
-                        inputData[0][i][j][k] = encodedBoard[i][j][k];
-                    }
+        // add a batch dimension to create a 4D float array: [1, rows, columns, channels]
+        float[][][][] inputData = new float[1][rows][columns][channels];
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < columns; j++) {
+                for (int k = 0; k < channels; k++) {
+                    inputData[0][i][j][k] = encodedBoard[i][j][k];
                 }
             }
-
-            // create the board input tensor
-            TFloat32 inputTensor = createInputTensor(inputData);
-
-            // encode the extra input features
-            float[] extraFeatures = encodeExtraInput(fenString);
-
-            // prepare extra input data with a batch dimension. Shape: [1, extraFeatures.length]
-            int batch = 1;
-            int featureLength = extraFeatures.length;
-            float[] flatExtraFeatures = new float[batch * featureLength];
-            System.arraycopy(extraFeatures, 0, flatExtraFeatures, 0, featureLength);
-
-            // create the extra input tensor
-            Shape extraShape = Shape.of(batch, featureLength);
-            TFloat32 extraInputTensor = TFloat32.tensorOf(extraShape, DataBuffers.of(flatExtraFeatures));
-
-            // run the model
-            Tensor outputTensor = model.session().runner()
-                    .feed("serving_default_board_input", inputTensor)
-                    .feed("serving_default_extra_input", extraInputTensor)
-                    .fetch("StatefulPartitionedCall")
-                    .run().get(0);
-
-            // extract prediction from the output tensor
-            TFloat32 result = (TFloat32) outputTensor;
-            FloatNdArray outputNdArray = NdArrays.ofFloats(result.shape());
-            result.copyTo(outputNdArray);
-            float prediction = extractScalar(outputNdArray);
-
-            // clean up tensors
-            result.close();
-            inputTensor.close();
-            extraInputTensor.close();
-
-            return prediction;
         }
+
+        // create the board input tensor
+        TFloat32 inputTensor = createInputTensor(inputData);
+
+        // encode the extra input features
+        float[] extraFeatures = encodeExtraInput(fenString);
+
+        // prepare extra input data with a batch dimension. Shape: [1, extraFeatures.length]
+        int batch = 1;
+        int featureLength = extraFeatures.length;
+        float[] flatExtraFeatures = new float[batch * featureLength];
+        System.arraycopy(extraFeatures, 0, flatExtraFeatures, 0, featureLength);
+
+        // create the extra input tensor
+        Shape extraShape = Shape.of(batch, featureLength);
+        TFloat32 extraInputTensor = TFloat32.tensorOf(extraShape, DataBuffers.of(flatExtraFeatures));
+
+        // run the model
+        Tensor outputTensor = model.session().runner()
+                .feed("serving_default_board_input", inputTensor)
+                .feed("serving_default_extra_input", extraInputTensor)
+                .fetch("StatefulPartitionedCall")
+                .run().get(0);
+
+        // extract prediction from the output tensor
+        TFloat32 result = (TFloat32) outputTensor;
+        FloatNdArray outputNdArray = NdArrays.ofFloats(result.shape());
+        result.copyTo(outputNdArray);
+        float prediction = extractScalar(outputNdArray);
+
+        // clean up tensors
+        result.close();
+        inputTensor.close();
+        extraInputTensor.close();
+
+        return prediction;
     }
 
     /**

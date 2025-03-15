@@ -318,6 +318,17 @@ public class Board {
     }
 
     /**
+     * Checks if the given alliance is in stalemate.
+     * An alliance is in stalemate if it is not in check, and it has no legal moves.
+     *
+     * @param alliance the alliance to check
+     * @return true if the given alliance is in stalemate, false otherwise
+     */
+    public boolean isAllianceInStalemate(final Alliance alliance) {
+        return !isAllianceInCheck(alliance) && getAlliancesLegalMovesBitBoards(alliance).isEmpty();
+    }
+
+    /**
      * Checks if the given alliance is in checkmate.
      * An alliance is in checkmate if it is in check, and it has no legal moves.
      *
@@ -325,7 +336,7 @@ public class Board {
      * @return true if the given alliance is in checkmate, false otherwise
      */
     public boolean isAllianceInCheckMate(final Alliance alliance) {
-        return isAllianceInCheck(alliance) && getAlliancesLegalMoves(alliance).isEmpty();
+        return isAllianceInCheck(alliance) && getAlliancesLegalMovesBitBoards(alliance).isEmpty();
     }
 
     /**

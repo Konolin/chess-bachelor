@@ -6,6 +6,8 @@ import com.example.backend.models.moves.Move;
 import java.util.List;
 
 public class MoveFinder {
+    private static int evaulations = 0;
+
     public static Move findBestMove(Board board, int depth) {
         float alpha = Float.NEGATIVE_INFINITY;
         float beta = Float.POSITIVE_INFINITY;
@@ -61,7 +63,9 @@ public class MoveFinder {
     }
 
     private static float max(Board board, int depth, float alpha, float beta) {
-        if (depth == 0 || board.isAllianceInCheckMate(board.getMoveMaker().getOpponent())) {
+        if (depth == 0
+                || board.isAllianceInCheckMate(board.getMoveMaker())
+                || board.isAllianceInStalemate(board.getMoveMaker())) {
             return evaluate(board);
         }
 
@@ -86,7 +90,9 @@ public class MoveFinder {
     }
 
     private static float min(Board board, int depth, float alpha, float beta) {
-        if (depth == 0 || board.isAllianceInCheckMate(board.getMoveMaker().getOpponent())) {
+        if (depth == 0
+                || board.isAllianceInCheckMate(board.getMoveMaker())
+                || board.isAllianceInStalemate(board.getMoveMaker())) {
             return evaluate(board);
         }
 
@@ -112,16 +118,18 @@ public class MoveFinder {
 
     /**
      * Evaluate the board state using a neural network or heuristic
+     *
      * @param board the board to evaluate
      * @return the evaluation of the board, a float
      */
     private static float evaluate(Board board) {
+        evaulations++;
         return ModelService.makePrediction(FenService.createFENFromGame(board));
     }
 
-
     public static void main(String[] args) {
-        Board board = FenService.createGameFromFEN("bqrnnkrb/pppppppp/8/8/8/8/PPPPPPPP/BQRNNKRB w - - 0 1");
+        Board board = FenService.createGameFromFEN("6k1/pp2Q1p1/2p4p/7r/8/6P1/Pq1r1P1P/4R1K1 w - - 0 1");
         System.out.println(findBestMove(board, 3).toAlgebraic());
+        System.out.println("Evaluations: " + evaulations);
     }
 }
