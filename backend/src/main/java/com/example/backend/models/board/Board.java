@@ -3,14 +3,15 @@ package com.example.backend.models.board;
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.bitboards.PiecesBitBoards;
-import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveHistoryEntry;
+import com.example.backend.models.moves.MoveList;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.PieceType;
 import com.example.backend.utils.BitBoardUtils;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
+import com.example.backend.utils.MoveUtils;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -77,8 +78,8 @@ public class Board {
      *                  is a bitboard (long) indicating valid move destinations for that piece
      * @return a list of all Move objects representing the moves described by the bitboards
      */
-    private List<Move> convertBitBoardsToMoves(final Map<Integer, Long> bitBoards) {
-        List<Move> legalMoves = new ArrayList<>();
+    private MoveList convertBitBoardsToMoves(final Map<Integer, Long> bitBoards) {
+        MoveList legalMoves = new MoveList();
         for (final Map.Entry<Integer, Long> entry : bitBoards.entrySet()) {
             legalMoves.addAll(Piece.generateLegalMovesList(this, entry.getKey(), moveMaker, getPieceTypeOfTile(entry.getKey()), entry.getValue()));
         }
@@ -220,9 +221,9 @@ public class Board {
      *
      * @param move the move to execute on the board
      */
-    public void executeMove(final Move move) {
-        final int fromTileIndex = move.getFromTileIndex();
-        final int toTileIndex = move.getToTileIndex();
+    public void executeMove(final int move) {
+        final int fromTileIndex = MoveUtils.getFromTileIndex(move);
+        final int toTileIndex = MoveUtils.getToTileIndex(move);
 
         // get the type of pieces involved in this move
         PieceType movingPieceType = getPieceTypeOfTile(fromTileIndex);
@@ -246,7 +247,7 @@ public class Board {
         );
 
         // handle enPassant move (set the captured piece type to PAWN)
-        if (move.getMoveType().isEnPassant()) {
+        if (MoveUtils.getMoveType(move).isEnPassant()) {
             moveHistoryEntry.setCapturedPieceType(PieceType.PAWN);
         }
 
@@ -254,7 +255,7 @@ public class Board {
         piecesBBs.updateMove(move, movingPieceType, moveMaker);
 
         // update the enPassantPawnPosition if the move was a double pawn advance, else set it to -1
-        enPassantPawnPosition = move.getMoveType().isDoublePawnAdvance() ? toTileIndex : -1;
+        enPassantPawnPosition = MoveUtils.getMoveType(move).isDoublePawnAdvance() ? toTileIndex : -1;
 
         // update castle capabilities
         updateCastleCapabilities(movingPieceType, capturedPieceType, fromTileIndex, toTileIndex);
@@ -385,8 +386,8 @@ public class Board {
      * @param alliance alliance for which to get the legal moves
      * @return a list of all legal moves for the given alliance
      */
-    public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
-        List<Move> legalMoves = new ArrayList<>();
+    public MoveList getAlliancesLegalMoves(final Alliance alliance) {
+        MoveList legalMoves = new MoveList();
         legalMoves.addAll(convertBitBoardsToMoves(getAlliancesLegalMovesBitBoards(alliance)));
         legalMoves.addAll(CastleUtils.calculateCastleMoves(this, alliance));
         return ChessUtils.filterMovesResultingInCheck(legalMoves, piecesBBs, enPassantPawnPosition, alliance.getOpponent());

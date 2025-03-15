@@ -1,26 +1,25 @@
 package com.example.backend.services;
 
 import com.example.backend.models.board.Board;
-import com.example.backend.models.moves.Move;
-
-import java.util.List;
+import com.example.backend.models.moves.MoveList;
+import com.example.backend.utils.MoveUtils;
 
 public class MoveFinder {
     private static int evaulations = 0;
 
-    public static Move findBestMove(Board board, int depth) {
+    public static int findBestMove(Board board, int depth) {
         float alpha = Float.NEGATIVE_INFINITY;
         float beta = Float.POSITIVE_INFINITY;
 
-        Move bestMove = null;
+        int bestMove = -1;
 
-        List<Move> moves = board.getAlliancesLegalMoves(board.getMoveMaker());
+        MoveList moves = board.getAlliancesLegalMoves(board.getMoveMaker());
 
         if (board.getMoveMaker().isWhite()) {
             float bestVal = Float.NEGATIVE_INFINITY;
 
-            for (Move move : moves) {
-                board.executeMove(move);
+            for (int i = 0; i < moves.size(); i++) {
+                board.executeMove(moves.get(i));
 
                 float value = min(board, depth - 1, alpha, beta);
 
@@ -28,7 +27,7 @@ public class MoveFinder {
 
                 if (value > bestVal) {
                     bestVal = value;
-                    bestMove = move;
+                    bestMove = moves.get(i);
                 }
 
                 alpha = Math.max(alpha, bestVal);
@@ -40,8 +39,8 @@ public class MoveFinder {
         } else {
             float bestVal = Float.POSITIVE_INFINITY;
 
-            for (Move move : moves) {
-                board.executeMove(move);
+            for (int i = 0; i < moves.size(); i++) {
+                board.executeMove(moves.get(i));
 
                 float value = max(board, depth - 1, alpha, beta);
 
@@ -49,7 +48,7 @@ public class MoveFinder {
 
                 if (value < bestVal) {
                     bestVal = value;
-                    bestMove = move;
+                    bestMove = moves.get(i);
                 }
 
                 beta = Math.min(beta, bestVal);
@@ -71,9 +70,9 @@ public class MoveFinder {
 
         float bestValue = Float.NEGATIVE_INFINITY;
 
-        List<Move> moves = board.getAlliancesLegalMoves(board.getMoveMaker());
-        for (Move move : moves) {
-            board.executeMove(move);
+        MoveList moves = board.getAlliancesLegalMoves(board.getMoveMaker());
+        for (int i = 0; i < moves.size(); i++) {
+            board.executeMove(moves.get(i));
 
             float value = min(board, depth - 1, alpha, beta);
 
@@ -98,9 +97,9 @@ public class MoveFinder {
 
         float bestValue = Float.POSITIVE_INFINITY;
 
-        List<Move> moves = board.getAlliancesLegalMoves(board.getMoveMaker());
-        for (Move move : moves) {
-            board.executeMove(move);
+        MoveList moves = board.getAlliancesLegalMoves(board.getMoveMaker());
+        for (int i = 0; i < moves.size(); i++) {
+            board.executeMove(moves.get(i));
 
             float value = max(board, depth - 1, alpha, beta);
 
@@ -129,7 +128,7 @@ public class MoveFinder {
 
     public static void main(String[] args) {
         Board board = FenService.createGameFromFEN("6k1/pp2Q1p1/2p4p/7r/8/6P1/Pq1r1P1P/4R1K1 w - - 0 1");
-        System.out.println(findBestMove(board, 3).toAlgebraic());
+        System.out.println(MoveUtils.toAlgebraic(findBestMove(board, 3)));
         System.out.println("Evaluations: " + evaulations);
     }
 }

@@ -2,12 +2,14 @@ package com.example.backend.services;
 
 import com.example.backend.models.board.Board;
 import com.example.backend.models.dtos.BoardStateDTO;
-import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveDTO;
+import com.example.backend.models.moves.MoveList;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.PieceType;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
+import com.example.backend.utils.MoveUtils;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -59,11 +61,11 @@ public class GameService {
      * @param position The board position (coordinate) for which to retrieve legal moves.
      * @return A list of legal moves for the piece at the given position.
      */
-    public List<Move> getAllMovesForPosition(final int position) {
+    public List<MoveDTO> getAllMovesForPosition(final int position) {
         // validate the input position
         validator.validatePosition(position);
 
-        List<Move> legalMoves;
+        MoveList legalMoves;
 
         if (board.isTileOccupied(position)) {
             final PieceType pieceTypeAtPosition = board.getPieceTypeOfTile(position);
@@ -82,17 +84,18 @@ public class GameService {
             legalMoves = null;
         }
 
-        return legalMoves;
+        return MoveUtils.createMoveDTOListFromMoveList(legalMoves);
     }
 
     /**
      * Executes a move on the board after validating the move input.
      * The board is updated with the new move, and the BoardStateDTO is returned with the updated FEN and winner flag.
      *
-     * @param move The move to be executed on the board.
+     * @param moveDTO The moveDTO to be executed on the board.
      * @return A BoardStateDTO with the updated board state and winner flag.
      */
-    public BoardStateDTO makeMove(final Move move) {
+    public BoardStateDTO makeMove(final MoveDTO moveDTO) {
+        int move = MoveUtils.createMoveFromMoveDTO(moveDTO);
         validator.makeMoveInputValidator(board, move);
 
         board.executeMove(move);

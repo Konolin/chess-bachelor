@@ -19,7 +19,7 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public class MoveHistoryEntry {
-    private final Move move;
+    private final int move;
     private final Alliance moveMaker;
     private final int enPassantPawnPosition;
 

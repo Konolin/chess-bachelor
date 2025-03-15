@@ -4,12 +4,9 @@ import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.bitboards.MagicBitBoards;
 import com.example.backend.models.bitboards.PiecesBitBoards;
-import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveList;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.PieceType;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Utility class for chess-related operations such as piece creation and move filtering.
@@ -110,21 +107,21 @@ public class ChessUtils {
      * @param opponentsAlliance the alliance of the opponent
      * @return a list of valid moves that do not result in check
      */
-    public static List<Move> filterMovesResultingInCheck(final List<Move> allMoves,
-                                                         final PiecesBitBoards piecesBitBoards,
-                                                         final int enPassantPosition,
-                                                         final Alliance opponentsAlliance) {
-        final List<Move> validMoves = new ArrayList<>();
+    public static MoveList filterMovesResultingInCheck(final MoveList allMoves,
+                                                       final PiecesBitBoards piecesBitBoards,
+                                                       final int enPassantPosition,
+                                                       final Alliance opponentsAlliance) {
+        final MoveList validMoves = new MoveList();
 
-        for (final Move move : allMoves) {
+        for (int i = 0; i < allMoves.size(); i++) {
             // temporarily update the bitboards
-            long fromTileMask = 1L << move.getFromTileIndex();
-            long toTileMask = 1L << move.getToTileIndex();
+            long fromTileMask = 1L << MoveUtils.getFromTileIndex(allMoves.get(i));
+            long toTileMask = 1L << MoveUtils.getToTileIndex(allMoves.get(i));
 
             // check if the move leaves the opponent's king in check
             if (!isSquareAttacked(piecesBitBoards, fromTileMask, toTileMask, enPassantPosition,
-                    opponentsAlliance, move.getMoveType().isEnPassant())) {
-                validMoves.add(move);
+                    opponentsAlliance, MoveUtils.getMoveType(allMoves.get(i)).isEnPassant())) {
+                validMoves.add(allMoves.get(i));
             }
         }
 

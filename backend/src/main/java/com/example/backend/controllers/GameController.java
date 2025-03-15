@@ -1,7 +1,7 @@
 package com.example.backend.controllers;
 
 import com.example.backend.models.dtos.BoardStateDTO;
-import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveDTO;
 import com.example.backend.services.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -37,22 +37,22 @@ public class GameController {
      * Retrieves all possible moves for a piece located at a given tile index.
      *
      * @param tileIndex the index of the tile for which to get possible moves
-     * @return a {@code ResponseEntity} containing a list of {@code Move} objects
+     * @return a {@code ResponseEntity} containing a list of {@code MoveDTO} objects
      */
     @GetMapping("/get-moves-for-position")
-    public ResponseEntity<List<Move>> getAllMovesForPosition(@RequestParam Integer tileIndex) {
+    public ResponseEntity<List<MoveDTO>> getAllMovesForPosition(@RequestParam Integer tileIndex) {
         return ResponseEntity.ok(gameService.getAllMovesForPosition(tileIndex));
     }
 
     /**
      * Executes a move and updates the game state.
      *
-     * @param move the {@code Move} object representing the move to be made
+     * @param moveDTO the {@code MoveDTO} object representing the move to be made
      * @return a {@code ResponseEntity} containing the updated {@code BoardStateDTO}
      */
     @PostMapping("make-move")
-    public ResponseEntity<BoardStateDTO> makeMove(@RequestBody Move move) {
-        return ResponseEntity.ok(gameService.makeMove(move));
+    public ResponseEntity<BoardStateDTO> makeMove(@RequestBody MoveDTO moveDTO) {
+        return ResponseEntity.ok(gameService.makeMove(moveDTO));
     }
 
     /**

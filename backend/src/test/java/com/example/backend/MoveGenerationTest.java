@@ -1,13 +1,12 @@
 package com.example.backend;
 
 import com.example.backend.models.board.Board;
-import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveList;
 import com.example.backend.services.FenService;
+import com.example.backend.utils.MoveUtils;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -24,15 +23,15 @@ class MoveGenerationTest {
             return 1;
         }
 
-        List<Move> legalMoves = board.getAlliancesLegalMoves(board.getMoveMaker());
+        MoveList legalMoves = board.getAlliancesLegalMoves(board.getMoveMaker());
 
         long numMoves = 0;
-        for (final Move move : legalMoves) {
-            board.executeMove(move);
+        for (int i = 0; i < legalMoves.size(); i++) {
+            board.executeMove(legalMoves.get(i));
 
             long followingMoves = generateFollowingMovesCount(board, depth - 1, false, false);
             if (isFirstIteration && isDebug) {
-                logger.info("{}: {}", move.toAlgebraic(), followingMoves);
+                logger.info("{}: {}", MoveUtils.toAlgebraic(legalMoves.get(i)), followingMoves);
             }
             numMoves += followingMoves;
 
