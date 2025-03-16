@@ -36,7 +36,7 @@ public class CastleUtils {
         int kingPosition = alliance.isWhite() ? 60 : 4;
 
         // check if the king is in check (if so, castling is not allowed)
-        if ((board.getAlliancesLegalMovesBitBoard(alliance.getOpponent()) & (1L << kingPosition)) != 0) {
+        if ((board.getAlliancesLegalMovesBB(alliance.getOpponent()) & (1L << kingPosition)) != 0) {
             return castleMoves;
         }
 
@@ -108,7 +108,7 @@ public class CastleUtils {
         long opponentPawnBitBoard = alliance.isWhite()
                 ? board.getPiecesBBs().getBlackBitboards()[BitBoardUtils.PAWN_INDEX]
                 : board.getPiecesBBs().getWhiteBitboards()[BitBoardUtils.PAWN_INDEX];
-        long attackBitBoard = board.getAlliancesLegalMovesBitBoard(alliance.getOpponent()) |
+        long attackBitBoard = board.getAlliancesLegalMovesBB(alliance.getOpponent()) |
                 BitBoardUtils.calculatePawnAttackingBitboard(opponentPawnBitBoard, alliance.getOpponent());
 
         for (int offset : offsets) {

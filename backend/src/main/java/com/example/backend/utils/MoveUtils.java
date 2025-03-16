@@ -131,8 +131,8 @@ public class MoveUtils {
         int score = 0;
 
         if (getMoveType(move).isAttack()) {
-            int victimValue = pieceValue(board.getPieceTypeOfTile(getToTileIndex(move)));
-            int attackerValue = pieceValue(board.getPieceTypeOfTile(getFromTileIndex(move)));
+            int victimValue = pieceValue(board.getPieceTypeAtPosition(getToTileIndex(move)));
+            int attackerValue = pieceValue(board.getPieceTypeAtPosition(getFromTileIndex(move)));
             score += (victimValue * 100) - attackerValue;
         }
 

@@ -212,7 +212,7 @@ public class Piece {
 
         // if there's an opponent piece there, it's valid
         if (board.isTileOccupied(candidatePos)
-                && board.getAllianceOfPieceAtPosition(candidatePos) == alliance.getOpponent()) {
+                && board.getPieceAllianceAtPosition(candidatePos) == alliance.getOpponent()) {
             return true;
         }
 

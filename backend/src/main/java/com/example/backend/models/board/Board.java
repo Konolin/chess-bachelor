@@ -81,7 +81,7 @@ public class Board {
     private MoveList convertBitBoardsToMoves(final Map<Integer, Long> bitBoards) {
         MoveList legalMoves = new MoveList();
         for (final Map.Entry<Integer, Long> entry : bitBoards.entrySet()) {
-            legalMoves.addAll(Piece.generateLegalMovesList(this, entry.getKey(), moveMaker, getPieceTypeOfTile(entry.getKey()), entry.getValue()));
+            legalMoves.addAll(Piece.generateLegalMovesList(this, entry.getKey(), moveMaker, getPieceTypeAtPosition(entry.getKey()), entry.getValue()));
         }
         return legalMoves;
     }
@@ -226,8 +226,8 @@ public class Board {
         final int toTileIndex = MoveUtils.getToTileIndex(move);
 
         // get the type of pieces involved in this move
-        PieceType movingPieceType = getPieceTypeOfTile(fromTileIndex);
-        PieceType capturedPieceType = getPieceTypeOfTile(toTileIndex);
+        PieceType movingPieceType = getPieceTypeAtPosition(fromTileIndex);
+        PieceType capturedPieceType = getPieceTypeAtPosition(toTileIndex);
 
         // create the move history entry
         MoveHistoryEntry moveHistoryEntry = new MoveHistoryEntry(
@@ -301,24 +301,6 @@ public class Board {
     }
 
     /**
-     * Returns the alliance of the piece at the given position.
-     *
-     * @param position the position of the piece
-     * @return the alliance of the piece at the given position, or null if the tile is empty
-     * @throws ChessException if the position is invalid, i.e. not in the range [0, 63]
-     *                        with ChessExceptionCodes.INVALID_POSITION
-     */
-    public Alliance getAllianceOfPieceAtPosition(final int position) {
-        if (!ChessUtils.isValidPosition(position)) {
-            throw new ChessException("Invalid position " + position, ChessExceptionCodes.INVALID_POSITION);
-        }
-        if (!isTileOccupied(position)) {
-            return null;
-        }
-        return piecesBBs.getAllianceOfTile(position);
-    }
-
-    /**
      * Checks if the given alliance is in stalemate.
      * An alliance is in stalemate if it is not in check, and it has no legal moves.
      *
@@ -326,7 +308,7 @@ public class Board {
      * @return true if the given alliance is in stalemate, false otherwise
      */
     public boolean isAllianceInStalemate(final Alliance alliance) {
-        return !isAllianceInCheck(alliance) && getAlliancesLegalMovesBitBoards(alliance).isEmpty();
+        return !isAllianceInCheck(alliance) && getAlliancesLegalMovesBBs(alliance).isEmpty();
     }
 
     /**
@@ -337,7 +319,7 @@ public class Board {
      * @return true if the given alliance is in checkmate, false otherwise
      */
     public boolean isAllianceInCheckMate(final Alliance alliance) {
-        return isAllianceInCheck(alliance) && getAlliancesLegalMovesBitBoards(alliance).isEmpty();
+        return isAllianceInCheck(alliance) && getAlliancesLegalMovesBBs(alliance).isEmpty();
     }
 
     /**
@@ -354,7 +336,7 @@ public class Board {
                 : Long.numberOfTrailingZeros(piecesBBs.getBlackBitboards()[BitBoardUtils.KING_INDEX]);
 
         // check if the king's position is attacked tiles of the opponent
-        return (getAlliancesLegalMovesBitBoard(alliance.getOpponent()) & (1L << kingPosition)) != 0;
+        return (getAlliancesLegalMovesBB(alliance.getOpponent()) & (1L << kingPosition)) != 0;
     }
 
     /**
@@ -368,13 +350,31 @@ public class Board {
     }
 
     /**
+     * Returns the alliance of the piece at the given position.
+     *
+     * @param position the position of the piece
+     * @return the alliance of the piece at the given position, or null if the tile is empty
+     * @throws ChessException if the position is invalid, i.e. not in the range [0, 63]
+     *                        with ChessExceptionCodes.INVALID_POSITION
+     */
+    public Alliance getPieceAllianceAtPosition(final int position) {
+        if (!ChessUtils.isValidPosition(position)) {
+            throw new ChessException("Invalid position " + position, ChessExceptionCodes.INVALID_POSITION);
+        }
+        if (!isTileOccupied(position)) {
+            return null;
+        }
+        return piecesBBs.getAllianceOfTile(position);
+    }
+
+    /**
      * Returns the type of the piece at the given position.
      *
-     * @param tileCoordinate the coordinate of the tile to check
+     * @param position the coordinate of the tile to check
      * @return the type of the piece at the given position, or null if the tile is empty
      */
-    public PieceType getPieceTypeOfTile(final int tileCoordinate) {
-        return piecesBBs.getPieceTypeOfTile(tileCoordinate);
+    public PieceType getPieceTypeAtPosition(final int position) {
+        return piecesBBs.getPieceTypeOfTile(position);
     }
 
     /**
@@ -388,7 +388,7 @@ public class Board {
      */
     public MoveList getAlliancesLegalMoves(final Alliance alliance) {
         MoveList legalMoves = new MoveList();
-        legalMoves.addAll(convertBitBoardsToMoves(getAlliancesLegalMovesBitBoards(alliance)));
+        legalMoves.addAll(convertBitBoardsToMoves(getAlliancesLegalMovesBBs(alliance)));
         legalMoves.addAll(CastleUtils.calculateCastleMoves(this, alliance));
         return ChessUtils.filterMovesResultingInCheck(legalMoves, piecesBBs, enPassantPawnPosition, alliance.getOpponent());
     }
@@ -400,7 +400,7 @@ public class Board {
      * @return a map where each key is the integer board coordinate of a piece, and each value
      * is a bitboard (long) indicating valid move destinations for that piece
      */
-    public Map<Integer, Long> getAlliancesLegalMovesBitBoards(final Alliance alliance) {
+    public Map<Integer, Long> getAlliancesLegalMovesBBs(final Alliance alliance) {
         return alliance.isWhite() ? whiteLegalMovesBBs : blackLegalMovesBBs;
     }
 
@@ -410,7 +410,7 @@ public class Board {
      * @param alliance the alliance for which to get the legal moves bitboard
      * @return a bitboard (long) indicating all the attacked tiles for the given alliance
      */
-    public long getAlliancesLegalMovesBitBoard(final Alliance alliance) {
+    public long getAlliancesLegalMovesBB(final Alliance alliance) {
         return alliance.isWhite() ? whiteAttacksBB : blackAttacksBB;
     }
 
@@ -427,7 +427,7 @@ public class Board {
         }
 
         // get the piece type
-        PieceType pieceType = getPieceTypeOfTile(position);
+        PieceType pieceType = getPieceTypeAtPosition(position);
         String pieceString = "";
         switch (pieceType) {
             case PAWN -> pieceString = "P";
@@ -438,7 +438,7 @@ public class Board {
             case KING -> pieceString = "K";
         }
 
-        return getAllianceOfPieceAtPosition(position).isWhite() ? pieceString : pieceString.toLowerCase();
+        return getPieceAllianceAtPosition(position).isWhite() ? pieceString : pieceString.toLowerCase();
     }
 
     @Override

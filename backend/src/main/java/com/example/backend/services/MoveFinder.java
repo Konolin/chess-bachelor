@@ -133,7 +133,7 @@ public class MoveFinder {
             zobristKeyUses++;
             return transpositionTable.get(zobristKey);
         }
-        float prediction = ModelService.makePrediction(FenService.createFENFromGame(board));
+        float prediction = ModelService.makePrediction(board);
         transpositionTable.put(zobristKey, prediction);
         return prediction;
     }

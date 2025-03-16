@@ -49,11 +49,11 @@ public class ZobristUtils {
         long hash = 0L;
 
         for (int tile = 0; tile < 64; tile++) {
-            PieceType pieceType = board.getPieceTypeOfTile(tile);
+            PieceType pieceType = board.getPieceTypeAtPosition(tile);
             if (pieceType == null) {
                 continue;
             }
-            int pieceIndex = pieceType.getIndex() + (board.getAllianceOfPieceAtPosition(tile).isWhite() ? 0 : 6);
+            int pieceIndex = pieceType.getIndex() + (board.getPieceAllianceAtPosition(tile).isWhite() ? 0 : 6);
             hash ^= PIECE_HASHES[pieceIndex][tile];
         }
 

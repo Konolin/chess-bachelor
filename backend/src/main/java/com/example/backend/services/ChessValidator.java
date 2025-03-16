@@ -46,7 +46,7 @@ public class ChessValidator {
         }
 
         // check if the destination tile is occupied by a friendly piece
-        if (board.getAllianceOfPieceAtPosition(MoveUtils.getToTileIndex(move)) == board.getAllianceOfPieceAtPosition(MoveUtils.getFromTileIndex(move))) {
+        if (board.getPieceAllianceAtPosition(MoveUtils.getToTileIndex(move)) == board.getPieceAllianceAtPosition(MoveUtils.getFromTileIndex(move))) {
             throw new ChessException("Can not move to a tile occupied by a friendly piece", ChessExceptionCodes.INVALID_MOVE);
         }
     }

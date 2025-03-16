@@ -68,11 +68,11 @@ public class GameService {
         MoveList legalMoves;
 
         if (board.isTileOccupied(position)) {
-            final PieceType pieceTypeAtPosition = board.getPieceTypeOfTile(position);
+            final PieceType pieceTypeAtPosition = board.getPieceTypeAtPosition(position);
 
             // get the moves and filter the ones that result in the check of the current player
             legalMoves = Piece.generateLegalMovesList(board, position, board.getMoveMaker(),
-                    pieceTypeAtPosition, board.getAlliancesLegalMovesBitBoards(board.getMoveMaker()).get(position));
+                    pieceTypeAtPosition, board.getAlliancesLegalMovesBBs(board.getMoveMaker()).get(position));
             legalMoves = ChessUtils.filterMovesResultingInCheck(legalMoves, board.getPiecesBBs(),
                     board.getEnPassantPawnPosition(), board.getMoveMaker().getOpponent());
 
