@@ -12,30 +12,37 @@ import org.tensorflow.ndarray.FloatNdArray;
 import org.tensorflow.ndarray.NdArrays;
 import org.tensorflow.ndarray.Shape;
 import org.tensorflow.ndarray.buffer.DataBuffers;
+import org.tensorflow.proto.framework.ConfigProto;
 import org.tensorflow.types.TFloat32;
 
 public class ModelService {
-
-    // Load the model only once
-    private static final SavedModelBundle MODEL = SavedModelBundle.load("src/main/resources/model", "serve");
-    private static final Session SESSION = MODEL.session();
+    private static final Session SESSION;
 
     private static final int[][][] REUSED_BOARD = new int[8][8][13];
     private static final float[][][][] REUSED_INPUT_DATA = new float[1][8][8][13];
+
+    static {
+        int numThreads = Runtime.getRuntime().availableProcessors();
+
+        ConfigProto config = ConfigProto.newBuilder()
+                .setIntraOpParallelismThreads(numThreads)
+                .setInterOpParallelismThreads(numThreads)
+                .build();
+
+        SavedModelBundle bundle = SavedModelBundle
+                .loader("src/main/resources/model")
+                .withConfigProto(config)
+                .withTags("serve")
+                .load();
+
+        SESSION = bundle.session();
+    }
 
     private ModelService() {
         throw new ChessException("Can not instantiate this class", ChessExceptionCodes.ILLEGAL_STATE);
     }
 
     private static void encodeFenStringInPlace(Board board) {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                for (int k = 0; k < 13; k++) {
-                    REUSED_BOARD[i][j][k] = 0;
-                }
-            }
-        }
-
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 PieceType pieceType = board.getPieceTypeAtPosition(i * 8 + j);
