@@ -4,6 +4,11 @@ import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.MoveList;
 import com.example.backend.utils.MoveUtils;
 import com.example.backend.utils.ZobristUtils;
+import org.tensorflow.Graph;
+import org.tensorflow.Session;
+import org.tensorflow.TensorFlow;
+import org.tensorflow.proto.framework.ConfigProto;
+import org.tensorflow.proto.framework.GPUOptions;
 
 import java.util.HashMap;
 import java.util.Map;
