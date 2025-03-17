@@ -107,4 +107,91 @@ class MoveGenerationTest {
             assertEquals(expectedMoves[i], numMoves);
         }
     }
+
+    // values from https://github.com/AndyGrant/Ethereal/blob/master/src/perft/standard.epd
+    @Test
+    void testMoveGenerationPosition7() {
+        Board board = FenService.createGameFromFEN("8/2k1p3/3pP3/3P2K1/8/8/8/8 w - - 0 1");
+        long numMoves;
+        int[] expectedMoves = {7, 35, 210, 1_091, 7_028, 34_834};
+        for (int i = 0; i < expectedMoves.length; i++) {
+            numMoves = generateMovesCount(board, i + 1);
+            assertEquals(expectedMoves[i], numMoves);
+        }
+    }
+
+    @Test
+    void testMoveGenerationPosition8() {
+        Board board = FenService.createGameFromFEN("8/1n4N1/2k5/8/8/5K2/1N4n1/8 b - - 0 1");
+        long numMoves;
+        int[] expectedMoves = {15, 193, 2816, 40039, 582642, 8503277};
+        for (int i = 0; i < expectedMoves.length; i++) {
+            numMoves = generateMovesCount(board, i + 1);
+            assertEquals(expectedMoves[i], numMoves);
+        }
+    }
+
+    @Test
+    void testMoveGenerationPosition9() {
+        Board board = FenService.createGameFromFEN("8/8/k7/p7/P7/K7/8/8 w - - 0 1");
+        long numMoves;
+        int[] expectedMoves = {3, 9, 57, 360, 1969, 10724};
+        for (int i = 0; i < expectedMoves.length; i++) {
+            numMoves = generateMovesCount(board, i + 1);
+            assertEquals(expectedMoves[i], numMoves);
+        }
+    }
+
+    @Test
+    void testMoveGenerationPosition10() {
+        Board board = FenService.createGameFromFEN("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+        long numMoves;
+        // depth 4-6
+        int[] expectedMoves = {43238, 674_624, 11_030_083};
+        for (int i = 0; i < expectedMoves.length; i++) {
+            numMoves = generateMovesCount(board, i + 4);
+            assertEquals(expectedMoves[i], numMoves);
+        }
+    }
+
+    @Test
+    void testMoveGenerationPosition11() {
+        Board board = FenService.createGameFromFEN("k7/8/3p4/8/3P4/8/8/7K w - - 0 1");
+        long numMoves;
+        int[] expectedMoves = {4, 15, 90, 534, 3_450, 20_960};
+        for (int i = 0; i < expectedMoves.length; i++) {
+            numMoves = generateMovesCount(board, i + 1);
+            assertEquals(expectedMoves[i], numMoves);
+        }
+    }
+
+    @Test
+    void testMoveGenerationPosition12() {
+        Board board = FenService.createGameFromFEN("8/8/7k/7p/7P/7K/8/8 w - - 0 1");
+        long numMoves;
+        int[] expectedMoves = {3, 9, 57, 360, 1_969, 10_724};
+        for (int i = 0; i < expectedMoves.length; i++) {
+            numMoves = generateMovesCount(board, i + 1);
+            assertEquals(expectedMoves[i], numMoves);
+        }
+    }
+
+    @Test
+    void testMoveGenerationPosition13() {
+        Board board = FenService.createGameFromFEN("rnbqkb1r/ppppp1pp/7n/4Pp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3");
+        long numMoves;
+        numMoves = generateMovesCount(board, 5);
+        assertEquals(11_139_762, numMoves);
+    }
+
+    @Test
+    void testMoveGenerationPosition14() {
+        Board board = FenService.createGameFromFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        long numMoves;
+        int[] expectedMoves = {48, 2_039, 97_862, 4_085_603, 193_690_690};
+        for (int i = 0; i < expectedMoves.length; i++) {
+            numMoves = generateMovesCount(board, i + 1);
+            assertEquals(expectedMoves[i], numMoves);
+        }
+    }
 }
