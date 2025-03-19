@@ -170,6 +170,14 @@ export class BoardComponent implements OnInit {
       .pipe(take(1))
       .subscribe((response) => {
         this.updateGameState(response);
+
+        // computer makes a move after player
+        this.gameService
+          .computerMakeMove()
+          .pipe(take(1))
+          .subscribe((response) => {
+            this.updateGameState(response);
+          });
       });
 
     this.previousMove = move;
@@ -181,14 +189,6 @@ export class BoardComponent implements OnInit {
     }
 
     this.resetSelection();
-
-    // computer makes a move after player
-    this.gameService
-      .computerMakeMove()
-      .pipe(take(1))
-      .subscribe((response) => {
-        this.updateGameState(response);
-      });
   }
 
   /**
