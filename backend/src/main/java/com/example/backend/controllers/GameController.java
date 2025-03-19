@@ -3,7 +3,6 @@ package com.example.backend.controllers;
 import com.example.backend.models.dtos.BoardStateDTO;
 import com.example.backend.models.moves.MoveDTO;
 import com.example.backend.services.GameService;
-import com.example.backend.services.MoveFinder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -62,7 +61,7 @@ public class GameController {
      * @return a {@code ResponseEntity} containing the updated {@code BoardStateDTO}
      */
     @GetMapping("computer-make-move")
-    public ResponseEntity<BoardStateDTO> computerMakeMove() {
+    public ResponseEntity<BoardStateDTO> computerMakeMove() throws InterruptedException {
         return ResponseEntity.ok(gameService.computerMakeMove());
     }
 

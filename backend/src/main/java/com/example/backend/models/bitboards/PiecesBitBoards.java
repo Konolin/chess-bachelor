@@ -54,6 +54,17 @@ public class PiecesBitBoards {
         updateAllPieces();
     }
 
+    public PiecesBitBoards(final PiecesBitBoards otherBoard) {
+        this.allPieces = otherBoard.allPieces;
+        this.whitePieces = otherBoard.whitePieces;
+        this.blackPieces = otherBoard.blackPieces;
+
+        for (int i = 0; i < 6; i++) {
+            this.whiteBitboards[i] = otherBoard.whiteBitboards[i];
+            this.blackBitboards[i] = otherBoard.blackBitboards[i];
+        }
+    }
+
     /**
      * Maps a PieceType to an index in our bitboard arrays.
      */

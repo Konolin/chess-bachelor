@@ -69,6 +69,26 @@ public class Board {
     }
 
     /**
+     * Copy constructor for the Board class.
+     * Initializes a new Board object with the same state as the given Board object.
+     *
+     * @param otherBoard the Board object to copy
+     */
+    public Board(Board otherBoard) {
+        this.moveMaker = otherBoard.moveMaker;
+        this.enPassantPawnPosition = otherBoard.enPassantPawnPosition;
+        this.piecesBBs = new PiecesBitBoards(otherBoard.piecesBBs);
+        this.whiteLegalMovesBBs = new HashMap<>(otherBoard.whiteLegalMovesBBs);
+        this.blackLegalMovesBBs = new HashMap<>(otherBoard.blackLegalMovesBBs);
+        this.whiteAttacksBB = otherBoard.whiteAttacksBB;
+        this.blackAttacksBB = otherBoard.blackAttacksBB;
+        this.isBlackKingSideCastleCapable = otherBoard.isBlackKingSideCastleCapable;
+        this.isBlackQueenSideCastleCapable = otherBoard.isBlackQueenSideCastleCapable;
+        this.isWhiteKingSideCastleCapable = otherBoard.isWhiteKingSideCastleCapable;
+        this.isWhiteQueenSideCastleCapable = otherBoard.isWhiteQueenSideCastleCapable;
+    }
+
+    /**
      * Converts a map of piece positions and move-destination bitboards into a list of Move objects.
      * This method iterates over the map entries, determines the piece type at each key position,
      * and then calls Piece.generateLegalMovesList to create Move objects for each set bit in the
