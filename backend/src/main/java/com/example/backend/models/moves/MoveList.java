@@ -37,6 +37,18 @@ public class MoveList {
         moves[index] = move;
     }
 
+    public void moveToFront(int move) {
+        for (int i = 0; i < size; i++) {
+            if (moves[i] == move) {
+                for (int j = i; j > 0; j--) {
+                    moves[j] = moves[j - 1];
+                }
+                moves[0] = move;
+                return;
+            }
+        }
+    }
+
     public int size() {
         return size;
     }
