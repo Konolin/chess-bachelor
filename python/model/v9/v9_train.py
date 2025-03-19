@@ -20,8 +20,8 @@ if gpus:
         tf.config.experimental.set_memory_growth(gpu, True)
 
 # Paths for TFRecord datasets
-TRAIN_TFRECORD_PATH = "../../data/train.tfrecords"
-VAL_TFRECORD_PATH = "../../data/val.tfrecords"
+TRAIN_TFRECORD_PATH = "../../data/one-hot/train.tfrecords"
+VAL_TFRECORD_PATH = "../../data/one-hot/val.tfrecords"
 
 BATCH_SIZE = 128  # Increased batch size for efficiency
 EPOCHS = 50

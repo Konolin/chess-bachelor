@@ -11,8 +11,8 @@ from tensorflow.keras.models import Model
 from utils.training_utils import fetch_data_from_db, create_tfrecord_file, create_dataset, save_model_and_history
 
 # TFRecord files for training and validation datasets.
-TRAIN_TFRECORD_PATH = "../../data/train.tfrecords"
-VAL_TFRECORD_PATH = "../../data/val.tfrecords"
+TRAIN_TFRECORD_PATH = "../../data/one-hot/train.tfrecords"
+VAL_TFRECORD_PATH = "../../data/one-hot/val.tfrecords"
 
 BATCH_SIZE = 64
 EPOCHS = 50

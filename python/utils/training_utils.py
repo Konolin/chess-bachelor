@@ -67,6 +67,29 @@ def encode_extra_features(fen_str):
     return np.array([side_to_move] + castling_rights + [en_passant_flag], dtype=np.float32)
 
 
+def encode_fen_to_bitboard(fen_str):
+    """
+        Encodes a FEN string into a 8×8×12 bitboard representation.
+    """
+    board = chess.Board(fen_str)
+
+    bitboards = np.zeros((12, 64), dtype=np.float32)
+
+    piece_map = board.piece_map()
+
+    piece_to_index = {
+        chess.PAWN: 0, chess.KNIGHT: 1, chess.BISHOP: 2,
+        chess.ROOK: 3, chess.QUEEN: 4, chess.KING: 5
+    }
+
+    for square, piece in piece_map.items():
+        idx = piece_to_index[piece.piece_type] + (0 if piece.color == chess.WHITE else 6)
+        bitboards[idx][square] = 1
+
+    bitboards = bitboards.reshape((8, 8, 12))
+    return bitboards
+
+
 def encode_fen_string(fen_str):
     """
     Encodes a FEN string into an 8×8×13 one-hot representation.
@@ -115,7 +138,7 @@ def create_tfrecord_file(df, filename):
         for idx, row in df.iterrows():
             fen = row['fen']
             label = float(row['evaluation'])
-            board_encoded = encode_fen_string(fen)
+            board_encoded = encode_fen_to_bitboard(fen)
             board_flat = board_encoded.flatten().tolist()
             extra_features = encode_extra_features(fen).tolist()
 
@@ -135,12 +158,12 @@ def _parse_function(example_proto):
     Returns a tuple of features and label.
     """
     feature_description = {
-        'board': tf.io.FixedLenFeature([8 * 8 * 13], tf.float32),
+        'board': tf.io.FixedLenFeature([8 * 8 * 12], tf.float32),
         'extra': tf.io.FixedLenFeature([6], tf.float32),
         'label': tf.io.FixedLenFeature([1], tf.float32),
     }
     parsed_features = tf.io.parse_single_example(example_proto, feature_description)
-    board = tf.reshape(parsed_features['board'], (8, 8, 13))
+    board = tf.reshape(parsed_features['board'], (8, 8, 12))
     extra = parsed_features['extra']
     label = tf.squeeze(parsed_features['label'])  # Convert [label] to scalar
     return {'board_input': board, 'extra_input': extra}, label
