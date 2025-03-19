@@ -25,7 +25,7 @@ VAL_TFRECORD_PATH = "../../data/val.tfrecords"
 
 BATCH_SIZE = 256
 EPOCHS = 40
-VERSION = 11
+VERSION = 10
 
 def squeeze_excite_block(input_tensor, ratio=8):
     filters = input_tensor.shape[-1]
