@@ -106,6 +106,12 @@ public class GameService {
         return boardStateDTO;
     }
 
+    /**
+     * Undoes the last move made in the game.
+     * The board is updated by undoing the last move, and the BoardStateDTO is returned with the updated FEN and winner flag.
+     *
+     * @return A BoardStateDTO with the updated board state and winner flag.
+     */
     public BoardStateDTO undoLastMove() {
         board.undoLastMove();
         BoardStateDTO boardStateDTO = new BoardStateDTO();
@@ -130,5 +136,20 @@ public class GameService {
             return moveMaker.isWhite() ? -1 : 1;
         }
         return 0;  // No winner yet
+    }
+
+    /**
+     * Uses the MoveFinder service to get the best move by using the AI model and alpha beta pruning algorithm
+     * After the best move is found, the move is executed
+     *
+     * @return BoardStateDTO object containing the new state
+     */
+    public BoardStateDTO computerMakeMove() {
+        int move = MoveFinder.alphaBetaSearch(board, 1);
+        board.executeMove(move);
+        BoardStateDTO boardStateDTO = new BoardStateDTO();
+        boardStateDTO.setFen(FenService.createFENFromGame(board));
+        boardStateDTO.setWinnerFlag(getWinnerFlag());
+        return boardStateDTO;
     }
 }

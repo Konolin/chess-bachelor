@@ -3,6 +3,7 @@ package com.example.backend.controllers;
 import com.example.backend.models.dtos.BoardStateDTO;
 import com.example.backend.models.moves.MoveDTO;
 import com.example.backend.services.GameService;
+import com.example.backend.services.MoveFinder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -53,6 +54,16 @@ public class GameController {
     @PostMapping("make-move")
     public ResponseEntity<BoardStateDTO> makeMove(@RequestBody MoveDTO moveDTO) {
         return ResponseEntity.ok(gameService.makeMove(moveDTO));
+    }
+
+    /**
+     * Executes a move for the computer player and updates the game state.
+     *
+     * @return a {@code ResponseEntity} containing the updated {@code BoardStateDTO}
+     */
+    @GetMapping("computer-make-move")
+    public ResponseEntity<BoardStateDTO> computerMakeMove() {
+        return ResponseEntity.ok(gameService.computerMakeMove());
     }
 
     /**

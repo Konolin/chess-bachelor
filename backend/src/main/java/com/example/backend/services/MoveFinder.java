@@ -1,14 +1,10 @@
 package com.example.backend.services;
 
 import com.example.backend.models.board.Board;
+import com.example.backend.models.dtos.BoardStateDTO;
 import com.example.backend.models.moves.MoveList;
 import com.example.backend.utils.MoveUtils;
 import com.example.backend.utils.ZobristUtils;
-import org.tensorflow.Graph;
-import org.tensorflow.Session;
-import org.tensorflow.TensorFlow;
-import org.tensorflow.proto.framework.ConfigProto;
-import org.tensorflow.proto.framework.GPUOptions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +14,7 @@ public class MoveFinder {
     private static int zobristKeyUses = 0;
     private static Map<Long, Float> transpositionTable = new HashMap<>();
 
-    public static int findBestMove(Board board, int depth) {
+    public static int alphaBetaSearch(Board board, int depth) {
         float alpha = Float.NEGATIVE_INFINITY;
         float beta = Float.POSITIVE_INFINITY;
 
@@ -143,10 +139,10 @@ public class MoveFinder {
         return prediction;
     }
 
-    public static void main(String[] args) {
+    public void main(String[] args) {
         Board board = FenService.createGameFromFEN("6k1/pp2Q1p1/2p4p/7r/8/6P1/Pq1r1P1P/4R1K1 w - - 0 1");
         long start = System.currentTimeMillis();
-        System.out.println(MoveUtils.toAlgebraic(findBestMove(board, 4)));
+        System.out.println(MoveUtils.toAlgebraic(alphaBetaSearch(board, 4)));
 
         System.out.println("Time taken in seconds: " + (System.currentTimeMillis() - start) / 1000);
         System.out.println("Evaluations: " + evaulations);

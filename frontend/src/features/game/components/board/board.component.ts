@@ -149,6 +149,7 @@ export class BoardComponent implements OnInit {
    * Promotion moves DO NOT executed an api call to the engine in this method. The onPromotedPiece
    * function needs to be called right after this one, to receive a piece to promote to and to
    * execute the call that updates the game state.
+   * At the end of the function, a request is made to the engine to make a move for the computer player.
    *
    * @param move The move to make.
    */
@@ -180,6 +181,14 @@ export class BoardComponent implements OnInit {
     }
 
     this.resetSelection();
+
+    // computer makes a move after player
+    this.gameService
+      .computerMakeMove()
+      .pipe(take(1))
+      .subscribe((response) => {
+        this.updateGameState(response);
+      });
   }
 
   /**
