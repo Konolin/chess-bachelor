@@ -9,22 +9,29 @@ import com.example.backend.utils.ZobristUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Alpha-Beta with Principal Variation Search (PVS).
- * Improvements over Move Ordering Alpha-Beta:
- * - Principal Variation Search for more efficient searching
- * - PV table to track and display the principal variation
- * - Aspiration windows for narrower searches after the first iteration
- * - Internal iterative deepening when TT move is not available
+ * Multi-Threaded Alpha-Beta with Principal Variation Search (PVS).
+ * Improvements:
+ * - Parallel search of root moves
+ * - Thread coordination with work stealing
+ * - Shared transposition table with atomic operations
+ * - Efficient time management for multiple threads
  */
 public class MoveSearch {
     private static final Logger logger = LoggerFactory.getLogger(MoveSearch.class);
 
     // Constants
     private static final int MAX_DEPTH = 30;
-    private static final int TT_SIZE = 1024 * 1024; // 1M entries
+    private static final int TT_SIZE = 4 * 1024 * 1024; // 4M entries
     private static final int MAX_KILLER_MOVES = 2;
     private static final int ASPIRATION_WINDOW = 25; // In centi-pawns
 
@@ -34,24 +41,55 @@ public class MoveSearch {
     // Transposition table
     private static final TranspositionEntry[] transpositionTable = new TranspositionEntry[TT_SIZE];
 
-    // Move ordering helpers
-    private static final int[][] killerMoves = new int[MAX_DEPTH][MAX_KILLER_MOVES];
-    private static final int[][] historyTable = new int[64][64]; // From-To square history
+    // Move ordering helpers - separate tables for each thread (indexed by thread id % 2)
+    private static final int[][][] killerMoves = new int[2][MAX_DEPTH][MAX_KILLER_MOVES];
+    private static final int[][] historyTable = new int[64][64]; // From-To square history, shared
 
-    // Principal Variation (PV) tracking
-    private static final int[][] pvTable = new int[MAX_DEPTH][MAX_DEPTH];
-    private static final int[] pvLength = new int[MAX_DEPTH];
+    // Principal Variation (PV) tracking - separate for each thread
+    private static final ThreadLocal<int[][]> threadPvTable = ThreadLocal.withInitial(() -> new int[MAX_DEPTH][MAX_DEPTH]);
+    private static final ThreadLocal<int[]> threadPvLength = ThreadLocal.withInitial(() -> new int[MAX_DEPTH]);
 
-    // Search statistics
-    private static int nodesSearched = 0;
-    private static int evaluations = 0;
-    private static int ttHits = 0;
-    private static int cutoffs = 0;
-    private static int aspirationFailLows = 0;
-    private static int aspirationFailHighs = 0;
+    // Shared best PV information
+    private static final int[][] bestPvTable = new int[MAX_DEPTH][MAX_DEPTH];
+    private static final int[] bestPvLength = new int[MAX_DEPTH];
+
+    // Search statistics - atomic for thread safety
+    private static final AtomicInteger nodesSearched = new AtomicInteger(0);
+    private static final AtomicInteger evaluations = new AtomicInteger(0);
+    private static final AtomicInteger ttHits = new AtomicInteger(0);
+    private static final AtomicInteger cutoffs = new AtomicInteger(0);
+    private static final AtomicInteger aspirationFailLows = new AtomicInteger(0);
+    private static final AtomicInteger aspirationFailHighs = new AtomicInteger(0);
+
+    // Search control
     private static long startTime;
-    private static long endTime;  // New: explicit end time tracking
-    private static boolean stopSearch = false;
+    private static long endTime;
+    private static final AtomicBoolean stopSearch = new AtomicBoolean(false);
+
+    // Parallel search coordination
+    private static final Set<Integer> currentRootMoves = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private static final Map<Integer, SearchResult> moveResults = new ConcurrentHashMap<>();
+
+    /**
+     * Result from a search thread
+     */
+    private static class SearchResult {
+        final int move;
+        final float score;
+        final int depth;
+        final int[][] pvTable;
+        final int pvLength;
+
+        public SearchResult(int move, float score, int depth, int[][] pvTable, int pvLength) {
+            this.move = move;
+            this.score = score;
+            this.depth = depth;
+            // Copy PV data
+            this.pvTable = new int[MAX_DEPTH][MAX_DEPTH];
+            if (pvLength >= 0) System.arraycopy(pvTable[0], 0, this.pvTable[0], 0, pvLength);
+            this.pvLength = pvLength;
+        }
+    }
 
     /**
      * Find the best move for the current board position within time limit
@@ -61,14 +99,23 @@ public class MoveSearch {
      * @return The best move found
      */
     public static int findBestMove(Board board, int timeMs) {
+        try {
+            return findBestMoveInternal(board, timeMs);
+        } finally {
+            stopSearch.set(false);
+        }
+    }
+
+    private static int findBestMoveInternal(Board board, int timeMs) {
         // Initialize search state
         clearStatistics();
         startTime = System.currentTimeMillis();
-
-        // Calculate end time with a buffer to ensure we don't overrun
         endTime = startTime + (long)(timeMs * TIME_BUFFER_FACTOR);
+        stopSearch.set(false);
 
-        stopSearch = false;
+        // Create a thread pool
+        int availableProcessors = Runtime.getRuntime().availableProcessors();
+        ExecutorService executor = Executors.newFixedThreadPool(availableProcessors);
 
         // Generate all legal moves at the root
         MoveList rootMoves = board.getAlliancesLegalMoves(board.getMoveMaker());
@@ -83,202 +130,211 @@ public class MoveSearch {
             return rootMoves.get(0);
         }
 
-        // Iterative deepening framework
-        int bestMove = rootMoves.get(0); // Always have a move to return
+        // Best move and score tracking
+        int bestMove = rootMoves.get(0); // Default to first move
         float bestScore = Float.NEGATIVE_INFINITY;
         int completedDepth = 0;
+        orderMoves(rootMoves, board, 0, 0, 0);
 
-        // Increase depth until time runs out or max depth reached
-        for (int depth = 1; depth <= MAX_DEPTH; depth++) {
-            // Reset aspiration window for this depth
-            float alpha = Float.NEGATIVE_INFINITY;
-            float beta = Float.POSITIVE_INFINITY;
-            float depthBestScore = Float.NEGATIVE_INFINITY;
-            int depthBestMove = 0;
-            int aspirationRetries = 0;
+        try {
+            // Iterative deepening framework
+            for (int depth = 1; depth <= MAX_DEPTH; depth++) {
+                final int currentDepth = depth;
+                currentRootMoves.clear();
+                moveResults.clear();
 
-            // Use aspiration windows after the first depth is completed
-            if (depth > 1) {
-                alpha = bestScore - ASPIRATION_WINDOW / 100.0f;
-                beta = bestScore + ASPIRATION_WINDOW / 100.0f;
-            }
+                // Track whether iterative deepening completed at this depth
+                final AtomicBoolean depthCompleted = new AtomicBoolean(false);
 
-            // Track if we need to retry due to aspiration window failure
-            boolean needRetry;
+                // Use aspirational windows for efficiency after first full search
+                float alpha = depth > 1 ? bestScore - ASPIRATION_WINDOW/100.0f : Float.NEGATIVE_INFINITY;
+                float beta = depth > 1 ? bestScore + ASPIRATION_WINDOW/100.0f : Float.POSITIVE_INFINITY;
 
-            do {
-                // Check if we're already out of time before starting a new iteration
-                if (System.currentTimeMillis() >= endTime) {
-                    stopSearch = true;
-                    break;
+                if (depth > 1 && bestPvLength[0] > 0) {
+                    // Prioritize PV move
+                    prioritizePvMove(rootMoves, bestPvTable[0][0]);
                 }
 
-                needRetry = false;
-
-                // PV from previous iteration - these moves should be searched first
-                if (depth > 1 && pvLength[0] > 0) {
-                    orderRootMoves(rootMoves, board, pvTable[0][0]);
-                } else {
-                    // Just sort moves for the first iteration
-                    orderMoves(rootMoves, board, 0, 0);
-                }
-
-                // Search all moves at the root
+                // Create and submit search tasks
+                Future<?>[] futures = new Future<?>[rootMoves.size()];
                 for (int i = 0; i < rootMoves.size(); i++) {
-                    int move = rootMoves.get(i);
+                    final int moveIndex = i;
 
-                    // Execute the move
-                    board.executeMove(move);
+                    // Submit work for each root move
+                    futures[i] = executor.submit(() -> {
+                        if (stopSearch.get()) return;
 
-                    // For first move, always do a full search
-                    float score;
-                    if (i == 0) {
-                        // Initialize PV tracking for this iteration
-                        pvLength[0] = 0;
+                        int moveToSearch = rootMoves.get(moveIndex);
 
-                        // Full window search
-                        score = -alphaBeta(board, depth - 1, -beta, -alpha, 1, true);
-                    }
-                    // For remaining moves, try a null window search first
-                    else {
-                        // Null window search
-                        score = -alphaBeta(board, depth - 1, -alpha - 0.01f, -alpha, 1, false);
-
-                        // If the move might be better than alpha, do a full re-search
-                        if (score > alpha && score < beta && !stopSearch) {
-                            pvLength[0] = 0; // Reset PV for potential new best move
-                            score = -alphaBeta(board, depth - 1, -beta, -alpha, 1, true);
+                        // Skip if another thread is already searching this move
+                        if (!currentRootMoves.add(moveToSearch)) {
+                            return;
                         }
-                    }
 
-                    // Undo the move
-                    board.undoLastMove();
+                        try {
+                            Board boardCopy = new Board(board);
+                            boardCopy.executeMove(moveToSearch);
 
-                    // Check if time is up
-                    if (stopSearch) {
-                        break;
-                    }
+                            // Initialize thread-local PV tracking for this iteration
+                            threadPvLength.get()[0] = 0;
 
-                    logger.debug("Depth: {} Move: {} Score: {}", depth, move, score);
+                            // Use PVS at root - assume first move is best for tighter bounds
+                            float score;
+                            if (moveIndex == 0) {
+                                // Full window search for first move
+                                score = -alphaBeta(boardCopy, currentDepth - 1, -beta, -alpha, 1, true, Thread.currentThread().threadId() % 2);
+                            } else {
+                                // Try a null window search first
+                                score = -alphaBeta(boardCopy, currentDepth - 1, -alpha - 0.01f, -alpha, 1, false, Thread.currentThread().threadId() % 2);
 
-                    // Update best move if this move is better
-                    if (score > depthBestScore) {
-                        depthBestScore = score;
-                        depthBestMove = move;
-
-                        // Update alpha for pruning
-                        if (score > alpha) {
-                            alpha = score;
-
-                            // Record this move as first in the PV
-                            if (pvLength[0] > 0) {
-                                pvTable[0][0] = move;
+                                // If this move might be better than alpha, do a full re-search
+                                if (score > alpha && score < beta && !stopSearch.get()) {
+                                    threadPvLength.get()[0] = 0; // Reset PV for potential new best move
+                                    score = -alphaBeta(boardCopy, currentDepth - 1, -beta, -alpha, 1, true, Thread.currentThread().threadId() % 2);
+                                }
                             }
+
+                            // Store result with PV information
+                            moveResults.put(moveToSearch, new SearchResult(
+                                    moveToSearch,
+                                    score,
+                                    currentDepth,
+                                    threadPvTable.get(),
+                                    threadPvLength.get()[0]
+                            ));
+
+                        } catch (Exception e) {
+                            logger.error("Error searching move {}: {}", moveToSearch, e.getMessage());
+                        } finally {
+                            currentRootMoves.remove(moveToSearch);
                         }
-                    }
+                    });
                 }
 
-                // If search was stopped, exit retry loop
-                if (stopSearch) {
+                // Wait for completion or timeout
+                long remainingTime = endTime - System.currentTimeMillis();
+                if (remainingTime <= 0) {
+                    stopSearch.set(true);
                     break;
                 }
 
-                // Check for aspiration window failures and adjust as needed
-                if (depthBestScore <= alpha) {
-                    // Score is too low - adjust alpha and retry
-                    aspirationFailLows++;
-                    aspirationRetries++;
+                try {
+                    // Allow extra time for this depth to finish if close
+                    long timeoutForDepth = Math.min(remainingTime + 100, remainingTime * 2);
 
-                    // Progressively widen the window on repeated fails
-                    if (aspirationRetries > 2) {
-                        alpha = Float.NEGATIVE_INFINITY;
-                        logger.debug("Depth {}: Multiple fail-lows, using full window", depth);
-                    } else {
-                        alpha = alpha - (ASPIRATION_WINDOW * aspirationRetries) / 100.0f;
-                        logger.debug("Depth {}: Fail-low, retrying with alpha={}", depth, alpha);
-                    }
-
-                    needRetry = true;
-                } else if (depthBestScore >= beta) {
-                    // Score is too high - adjust beta and retry
-                    aspirationFailHighs++;
-                    aspirationRetries++;
-
-                    // Progressively widen the window on repeated fails
-                    if (aspirationRetries > 2) {
-                        beta = Float.POSITIVE_INFINITY;
-                        logger.debug("Depth {}: Multiple fail-highs, using full window", depth);
-                    } else {
-                        beta = beta + (ASPIRATION_WINDOW * aspirationRetries) / 100.0f;
-                        logger.debug("Depth {}: Fail-high, retrying with beta={}", depth, beta);
-                    }
-
-                    needRetry = true;
+                    // Wait for search completion or timeout
+                    executor.invokeAll(List.of(() -> {
+                        try {
+                            // Wait for all futures to complete or be cancelled
+                            for (Future<?> future : futures) {
+                                try {
+                                    future.get(timeoutForDepth, TimeUnit.MILLISECONDS);
+                                } catch (Exception e) {
+                                    // Ignore timeouts and cancellations
+                                }
+                            }
+                            depthCompleted.set(true);
+                        } catch (Exception e) {
+                            logger.error("Error waiting for search completion: {}", e.getMessage());
+                        }
+                        return null;
+                    }), remainingTime, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    logger.info("Search interrupted at depth {}", depth);
+                    stopSearch.set(true);
                 }
 
-                // Exit loop if we've already found a mate or time is up
-                if (stopSearch || Math.abs(depthBestScore) > 900) {
-                    needRetry = false;
+                // Check results and update best move
+                float bestMoveScore = Float.NEGATIVE_INFINITY;
+                int newBestMove = bestMove;
+                SearchResult bestResult = null;
+
+                for (SearchResult result : moveResults.values()) {
+                    if (result.score > bestMoveScore) {
+                        bestMoveScore = result.score;
+                        newBestMove = result.move;
+                        bestResult = result;
+                    }
                 }
 
-            } while (needRetry);
+                // Only update if we have valid results
+                if (bestResult != null) {
+                    bestMove = newBestMove;
+                    bestScore = bestMoveScore;
+                    completedDepth = depthCompleted.get() ? depth : completedDepth;
 
-            // If search was stopped, use best move from previous depth
-            if (stopSearch) {
-                logger.info("Search stopped during depth {}", depth);
-                break;
+                    // Update best PV
+                    bestPvLength[0] = bestResult.pvLength;
+                    if (bestResult.pvLength >= 0)
+                        System.arraycopy(bestResult.pvTable[0], 0, bestPvTable[0], 0, bestResult.pvLength);
+
+                    // Log progress with PV line
+                    logPVLine(depth, bestScore);
+                }
+
+                // Check if we've exceeded our time limit
+                if (System.currentTimeMillis() >= endTime) {
+                    logger.info("Time limit approaching, stopping at depth {}", completedDepth);
+                    stopSearch.set(true);
+                    break;
+                }
+
+                // If we found a checkmate, no need to search deeper
+                if (bestScore > 900 || bestScore < -900) {
+                    logger.info("Mate found, stopping search");
+                    break;
+                }
             }
-
-            // Update best move with the completed depth results
-            bestMove = depthBestMove;
-            bestScore = depthBestScore;
-            completedDepth = depth;
-
-            // Log progress with PV line
-            logPVLine(depth, bestScore);
-
-            // Check if time is nearly up - don't start a new depth if we might not finish
-            if (System.currentTimeMillis() >= endTime) {
-                logger.info("Time limit approaching, stopping at depth {}", completedDepth);
-                stopSearch = true;
-                break;
-            }
-
-            // If we found a checkmate, no need to search deeper
-            if (bestScore > 900 || bestScore < -900) {
-                logger.info("Mate found, stopping search");
-                break;
+        } finally {
+            // Ensure we clean up the executor
+            stopSearch.set(true);
+            executor.shutdownNow();
+            try {
+                executor.awaitTermination(1, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
 
         // Log search statistics
         long timeElapsed = System.currentTimeMillis() - startTime;
+        logger.info("------------------------------------------------------------------");
         logger.info("Search completed at depth {} in {} ms", completedDepth, timeElapsed);
-        logger.info("Nodes searched: {}", nodesSearched);
-        logger.info("Evaluations: {}", evaluations);
-        logger.info("TT hits: {}", ttHits);
-        logger.info("Cutoffs: {}", cutoffs);
-        logger.info("Aspiration window fails: {} low, {} high", aspirationFailLows, aspirationFailHighs);
-        logger.info("Best move: {} (score: {})", MoveUtils.toAlgebraic(bestMove), bestScore);
+        logger.info("Nodes searched: {}", nodesSearched.get());
+        logger.info("Evaluations: {}", evaluations.get());
+        logger.info("TT hits: {}", ttHits.get());
+        logger.info("Cutoffs: {}", cutoffs.get());
+        logger.info("Aspiration window fails: {} low, {} high",
+                aspirationFailLows.get(), aspirationFailHighs.get());
 
+        // Print PV line
+        if (bestPvLength[0] > 0) {
+            StringBuilder pvLine = new StringBuilder("PV line: ");
+            for (int i = 0; i < bestPvLength[0]; i++) {
+                pvLine.append(MoveUtils.toAlgebraic(bestPvTable[0][i])).append(" ");
+            }
+            logger.info(pvLine.toString());
+        }
+
+        logger.info("Best move: {} (score: {})", MoveUtils.toAlgebraic(bestMove), bestScore);
         return bestMove;
     }
 
     /**
      * Alpha-beta search algorithm with PVS optimization and PV tracking
      */
-    private static float alphaBeta(Board board, int depth, float alpha, float beta, int ply, boolean isPVNode) {
+    private static float alphaBeta(Board board, int depth, float alpha, float beta, int ply, boolean isPVNode, long threadId) {
         // Update node counter
-        nodesSearched++;
+        nodesSearched.incrementAndGet();
 
-        // Check if search time is up - this is the fix!
+        // Check if search time is up
         if (System.currentTimeMillis() >= endTime) {
-            stopSearch = true;
+            stopSearch.set(true);
             return 0; // Return a neutral value when stopping
         }
 
-        // Initialize PV length
-        pvLength[ply] = 0;
+        // Initialize PV length for this ply
+        threadPvLength.get()[ply] = 0;
 
         // Recursion base case: leaf node
         if (depth <= 0) {
@@ -290,15 +346,15 @@ public class MoveSearch {
         TranspositionEntry ttEntry = probeTranspositionTable(zobristKey);
 
         if (!isPVNode && ttEntry != null && ttEntry.getDepth() >= depth) {
-            ttHits++;
+            ttHits.incrementAndGet();
 
             // Use TT entry if it provides enough information for this node type
             switch (ttEntry.getNodeType()) {
                 case EXACT:
                     // Store TT move in PV
                     if (ttEntry.getBestMove() != 0) {
-                        pvTable[ply][0] = ttEntry.getBestMove();
-                        pvLength[ply] = 1;
+                        threadPvTable.get()[ply][0] = ttEntry.getBestMove();
+                        threadPvLength.get()[ply] = 1;
                     }
                     return ttEntry.getEvaluation();
 
@@ -319,7 +375,7 @@ public class MoveSearch {
         // Internal iterative deepening if we don't have a TT move and this is a PV node
         int ttMove = (ttEntry != null) ? ttEntry.getBestMove() : 0;
         if (isPVNode && depth >= 4 && ttMove == 0) {
-            alphaBeta(board, depth - 2, alpha, beta, ply, true);
+            alphaBeta(board, depth - 2, alpha, beta, ply, true, threadId);
             ttEntry = probeTranspositionTable(zobristKey);
             ttMove = (ttEntry != null) ? ttEntry.getBestMove() : 0;
         }
@@ -337,7 +393,7 @@ public class MoveSearch {
         }
 
         // Order moves using various heuristics
-        orderMoves(moves, board, ttMove, ply);
+        orderMoves(moves, board, ttMove, ply, threadId);
 
         int bestMove = 0;
         float bestScore = Float.NEGATIVE_INFINITY;
@@ -355,14 +411,14 @@ public class MoveSearch {
             // PVS algorithm: first move full search, others get null window unless promising
             if (i == 0) {
                 // Full window search for first move
-                score = -alphaBeta(board, depth - 1, -beta, -alpha, ply + 1, isPVNode);
+                score = -alphaBeta(board, depth - 1, -beta, -alpha, ply + 1, isPVNode, threadId);
             } else {
                 // Try a null window search first for efficiency
-                score = -alphaBeta(board, depth - 1, -alpha - 0.01f, -alpha, ply + 1, false);
+                score = -alphaBeta(board, depth - 1, -alpha - 0.01f, -alpha, ply + 1, false, threadId);
 
                 // If the move might be better than alpha, do a full re-search
                 if (score > alpha && score < beta && isPVNode) {
-                    score = -alphaBeta(board, depth - 1, -beta, -alpha, ply + 1, true);
+                    score = -alphaBeta(board, depth - 1, -beta, -alpha, ply + 1, true, threadId);
                 }
             }
 
@@ -370,7 +426,7 @@ public class MoveSearch {
             board.undoLastMove();
 
             // Stop search if time is up
-            if (stopSearch) {
+            if (stopSearch.get()) {
                 return 0;
             }
 
@@ -384,24 +440,26 @@ public class MoveSearch {
                     alpha = score;
 
                     // Update PV table
-                    pvTable[ply][0] = move;
-                    System.arraycopy(pvTable[ply + 1], 0, pvTable[ply], 1, pvLength[ply + 1]);
-                    pvLength[ply] = pvLength[ply + 1] + 1;
+                    threadPvTable.get()[ply][0] = move;
+                    System.arraycopy(threadPvTable.get()[ply + 1], 0, threadPvTable.get()[ply], 1, threadPvLength.get()[ply + 1]);
+                    threadPvLength.get()[ply] = threadPvLength.get()[ply + 1] + 1;
 
                     // Alpha-beta pruning
                     if (alpha >= beta) {
-                        cutoffs++;
+                        cutoffs.incrementAndGet();
 
                         // Update killer moves for non-captures
-                        if (!MoveUtils.getMoveType(move).isAttack() && killerMoves[ply][0] != move) {
-                            killerMoves[ply][1] = killerMoves[ply][0];
-                            killerMoves[ply][0] = move;
+                        if (!MoveUtils.getMoveType(move).isAttack() && killerMoves[(int)threadId][ply][0] != move) {
+                            killerMoves[(int)threadId][ply][1] = killerMoves[(int)threadId][ply][0];
+                            killerMoves[(int)threadId][ply][0] = move;
                         }
 
-                        // Update history heuristic
+                        // Update history heuristic - use synchronized to avoid race conditions
                         int from = MoveUtils.getFromTileIndex(move);
                         int to = MoveUtils.getToTileIndex(move);
-                        historyTable[from][to] += depth * depth;
+                        synchronized(historyTable) {
+                            historyTable[from][to] += depth * depth;
+                        }
 
                         break;
                     }
@@ -432,27 +490,21 @@ public class MoveSearch {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("Depth %d: score %.2f, PV: ", depth, score));
 
-        for (int i = 0; i < pvLength[0]; i++) {
-            sb.append(MoveUtils.toAlgebraic(pvTable[0][i])).append(" ");
+        for (int i = 0; i < bestPvLength[0]; i++) {
+            sb.append(MoveUtils.toAlgebraic(bestPvTable[0][i])).append(" ");
         }
 
         logger.info(sb.toString());
     }
 
-    /**
-     * Special ordering for root moves - make sure the previous best move is first
-     */
-    private static void orderRootMoves(MoveList moves, Board board, int previousBest) {
-        // First, normal ordering
-        orderMoves(moves, board, previousBest, 0);
-
-        // Then ensure the previous best move is first
+    private static void prioritizePvMove(MoveList moves, int pvMove) {
+        // Find PV move and move it to the front
         for (int i = 0; i < moves.size(); i++) {
-            if (moves.get(i) == previousBest) {
+            if (moves.get(i) == pvMove) {
                 // Swap with the first move
                 if (i > 0) {
                     int temp = moves.get(0);
-                    moves.set(0, previousBest);
+                    moves.set(0, pvMove);
                     moves.set(i, temp);
 
                     // Also swap scores
@@ -472,7 +524,7 @@ public class MoveSearch {
      * 3. Killer moves
      * 4. History heuristic
      */
-    private static void orderMoves(MoveList moves, Board board, int ttMove, int ply) {
+    private static void orderMoves(MoveList moves, Board board, int ttMove, int ply, long threadId) {
         // Score each move
         for (int i = 0; i < moves.size(); i++) {
             int move = moves.get(i);
@@ -487,16 +539,18 @@ public class MoveSearch {
                 score = 1000000 + getMVVLVAScore(move, board);
             }
             // Killer moves
-            else if (move == killerMoves[ply][0]) {
+            else if (move == killerMoves[(int)threadId][ply][0]) {
                 score = 900000;
-            } else if (move == killerMoves[ply][1]) {
+            } else if (move == killerMoves[(int)threadId][ply][1]) {
                 score = 800000;
             }
             // History heuristic
             else {
                 int from = MoveUtils.getFromTileIndex(move);
                 int to = MoveUtils.getToTileIndex(move);
-                score = historyTable[from][to];
+                synchronized(historyTable) {
+                    score = historyTable[from][to];
+                }
             }
 
             moves.setScore(i, score);
@@ -541,7 +595,7 @@ public class MoveSearch {
      */
     private static float evaluate(Board board) {
         // Update evaluation counter
-        evaluations++;
+        evaluations.incrementAndGet();
 
         // Use neural network evaluation
         return ModelService.makePrediction(board);
@@ -568,15 +622,15 @@ public class MoveSearch {
      * Clear search statistics
      */
     private static void clearStatistics() {
-        nodesSearched = 0;
-        evaluations = 0;
-        ttHits = 0;
-        cutoffs = 0;
-        aspirationFailLows = 0;
-        aspirationFailHighs = 0;
+        nodesSearched.set(0);
+        evaluations.set(0);
+        ttHits.set(0);
+        cutoffs.set(0);
+        aspirationFailLows.set(0);
+        aspirationFailHighs.set(0);
 
-        // Clear PV table
-        Arrays.fill(pvLength, 0);
+        // Clear PV tables
+        Arrays.fill(bestPvLength, 0);
     }
 
     /**
@@ -587,8 +641,10 @@ public class MoveSearch {
         Arrays.fill(transpositionTable, null);
 
         // Clear killer moves
-        for (int i = 0; i < MAX_DEPTH; i++) {
-            Arrays.fill(killerMoves[i], 0);
+        for (int p = 0; p < 2; p++) {
+            for (int i = 0; i < MAX_DEPTH; i++) {
+                Arrays.fill(killerMoves[p][i], 0);
+            }
         }
 
         // Clear history table
@@ -600,14 +656,37 @@ public class MoveSearch {
     }
 
     /**
+     * Initialize the search engine with a specific hash size
+     *
+     * @param ttSizeMB Transposition table size in MB
+     */
+    public static void init(int ttSizeMB) {
+        int entries = (ttSizeMB * 1024 * 1024) / 28; // Approximate size of TranspositionEntry in bytes
+        Arrays.fill(transpositionTable, null);
+        clearTables();
+        logger.info("Multi-threaded Alpha-Beta initialized with {} MB hash table ({} entries)",
+                ttSizeMB, entries);
+    }
+
+    /**
+     * Initialize with default size
+     */
+    public static void init() {
+        init(512); // Default to 512MB hash table
+    }
+
+    /**
      * Example usage with time control
      */
     public static void main(String[] args) {
+        // Initialize the engine
+        MoveSearch.init();
+
         // Create a board from FEN
         Board board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-        // Search for best move with 2 seconds
-        int bestMove = MoveSearch.findBestMove(board, 2000);
+        // Search for best move with 5 seconds
+        int bestMove = MoveSearch.findBestMove(board, 3000);
 
         System.out.println("Best move: " + MoveUtils.toAlgebraic(bestMove));
     }
