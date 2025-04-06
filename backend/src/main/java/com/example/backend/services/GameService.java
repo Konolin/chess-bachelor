@@ -145,7 +145,7 @@ public class GameService {
      * @return BoardStateDTO object containing the new state
      */
     public BoardStateDTO computerMakeMove() throws InterruptedException {
-        int move = LazySMPSearch.findBestMove(board, 5);
+        int move = MoveSearch.findBestMove(board, 5);
         board.executeMove(move);
         BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(board));
