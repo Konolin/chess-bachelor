@@ -33,7 +33,15 @@ public enum ChessExceptionCodes {
     /**
      * Indicates that a king piece was not found during a critical operation.
      */
-    KING_NOT_FOUND("king_not_found");
+    KING_NOT_FOUND("king_not_found"),
+    /**
+     * Indicates that the model failed to load properly.
+     */
+    FAILED_TO_LOAD_MODEL("failed_to_load_model"),
+    /**
+     * Indicates that the model failed to make an inference.
+     */
+    FAILED_INFERENCE("failed_inference");
     // The string code associated with each error type for easier identification.
     private final String code;
 }

@@ -2,134 +2,169 @@ package com.example.backend.services;
 
 import com.example.backend.models.board.Board;
 import com.example.backend.models.moves.MoveList;
-import com.example.backend.models.transpositionTable.NodeType;
-import com.example.backend.models.transpositionTable.TranspositionEntry;
-import com.example.backend.utils.MoveUtils;
-import com.example.backend.utils.ZobristUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
+/**
+ * Basic Alpha-Beta search implementation for a chess engine.
+ * This is the foundation that we'll build upon with various optimizations.
+ */
 public class LazySMPSearch {
-    private static final ConcurrentHashMap<Long, TranspositionEntry> transpositionTable = new ConcurrentHashMap<>();
-    private static final AtomicInteger bestMove = new AtomicInteger(0);
-    private static final AtomicReference<Float> bestEvaluation = new AtomicReference<>(Float.NEGATIVE_INFINITY);
-    private static final AtomicInteger uniqueEvaluations = new AtomicInteger(0);
-    private static final AtomicInteger transpositionTableUses = new AtomicInteger(0);
+    private static final Logger logger = LoggerFactory.getLogger(LazySMPSearch.class);
 
+    // Search statistics
+    private static int nodesSearched = 0;
+    private static int evaluations = 0;
+    private static long startTime;
 
-    public static int findBestMove(Board board, int seconds) throws InterruptedException {
-        transpositionTableUses.set(0);
-        uniqueEvaluations.set(0);
+    /**
+     * Find the best move for the current board position with a fixed depth
+     *
+     * @param board The current chess board state
+     * @param depth Search depth
+     * @return The best move found
+     */
+    public static int findBestMove(Board board, int depth) {
+        // Initialize search state
+        clearStatistics();
+        startTime = System.currentTimeMillis();
 
-        int availableProcessors = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(availableProcessors);
-
-        long endTime = System.currentTimeMillis() + seconds * 1000;
-
-        for (int i = 0; i < availableProcessors; i++) {
-            executor.submit(() -> iterativeDeepening(new Board(board), endTime));
+        // Generate all legal moves at the root
+        MoveList rootMoves = board.getAlliancesLegalMoves(board.getMoveMaker());
+        if (rootMoves.size() == 0) {
+            logger.info("No legal moves available");
+            return 0;
         }
 
-        executor.shutdown();
-        executor.awaitTermination(seconds + 1, TimeUnit.SECONDS);
+        // If only one move is available, return it immediately
+        if (rootMoves.size() == 1) {
+            logger.info("Only one legal move available");
+            return rootMoves.get(0);
+        }
 
-        return bestMove.get();
-    }
+        // Find the best move using alpha-beta search
+        int bestMove = 0;
+        float bestScore = Float.NEGATIVE_INFINITY;
+        float alpha = Float.NEGATIVE_INFINITY;
+        float beta = Float.POSITIVE_INFINITY;
 
-    private static void iterativeDeepening(Board board, long endTime) {
-        int depth = 1;
-        while (System.currentTimeMillis() < endTime) {
-            float score = alphaBeta(board, depth, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, endTime);
+        for (int i = 0; i < rootMoves.size(); i++) {
+            int move = rootMoves.get(i);
 
-            TranspositionEntry entry = transpositionTable.get(ZobristUtils.computeZobristHash(board));
-            if (entry != null && entry.getBestMove() != 0) {
-                updateBestMove(score, entry.getBestMove());
+            // Execute the move
+            board.executeMove(move);
+
+            // Search the resulting position
+            float score = -alphaBeta(board, depth - 1, -beta, -alpha);
+
+            // Undo the move
+            board.undoLastMove();
+
+            logger.info("Move: {} Score: {}", move, score);
+
+            // Update best move if this move is better
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = move;
+
+                // Update alpha for pruning
+                if (score > alpha) {
+                    alpha = score;
+                }
             }
-            depth++;
         }
+
+        // Log search statistics
+        long timeElapsed = System.currentTimeMillis() - startTime;
+        logger.info("Search completed in {} ms", timeElapsed);
+        logger.info("Nodes searched: {}", nodesSearched);
+        logger.info("Evaluations: {}", evaluations);
+        logger.info("Best move: {} (score: {})", bestMove, bestScore);
+
+        return bestMove;
     }
 
-    private static void updateBestMove(float score, int move) {
-        synchronized (bestEvaluation) {
-            if (score > bestEvaluation.get()) {
-                bestEvaluation.set(score);
-                bestMove.set(move);
-            }
-        }
-    }
+    /**
+     * Basic alpha-beta search algorithm
+     */
+    private static float alphaBeta(Board board, int depth, float alpha, float beta) {
+        // Update node counter
+        nodesSearched++;
 
-    private static float alphaBeta(Board board, int depth, float alpha, float beta, long endTime) {
-        if (depth == 0 || board.isAllianceInCheckMate(board.getMoveMaker()) || System.currentTimeMillis() > endTime) {
+        // Recursion base case: leaf node
+        if (depth == 0) {
             return evaluate(board);
         }
 
-        float alphaOrig = alpha;
-        long zobristKey = ZobristUtils.computeZobristHash(board);
-        TranspositionEntry entry = transpositionTable.get(zobristKey);
+        // Generate legal moves
+        MoveList moves = board.getAlliancesLegalMoves(board.getMoveMaker());
 
-        if (entry != null && entry.getDepth() >= depth) {
-            transpositionTableUses.incrementAndGet();
-            switch (entry.getNodeType()) {
-                case EXACT: return entry.getEvaluation();
-                case LOWERBOUND: alpha = Math.max(alpha, entry.getEvaluation()); break;
-                case UPPERBOUND: beta = Math.min(beta, entry.getEvaluation()); break;
+        // Detect checkmate/stalemate
+        if (moves.size() == 0) {
+            if (board.isAllianceInCheck(board.getMoveMaker())) {
+                return -1000.0f; // Checkmate (arbitrary large negative value)
+            } else {
+                return 0.0f; // Stalemate
             }
-            if (alpha >= beta) return entry.getEvaluation();
         }
 
-        MoveList alliancesLegalMoves = board.getAlliancesLegalMoves(board.getMoveMaker());
-        int ttMove = entry != null ? entry.getBestMove() : 0;
-        if (ttMove != 0) {
-            alliancesLegalMoves.moveToFront(ttMove);
-        }
+        // Loop through all legal moves
+        for (int i = 0; i < moves.size(); i++) {
+            int move = moves.get(i);
 
-        float value = Float.NEGATIVE_INFINITY;
-        int bestLocalMove = 0;
-
-        for (int i = 0; i < alliancesLegalMoves.size(); i++) {
-            int move = alliancesLegalMoves.get(i);
+            // Execute the move
             board.executeMove(move);
-            float score = -alphaBeta(board, depth - 1, -beta, -alpha, endTime);
+
+            // Recursively search the resulting position
+            float score = -alphaBeta(board, depth - 1, -beta, -alpha);
+
+            // Undo the move
             board.undoLastMove();
 
-            if (score > value) {
-                value = score;
-                bestLocalMove = move;
+            // Alpha-beta pruning
+            if (score >= beta) {
+                return beta; // Beta cutoff (lower bound)
             }
 
-            alpha = Math.max(alpha, value);
-            if (alpha >= beta) break;
+            // Update alpha
+            if (score > alpha) {
+                alpha = score;
+            }
         }
 
-        NodeType type;
-        if (value <= alphaOrig) type = NodeType.UPPERBOUND;
-        else if (value >= beta) type = NodeType.LOWERBOUND;
-        else type = NodeType.EXACT;
-
-        TranspositionEntry newEntry = new TranspositionEntry(depth, value, bestLocalMove, type);
-        transpositionTable.put(zobristKey, newEntry);
-
-        return value;
+        // Return the best score (upper bound of the position's value)
+        return alpha;
     }
 
-
+    /**
+     * Evaluate the current board position
+     */
     private static float evaluate(Board board) {
-        uniqueEvaluations.incrementAndGet();
+        // Update evaluation counter
+        evaluations++;
+
+        // Use neural network evaluation
         return ModelService.makePrediction(board);
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        Board board = FenService.createGameFromFEN("6k1/pp2Q1p1/2p4p/7r/8/6P1/Pq1r1P1P/4R1K1 w - - 0 1");
-        long start = System.currentTimeMillis();
-        System.out.println(MoveUtils.toAlgebraic(findBestMove(board, 20)));
+    /**
+     * Clear search statistics
+     */
+    private static void clearStatistics() {
+        nodesSearched = 0;
+        evaluations = 0;
+    }
 
-        System.out.println("Time taken in seconds: " + (System.currentTimeMillis() - start) / 1000);
-        System.out.println("Unique evaluations: " + uniqueEvaluations);
-        System.out.println("Zobrist table uses: " + transpositionTableUses);
+    /**
+     * Example usage with a fixed depth
+     */
+    public static void main(String[] args) {
+        // Create a board from FEN
+        Board board = FenService.createGameFromFEN("r3k2r/ppp2ppp/2n2q2/3Np3/2B5/8/PPP2PPP/R1BQ2K1 w kq - 0 1");
+
+        // Search for best move with depth 4
+        int bestMove = LazySMPSearch.findBestMove(board, 2);
+
+        System.out.println("Best move: " + bestMove);
     }
 }

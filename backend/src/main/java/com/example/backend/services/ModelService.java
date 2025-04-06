@@ -1,182 +1,157 @@
 package com.example.backend.services;
 
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
+import com.example.backend.models.bitboards.PiecesBitBoards;
 import com.example.backend.models.board.Board;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.PieceType;
-import org.tensorflow.SavedModelBundle;
-import org.tensorflow.Session;
-import org.tensorflow.Tensor;
-import org.tensorflow.ndarray.FloatNdArray;
-import org.tensorflow.ndarray.NdArrays;
-import org.tensorflow.ndarray.Shape;
-import org.tensorflow.ndarray.buffer.DataBuffers;
-import org.tensorflow.proto.framework.ConfigProto;
-import org.tensorflow.types.TFloat32;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.FloatBuffer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ModelService {
-    private static final Session SESSION;
-
-    private static final int[][][] REUSED_BOARD = new int[8][8][13];
-    private static final float[][][][] REUSED_INPUT_DATA = new float[1][8][8][13];
+    private static final OrtEnvironment ENV;
+    private static final OrtSession SESSION;
+    private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
     static {
-        int numThreads = Runtime.getRuntime().availableProcessors();
+        try {
+            ENV = OrtEnvironment.getEnvironment();
 
-        ConfigProto config = ConfigProto.newBuilder()
-                .setIntraOpParallelismThreads(numThreads)
-                .setInterOpParallelismThreads(numThreads)
-                .build();
+            // Specify the full path to your model file
+            Path modelPath = Paths.get("src/main/resources/resnet_attention_model.onnx");
+            SESSION = ENV.createSession(modelPath.toString(), new OrtSession.SessionOptions());
 
-        SavedModelBundle bundle = SavedModelBundle
-                .loader("src/main/resources/model")
-                .withConfigProto(config)
-                .withTags("serve")
-                .load();
-
-        SESSION = bundle.session();
+            // Log model input and output names for debugging
+            logger.info("Model loaded successfully");
+            SESSION.getInputNames().forEach(name ->
+                    logger.info("Input name: {}", name));
+            SESSION.getOutputNames().forEach(name ->
+                    logger.info("Output name: {}", name));
+        } catch (OrtException e) {
+            logger.error("Failed to load model: {}", e.getMessage(), e);
+            throw new ChessException("Failed to load model", ChessExceptionCodes.FAILED_TO_LOAD_MODEL);
+        }
     }
 
     private ModelService() {
-        throw new ChessException("Can not instantiate this class", ChessExceptionCodes.ILLEGAL_STATE);
-    }
-
-    private static void encodeFenStringInPlace(Board board) {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                PieceType pieceType = board.getPieceTypeAtPosition(i * 8 + j);
-                Alliance alliance = board.getPieceAllianceAtPosition(i * 8 + j);
-                int[] encoding = oneHotEncodePiece(pieceType, alliance);
-                System.arraycopy(encoding, 0, REUSED_BOARD[i][j], 0, 13);
-            }
-        }
-    }
-
-    private static void fillBatchArrayFromBoard() {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                for (int k = 0; k < 13; k++) {
-                    REUSED_INPUT_DATA[0][i][j][k] = REUSED_BOARD[i][j][k];
-                }
-            }
-        }
+        throw new ChessException("Cannot instantiate this class", ChessExceptionCodes.ILLEGAL_STATE);
     }
 
     public static float makePrediction(Board board) {
-        // 1) Encode the FEN string in place (into REUSED_BOARD)
-        encodeFenStringInPlace(board);
-
-        // 2) Copy REUSED_BOARD into REUSED_INPUT_DATA
-        fillBatchArrayFromBoard();
-
-        // 3) Create the input tensor from REUSED_INPUT_DATA
-        TFloat32 inputTensor = createInputTensor();
-
-        // 4) Encode the extra input features
+        float[][][][] inputTensorData = encodeBoardToTensor(board.getPiecesBBs());
         float[] extraFeatures = encodeExtraInput(board);
-        TFloat32 extraInputTensor = createExtraInputTensor(extraFeatures);
 
-        // 5) Run the model (using the pre-loaded session)
-        Tensor outputTensor = SESSION.runner()
-                .feed("serving_default_board_input", inputTensor)
-                .feed("serving_default_extra_input", extraInputTensor)
-                .fetch("StatefulPartitionedCall")
-                .run().get(0);
+        try {
+            // Create input tensors with correct shapes and names
+            FloatBuffer boardInputBuffer = FloatBuffer.wrap(flatten(inputTensorData));
+            FloatBuffer extraInputBuffer = FloatBuffer.wrap(extraFeatures);
 
-        // 6) Extract the result
-        float prediction;
-        try (TFloat32 result = (TFloat32) outputTensor) {
-            FloatNdArray outputNdArray = NdArrays.ofFloats(result.shape());
-            result.copyTo(outputNdArray);
-            prediction = extractScalar(outputNdArray);
+            // Create ONNX tensors with correct shapes
+            OnnxTensor boardInputTensor = OnnxTensor.createTensor(ENV, boardInputBuffer, new long[]{1, 8, 8, 12});
+            OnnxTensor extraInputTensor = OnnxTensor.createTensor(ENV, extraInputBuffer, new long[]{1, extraFeatures.length});
+
+            // Create input map with correct input names from model
+            Map<String, OnnxTensor> inputMap = new HashMap<>();
+            inputMap.put("board", boardInputTensor);          // Match name from Python model
+            inputMap.put("extra_features", extraInputTensor); // Match name from Python model
+
+            // Run inference
+            OrtSession.Result results = SESSION.run(inputMap);
+
+            // Extract the result (output is tensor with shape [1, 1])
+            // Get the first output tensor
+            OnnxTensor output = (OnnxTensor) results.get(0);
+            float[][] outputArray = (float[][]) output.getValue();
+            float result = outputArray[0][0];
+
+            // Close resources
+            boardInputTensor.close();
+            extraInputTensor.close();
+            output.close();
+
+            // Neural network output is in range [-1, 1], scale to conventional centipawn range if needed
+            return result;
+
+        } catch (OrtException e) {
+            logger.error("Failed to make prediction: {}", e.getMessage(), e);
+            throw new ChessException("Failed to make prediction", ChessExceptionCodes.FAILED_INFERENCE);
         }
-
-        // 7) Clean up
-        inputTensor.close();
-        extraInputTensor.close();
-
-        return prediction;
     }
 
-    /**
-     * Creates a TFloat32 tensor from the given 4D float array (shape [1][8][8][13]).
-     */
-    private static TFloat32 createInputTensor() {
-        int batch = ModelService.REUSED_INPUT_DATA.length;        // should be 1
-        int rows = ModelService.REUSED_INPUT_DATA[0].length;      // 8
-        int columns = ModelService.REUSED_INPUT_DATA[0][0].length; // 8
-        int channels = ModelService.REUSED_INPUT_DATA[0][0][0].length; // 13
+    private static float[][][][] encodeBoardToTensor(PiecesBitBoards board) {
+        float[][][][] inputTensor = new float[1][8][8][12];
 
-        int totalElements = batch * rows * columns * channels;
-        float[] flatData = new float[totalElements];
+        for (int position = 0; position < 64; position++) {
+            int row = position / 8;
+            int col = position % 8;
+
+            PieceType pieceType = board.getPieceTypeOfTile(position);
+            Alliance pieceAlliance = board.getAllianceOfTile(position);
+
+            if (pieceType != null && pieceAlliance != null) {
+                int planeIndex = pieceType.ordinal();
+                if (pieceAlliance == Alliance.BLACK) planeIndex += 6;
+                inputTensor[0][row][col][planeIndex] = 1f;
+            }
+        }
+
+        return inputTensor;
+    }
+
+    private static float[] encodeExtraInput(Board board) {
+        // Initialize all 13 extra features (as per Python model)
+        float[] features = new float[13];
+
+        // Fill known features
+        features[0] = board.getMoveMaker().isWhite() ? 1f : 0f;  // Side to move
+
+        // Castling rights (4 bits)
+        features[1] = board.isWhiteKingSideCastleCapable() ? 1f : 0f;
+        features[2] = board.isWhiteQueenSideCastleCapable() ? 1f : 0f;
+        features[3] = board.isBlackKingSideCastleCapable() ? 1f : 0f;
+        features[4] = board.isBlackQueenSideCastleCapable() ? 1f : 0f;
+
+        // En passant (8 bits, one-hot encoding of file)
+        int enPassantPos = board.getEnPassantPawnPosition();
+        if (enPassantPos != -1) {
+            int file = enPassantPos % 8;  // Get the file (0-7)
+            features[5 + file] = 1f;      // Set the corresponding bit
+        }
+
+        return features;
+    }
+
+    private static float[] flatten(float[][][][] data) {
+        int batchSize = data.length;
+        int height = data[0].length;
+        int width = data[0][0].length;
+        int channels = data[0][0][0].length;
+
+        float[] flatData = new float[batchSize * height * width * channels];
         int index = 0;
-        for (float[][][] datum : ModelService.REUSED_INPUT_DATA) {
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < columns; c++) {
-                    for (int ch = 0; ch < channels; ch++) {
-                        flatData[index++] = datum[r][c][ch];
+
+        // Flatten the 4D tensor to 1D array in the correct order
+        for (int b = 0; b < batchSize; b++) {
+            for (int h = 0; h < height; h++) {
+                for (int w = 0; w < width; w++) {
+                    for (int c = 0; c < channels; c++) {
+                        flatData[index++] = data[b][h][w][c];
                     }
                 }
             }
         }
 
-        Shape shape = Shape.of(batch, rows, columns, channels);
-        return TFloat32.tensorOf(shape, DataBuffers.of(flatData));
+        return flatData;
     }
-
-    /**
-     * Creates a TFloat32 tensor from a 1D float array (shape [1, featureLength]).
-     */
-    private static TFloat32 createExtraInputTensor(float[] extraFeatures) {
-        int batch = 1;
-        int featureLength = extraFeatures.length;
-        float[] flatExtraFeatures = new float[batch * featureLength];
-        System.arraycopy(extraFeatures, 0, flatExtraFeatures, 0, featureLength);
-
-        Shape extraShape = Shape.of(batch, featureLength);
-        return TFloat32.tensorOf(extraShape, DataBuffers.of(flatExtraFeatures));
-    }
-
-    private static int[] oneHotEncodePiece(PieceType pieceType, Alliance alliance) {
-        int index = switch (pieceType) {
-            case ROOK -> 0;
-            case KNIGHT -> 1;
-            case BISHOP -> 2;
-            case QUEEN -> 3;
-            case KING -> 4;
-            case PAWN -> 5;
-            case null -> 12;
-        };
-        if (alliance == Alliance.BLACK) {
-            index += 6;
-        }
-        int[] encoding = new int[13];
-        encoding[index] = 1;
-        return encoding;
-    }
-
-    private static float[] encodeExtraInput(Board board) {
-        float moveMaker = board.getMoveMaker().isWhite() ? 1f : 0f;
-        float whiteKingSide = board.isWhiteKingSideCastleCapable() ? 1f : 0f;
-        float whiteQueenSide = board.isWhiteQueenSideCastleCapable() ? 1f : 0f;
-        float blackKingSide = board.isBlackKingSideCastleCapable() ? 1f : 0f;
-        float blackQueenSide = board.isBlackQueenSideCastleCapable() ? 1f : 0f;
-        float enPassantFlag = board.getEnPassantPawnPosition() != -1 ? 1f : 0f;
-
-        return new float[]{moveMaker, whiteKingSide, whiteQueenSide, blackKingSide, blackQueenSide, enPassantFlag};
-    }
-
-    /**
-     * Extracts a scalar float value from a FloatNdArray with shape [1,1].
-     */
-    private static float extractScalar(FloatNdArray ndArray) {
-        if (ndArray.shape().numDimensions() == 2 &&
-                ndArray.shape().size(0) == 1 &&
-                ndArray.shape().size(1) == 1) {
-            return ndArray.getFloat(0, 0);
-        }
-        throw new IllegalArgumentException("Output tensor has unexpected shape: " + ndArray.shape());
-    }
-
 }
