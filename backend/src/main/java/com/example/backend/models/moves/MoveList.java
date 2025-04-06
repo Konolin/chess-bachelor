@@ -6,62 +6,64 @@ public class MoveList {
     private int size;
 
     public MoveList() {
-        moves = new int[32];
-        scores = new int[32];
-        size = 0;
+        this.moves = new int[32];
+        this.scores = new int[32];
+        this.size = 0;
     }
 
-    public void add(int move) {
-        if (size >= moves.length) {
+    public void add(final int move) {
+        if (this.size >= this.moves.length) {
             expandCapacity();
         }
-        moves[size] = move;
-        scores[size] = 0;
-        size++;
+        this.moves[this.size] = move;
+        this.scores[this.size] = 0;
+        this.size++;
     }
 
-    public void addAll(MoveList moveList) {
+    public void addAll(final MoveList moveList) {
         for (int i = 0; i < moveList.size(); i++) {
             add(moveList.get(i));
         }
     }
 
     private void expandCapacity() {
-        int newCapacity = moves.length * 2;
-        int[] newMoves = new int[newCapacity];
-        int[] newScores = new int[newCapacity];
+        final int newCapacity = this.moves.length * 2;
+        final int[] newMoves = new int[newCapacity];
+        final int[] newScores = new int[newCapacity];
 
-        System.arraycopy(moves, 0, newMoves, 0, size);
-        System.arraycopy(scores, 0, newScores, 0, size);
+        System.arraycopy(this.moves, 0, newMoves, 0, this.size);
+        System.arraycopy(this.scores, 0, newScores, 0, this.size);
 
-        moves = newMoves;
-        scores = newScores;
+        this.moves = newMoves;
+        this.scores = newScores;
     }
 
-    public int get(int index) {
-        return moves[index];
+    public int get(final int index) {
+        return this.moves[index];
     }
 
-    public void set(int index, int move) {
-        moves[index] = move;
+    public void set(final int index, final int move) {
+        this.moves[index] = move;
     }
 
     /**
      * Set the score for a move at the specified index
+     *
      * @param index The index of the move
      * @param score The score to assign
      */
-    public void setScore(int index, int score) {
-        scores[index] = score;
+    public void setScore(final int index, final int score) {
+        this.scores[index] = score;
     }
 
     /**
      * Get the score for a move at the specified index
+     *
      * @param index The index of the move
      * @return The score of the move
      */
-    public int getScore(int index) {
-        return scores[index];
+    public int getScore(final int index) {
+        return this.scores[index];
     }
 
     /**
@@ -69,25 +71,44 @@ public class MoveList {
      * Uses insertion sort which is efficient for small lists
      */
     public void sort() {
-        for (int i = 1; i < size; i++) {
-            int tempScore = scores[i];
-            int tempMove = moves[i];
+        for (int i = 1; i < this.size; i++) {
+            final int tempScore = this.scores[i];
+            final int tempMove = this.moves[i];
             int j = i - 1;
 
             // Move elements that are greater than tempScore
             // to one position ahead of their current position
-            while (j >= 0 && scores[j] < tempScore) {
-                scores[j + 1] = scores[j];
-                moves[j + 1] = moves[j];
+            while (j >= 0 && this.scores[j] < tempScore) {
+                this.scores[j + 1] = this.scores[j];
+                this.moves[j + 1] = this.moves[j];
                 j--;
             }
 
-            scores[j + 1] = tempScore;
-            moves[j + 1] = tempMove;
+            this.scores[j + 1] = tempScore;
+            this.moves[j + 1] = tempMove;
+        }
+    }
+
+    public void prioritizePvMove(final int pvMove) {
+        // find PV move and move it to the front
+        for (int i = 0; i < this.size(); i++) {
+            if (this.get(i) == pvMove) {
+                // swap with the first move
+                if (i > 0) {
+                    final int temp = this.get(0);
+                    this.set(0, pvMove);
+                    this.set(i, temp);
+
+                    final int tempScore = this.getScore(0);
+                    this.setScore(0, this.getScore(i));
+                    this.setScore(i, tempScore);
+                }
+                break;
+            }
         }
     }
 
     public int size() {
-        return size;
+        return this.size;
     }
 }

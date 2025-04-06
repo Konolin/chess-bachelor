@@ -10,7 +10,6 @@ import com.example.backend.models.pieces.PieceType;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
 import com.example.backend.utils.MoveUtils;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,8 +23,11 @@ import java.util.List;
 @Service
 public class GameService {
     private final ChessValidator validator;
-    @Setter
     private Board board;
+
+    static {
+        MoveSearch.init(512);
+    }
 
     /**
      * Constructor for GameService that initializes the validator.
@@ -44,10 +46,10 @@ public class GameService {
      * @return A BoardStateDTO containing the initial board setup in FEN format and winner flag.
      */
     public BoardStateDTO initializeBoardState() {
-        board = FenService.createGameFromFEN(ChessUtils.STARTING_FEN);
+        this.board = FenService.createGameFromFEN(ChessUtils.STARTING_FEN);
 
-        BoardStateDTO boardStateDTO = new BoardStateDTO();
-        boardStateDTO.setFen(FenService.createFENFromGame(board));
+        final BoardStateDTO boardStateDTO = new BoardStateDTO();
+        boardStateDTO.setFen(FenService.createFENFromGame(this.board));
         boardStateDTO.setWinnerFlag(0);
 
         return boardStateDTO;
@@ -63,22 +65,22 @@ public class GameService {
      */
     public List<MoveDTO> getAllMovesForPosition(final int position) {
         // validate the input position
-        validator.validatePosition(position);
+        this.validator.validatePosition(position);
 
         MoveList legalMoves;
 
-        if (board.isTileOccupied(position)) {
-            final PieceType pieceTypeAtPosition = board.getPieceTypeAtPosition(position);
+        if (this.board.isTileOccupied(position)) {
+            final PieceType pieceTypeAtPosition = this.board.getPieceTypeAtPosition(position);
 
             // get the moves and filter the ones that result in the check of the current player
-            legalMoves = Piece.generateLegalMovesList(board, position, board.getMoveMaker(),
-                    pieceTypeAtPosition, board.getAlliancesLegalMovesBBs(board.getMoveMaker()).get(position));
-            legalMoves = ChessUtils.filterMovesResultingInCheck(legalMoves, board.getPiecesBBs(),
-                    board.getEnPassantPawnPosition(), board.getMoveMaker().getOpponent());
+            legalMoves = Piece.generateLegalMovesList(this.board, position, this.board.getMoveMaker(),
+                    pieceTypeAtPosition, this.board.getAlliancesLegalMovesBBs(this.board.getMoveMaker()).get(position));
+            legalMoves = ChessUtils.filterMovesResultingInCheck(legalMoves, this.board.getPiecesBBs(),
+                    this.board.getEnPassantPawnPosition(), this.board.getMoveMaker().getOpponent());
 
             // add the castle moves if the piece is a king
             if (pieceTypeAtPosition == PieceType.KING) {
-                legalMoves.addAll(CastleUtils.calculateCastleMoves(board, board.getMoveMaker()));
+                legalMoves.addAll(CastleUtils.calculateCastleMoves(this.board, this.board.getMoveMaker()));
             }
         } else {
             legalMoves = null;
@@ -95,12 +97,12 @@ public class GameService {
      * @return A BoardStateDTO with the updated board state and winner flag.
      */
     public BoardStateDTO makeMove(final MoveDTO moveDTO) {
-        int move = MoveUtils.createMoveFromMoveDTO(moveDTO);
-        validator.makeMoveInputValidator(board, move);
+        final int move = MoveUtils.createMoveFromMoveDTO(moveDTO);
+        this.validator.makeMoveInputValidator(this.board, move);
 
-        board.executeMove(move);
-        BoardStateDTO boardStateDTO = new BoardStateDTO();
-        boardStateDTO.setFen(FenService.createFENFromGame(board));
+        this.board.executeMove(move);
+        final BoardStateDTO boardStateDTO = new BoardStateDTO();
+        boardStateDTO.setFen(FenService.createFENFromGame(this.board));
         boardStateDTO.setWinnerFlag(getWinnerFlag());
 
         return boardStateDTO;
@@ -113,9 +115,9 @@ public class GameService {
      * @return A BoardStateDTO with the updated board state and winner flag.
      */
     public BoardStateDTO undoLastMove() {
-        board.undoLastMove();
-        BoardStateDTO boardStateDTO = new BoardStateDTO();
-        boardStateDTO.setFen(FenService.createFENFromGame(board));
+        this.board.undoLastMove();
+        final BoardStateDTO boardStateDTO = new BoardStateDTO();
+        boardStateDTO.setFen(FenService.createFENFromGame(this.board));
         boardStateDTO.setWinnerFlag(0);
 
         return boardStateDTO;
@@ -131,8 +133,8 @@ public class GameService {
      * 0 if there is no winner yet.
      */
     private int getWinnerFlag() {
-        final Alliance moveMaker = board.getMoveMaker();
-        if (board.isAllianceInCheckMate(moveMaker)) {
+        final Alliance moveMaker = this.board.getMoveMaker();
+        if (this.board.isAllianceInCheckMate(moveMaker)) {
             return moveMaker.isWhite() ? -1 : 1;
         }
         return 0;  // No winner yet
@@ -144,11 +146,11 @@ public class GameService {
      *
      * @return BoardStateDTO object containing the new state
      */
-    public BoardStateDTO computerMakeMove() throws InterruptedException {
-        int move = MoveSearch.findBestMove(board, 5);
-        board.executeMove(move);
-        BoardStateDTO boardStateDTO = new BoardStateDTO();
-        boardStateDTO.setFen(FenService.createFENFromGame(board));
+    public BoardStateDTO computerMakeMove() {
+        final int move = MoveSearch.findBestMove(this.board, 3);
+        this.board.executeMove(move);
+        final BoardStateDTO boardStateDTO = new BoardStateDTO();
+        boardStateDTO.setFen(FenService.createFENFromGame(this.board));
         boardStateDTO.setWinnerFlag(getWinnerFlag());
         return boardStateDTO;
     }
