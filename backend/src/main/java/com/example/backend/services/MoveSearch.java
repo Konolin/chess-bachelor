@@ -97,7 +97,7 @@ public class MoveSearch {
 
     private static MoveList initializeAndValidateRootMoves(final Board board) {
         final MoveList rootMoves = board.getAlliancesLegalMoves(board.getMoveMaker());
-        if (rootMoves.size() == 0) {
+        if (rootMoves.isEmpty()) {
             LOGGER.info("No legal moves available");
             return null;
         }
@@ -240,27 +240,32 @@ public class MoveSearch {
 
     private static void waitForFuturesCompletion(final Future<?>[] futures, final long remainingTime, final AtomicBoolean depthCompleted) {
         try {
-            // calculate a flexible timeout to allow depth to complete
+            // Calculate a flexible timeout to allow depth to complete
             final long timeoutForDepth = Math.min(remainingTime + 100, remainingTime * 2);
 
-            // wait for futures to complete
+            // Wait for futures to complete
             for (final Future<?> future : futures) {
                 try {
                     future.get(timeoutForDepth, TimeUnit.MILLISECONDS);
-                } catch (final InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    LOGGER.warn("Thread was interrupted while waiting for future completion.", e);
-                } catch (final ExecutionException e) {
-                    LOGGER.error("Execution exception occurred while waiting for future completion.", e);
                 } catch (final TimeoutException e) {
-                    LOGGER.warn("Timeout occurred while waiting for future completion.", e);
-                } catch (final Exception e) {
-                    LOGGER.warn("Exception occurred while waiting for future completion.", e);
+                    // Ignore timeout, continue waiting for other futures
+                    LOGGER.debug("Future timed out: {}", e.getMessage());
+                } catch (final InterruptedException e) {
+                    // Restore interrupt status and stop search
+                    Thread.currentThread().interrupt();
+                    LOGGER.warn("Search interrupted while waiting for futures");
+                    stopSearch.set(true);
+                    break;
+                } catch (final ExecutionException e) {
+                    // Log any execution errors
+                    LOGGER.error("Error in search task", e.getCause());
                 }
             }
+
+            // Mark depth as completed if we made it through all futures
             depthCompleted.set(true);
         } catch (final Exception e) {
-            LOGGER.warn("Search interrupted: {}", e.getMessage());
+            LOGGER.warn("Unexpected error in futures completion: {}", e.getMessage());
             stopSearch.set(true);
         }
     }
@@ -296,7 +301,7 @@ public class MoveSearch {
 
         // detect checkmate/stalemate
         // if no legal moves and in check, it's checkmate (prefer nearer mates), else stalemate
-        if (moves.size() == 0) {
+        if (moves.isEmpty()) {
             return board.isAllianceInCheck(board.getMoveMaker()) ? -1000.0f - ply : 0.0f;
         }
 
@@ -418,11 +423,11 @@ public class MoveSearch {
                                                  final int[][] targetPv, final int[] targetPvLength, final int move) {
         // if no move is provided, copy entire PV
         if (move == 0 && sourcePvLength[0] >= 0) {
-            targetPvLength[0] = sourcePvLength[0];
+            targetPvLength[0] = Math.min(sourcePvLength[0], targetPv[0].length);
             System.arraycopy(
                     sourcePv[0], 0,
                     targetPv[0], 0,
-                    sourcePvLength[0]
+                    targetPvLength[0]
             );
             return;
         }
@@ -430,12 +435,14 @@ public class MoveSearch {
         // if move is provided, insert it at the beginning
         targetPv[0][0] = move;
         if (sourcePvLength[0] > 0) {
+            // Make sure we don't exceed array bounds
+            final int copyLength = Math.min(sourcePvLength[0], targetPv[0].length - 1);
             System.arraycopy(
                     sourcePv[0], 0,
                     targetPv[0], 1,
-                    sourcePvLength[0]
+                    copyLength
             );
-            targetPvLength[0] = sourcePvLength[0] + 1;
+            targetPvLength[0] = copyLength + 1;
         } else {
             targetPvLength[0] = 1;
         }
@@ -610,13 +617,6 @@ public class MoveSearch {
         LOGGER.info("Multi-threaded Alpha-Beta initialized with {} MB hash table ({} entries)", ttSizeMB, entries);
     }
 
-    public static void main(final String[] args) {
-        MoveSearch.init(512);
-        final Board board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        final int bestMove = MoveSearch.findBestMove(board, 100000);
-        LOGGER.info("Best move: {}", MoveUtils.toAlgebraic(bestMove));
-    }
-
     private static Callable<Void> createSearchTask(final Board board, final MoveList rootMoves, final int moveIndex,
                                                    final int currentDepth, final float alpha, final float beta) {
         return () -> {
@@ -675,5 +675,12 @@ public class MoveSearch {
             }
         }
         return score;
+    }
+
+    public static void main(final String[] args) {
+        MoveSearch.init(512);
+        final Board board = FenService.createGameFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        final int bestMove = MoveSearch.findBestMove(board, 5000);
+        LOGGER.info("Best move: {}", MoveUtils.toAlgebraic(bestMove));
     }
 }

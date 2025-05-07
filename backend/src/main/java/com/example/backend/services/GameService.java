@@ -147,7 +147,7 @@ public class GameService {
      * @return BoardStateDTO object containing the new state
      */
     public BoardStateDTO computerMakeMove() {
-        final int move = MoveSearch.findBestMove(this.board, 3);
+        final int move = MoveSearch.findBestMove(this.board, 5000);
         this.board.executeMove(move);
         final BoardStateDTO boardStateDTO = new BoardStateDTO();
         boardStateDTO.setFen(FenService.createFENFromGame(this.board));

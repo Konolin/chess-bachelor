@@ -29,7 +29,8 @@ public class ModelService {
             ENV = OrtEnvironment.getEnvironment();
 
             // Specify the full path to your model file
-            Path modelPath = Paths.get("src/main/resources/resnet_attention_model.onnx");
+//            Path modelPath = Paths.get("src/main/resources/resnet_attention_model.onnx");
+            final Path modelPath = Paths.get("src/main/resources/cnn_model.onnx");
             SESSION = ENV.createSession(modelPath.toString(), new OrtSession.SessionOptions());
 
             // Log model input and output names for debugging
@@ -38,7 +39,7 @@ public class ModelService {
                     logger.info("Input name: {}", name));
             SESSION.getOutputNames().forEach(name ->
                     logger.info("Output name: {}", name));
-        } catch (OrtException e) {
+        } catch (final OrtException e) {
             logger.error("Failed to load model: {}", e.getMessage(), e);
             throw new ChessException("Failed to load model", ChessExceptionCodes.FAILED_TO_LOAD_MODEL);
         }
@@ -48,32 +49,32 @@ public class ModelService {
         throw new ChessException("Cannot instantiate this class", ChessExceptionCodes.ILLEGAL_STATE);
     }
 
-    public static float makePrediction(Board board) {
-        float[][][][] inputTensorData = encodeBoardToTensor(board.getPiecesBBs());
-        float[] extraFeatures = encodeExtraInput(board);
+    public static float makePrediction(final Board board) {
+        final float[][][][] inputTensorData = encodeBoardToTensor(board.getPiecesBBs());
+        final float[] extraFeatures = encodeExtraInput(board);
 
         try {
             // Create input tensors with correct shapes and names
-            FloatBuffer boardInputBuffer = FloatBuffer.wrap(flatten(inputTensorData));
-            FloatBuffer extraInputBuffer = FloatBuffer.wrap(extraFeatures);
+            final FloatBuffer boardInputBuffer = FloatBuffer.wrap(flatten(inputTensorData));
+            final FloatBuffer extraInputBuffer = FloatBuffer.wrap(extraFeatures);
 
             // Create ONNX tensors with correct shapes
-            OnnxTensor boardInputTensor = OnnxTensor.createTensor(ENV, boardInputBuffer, new long[]{1, 8, 8, 12});
-            OnnxTensor extraInputTensor = OnnxTensor.createTensor(ENV, extraInputBuffer, new long[]{1, extraFeatures.length});
+            final OnnxTensor boardInputTensor = OnnxTensor.createTensor(ENV, boardInputBuffer, new long[]{1, 8, 8, 12});
+            final OnnxTensor extraInputTensor = OnnxTensor.createTensor(ENV, extraInputBuffer, new long[]{1, extraFeatures.length});
 
             // Create input map with correct input names from model
-            Map<String, OnnxTensor> inputMap = new HashMap<>();
+            final Map<String, OnnxTensor> inputMap = new HashMap<>();
             inputMap.put("board", boardInputTensor);          // Match name from Python model
             inputMap.put("extra_features", extraInputTensor); // Match name from Python model
 
             // Run inference
-            OrtSession.Result results = SESSION.run(inputMap);
+            final OrtSession.Result results = SESSION.run(inputMap);
 
             // Extract the result (output is tensor with shape [1, 1])
             // Get the first output tensor
-            OnnxTensor output = (OnnxTensor) results.get(0);
-            float[][] outputArray = (float[][]) output.getValue();
-            float result = outputArray[0][0];
+            final OnnxTensor output = (OnnxTensor) results.get(0);
+            final float[][] outputArray = (float[][]) output.getValue();
+            final float result = outputArray[0][0];
 
             // Close resources
             boardInputTensor.close();
@@ -83,25 +84,27 @@ public class ModelService {
             // Neural network output is in range [-1, 1], scale to conventional centipawn range if needed
             return result;
 
-        } catch (OrtException e) {
+        } catch (final OrtException e) {
             logger.error("Failed to make prediction: {}", e.getMessage(), e);
             throw new ChessException("Failed to make prediction", ChessExceptionCodes.FAILED_INFERENCE);
         }
     }
 
-    private static float[][][][] encodeBoardToTensor(PiecesBitBoards board) {
-        float[][][][] inputTensor = new float[1][8][8][12];
+    private static float[][][][] encodeBoardToTensor(final PiecesBitBoards board) {
+        final float[][][][] inputTensor = new float[1][8][8][12];
 
         for (int position = 0; position < 64; position++) {
-            int row = position / 8;
-            int col = position % 8;
+            final int row = position / 8;
+            final int col = position % 8;
 
-            PieceType pieceType = board.getPieceTypeOfTile(position);
-            Alliance pieceAlliance = board.getAllianceOfTile(position);
+            final PieceType pieceType = board.getPieceTypeOfTile(position);
+            final Alliance pieceAlliance = board.getAllianceOfTile(position);
 
             if (pieceType != null && pieceAlliance != null) {
                 int planeIndex = pieceType.ordinal();
-                if (pieceAlliance == Alliance.BLACK) planeIndex += 6;
+                if (pieceAlliance == Alliance.BLACK) {
+                    planeIndex += 6;
+                }
                 inputTensor[0][row][col][planeIndex] = 1f;
             }
         }
@@ -109,9 +112,9 @@ public class ModelService {
         return inputTensor;
     }
 
-    private static float[] encodeExtraInput(Board board) {
+    private static float[] encodeExtraInput(final Board board) {
         // Initialize all 13 extra features (as per Python model)
-        float[] features = new float[13];
+        final float[] features = new float[13];
 
         // Fill known features
         features[0] = board.getMoveMaker().isWhite() ? 1f : 0f;  // Side to move
@@ -123,22 +126,22 @@ public class ModelService {
         features[4] = board.isBlackQueenSideCastleCapable() ? 1f : 0f;
 
         // En passant (8 bits, one-hot encoding of file)
-        int enPassantPos = board.getEnPassantPawnPosition();
+        final int enPassantPos = board.getEnPassantPawnPosition();
         if (enPassantPos != -1) {
-            int file = enPassantPos % 8;  // Get the file (0-7)
+            final int file = enPassantPos % 8;  // Get the file (0-7)
             features[5 + file] = 1f;      // Set the corresponding bit
         }
 
         return features;
     }
 
-    private static float[] flatten(float[][][][] data) {
-        int batchSize = data.length;
-        int height = data[0].length;
-        int width = data[0][0].length;
-        int channels = data[0][0][0].length;
+    private static float[] flatten(final float[][][][] data) {
+        final int batchSize = data.length;
+        final int height = data[0].length;
+        final int width = data[0][0].length;
+        final int channels = data[0][0][0].length;
 
-        float[] flatData = new float[batchSize * height * width * channels];
+        final float[] flatData = new float[batchSize * height * width * channels];
         int index = 0;
 
         // Flatten the 4D tensor to 1D array in the correct order

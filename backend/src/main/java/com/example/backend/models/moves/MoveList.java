@@ -11,6 +11,10 @@ public class MoveList {
         this.size = 0;
     }
 
+    public boolean isEmpty() {
+        return this.size == 0;
+    }
+
     public void add(final int move) {
         if (this.size >= this.moves.length) {
             expandCapacity();
