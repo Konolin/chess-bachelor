@@ -3,12 +3,9 @@ package com.example.backend.utils;
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.board.Board;
-import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveList;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.models.pieces.Alliance;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Utility class for handling castling logic in chess.
@@ -27,8 +24,8 @@ public class CastleUtils {
      * @param alliance The alliance (color) of the player requesting the castling move.
      * @return A list of valid castling moves for the specified alliance.
      */
-    public static List<Move> calculateCastleMoves(Board board, Alliance alliance) {
-        List<Move> castleMoves = new ArrayList<>();
+    public static MoveList calculateCastleMoves(Board board, Alliance alliance) {
+        MoveList castleMoves = new MoveList();
 
         // check if castling is still possible for the given alliance
         if (!isAllianceCastleCapable(board, alliance)) {
@@ -39,7 +36,7 @@ public class CastleUtils {
         int kingPosition = alliance.isWhite() ? 60 : 4;
 
         // check if the king is in check (if so, castling is not allowed)
-        if ((board.getAlliancesLegalMovesBitBoard(alliance.getOpponent()) & (1L << kingPosition)) != 0) {
+        if ((board.getAlliancesLegalMovesBB(alliance.getOpponent()) & (1L << kingPosition)) != 0) {
             return castleMoves;
         }
 
@@ -57,7 +54,7 @@ public class CastleUtils {
 
             // check if the tiles are safe for castling
             if (areTilesSafeForCastle(board, kingPosition, offsets)) {
-                castleMoves.add(new Move(kingPosition, kingDestination, moveType));
+                castleMoves.add(MoveUtils.createMove(kingPosition, kingDestination, moveType, null));
             }
         }
         return castleMoves;
@@ -111,7 +108,7 @@ public class CastleUtils {
         long opponentPawnBitBoard = alliance.isWhite()
                 ? board.getPiecesBBs().getBlackBitboards()[BitBoardUtils.PAWN_INDEX]
                 : board.getPiecesBBs().getWhiteBitboards()[BitBoardUtils.PAWN_INDEX];
-        long attackBitBoard = board.getAlliancesLegalMovesBitBoard(alliance.getOpponent()) |
+        long attackBitBoard = board.getAlliancesLegalMovesBB(alliance.getOpponent()) |
                 BitBoardUtils.calculatePawnAttackingBitboard(opponentPawnBitBoard, alliance.getOpponent());
 
         for (int offset : offsets) {

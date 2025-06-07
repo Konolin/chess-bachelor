@@ -4,7 +4,7 @@ import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.utils.ChessUtils;
 import com.example.backend.models.board.Board;
-import com.example.backend.models.moves.Move;
+import com.example.backend.utils.MoveUtils;
 import org.springframework.stereotype.Service;
 
 /**
@@ -35,18 +35,18 @@ public class ChessValidator {
      * @param move The move to be validated.
      * @throws ChessException If any of the validation checks fail.
      */
-    public void makeMoveInputValidator(final Board board, final Move move) {
+    public void makeMoveInputValidator(final Board board, final int move) {
         // validate the positions involved in the move
-        validatePosition(move.getFromTileIndex());
-        validatePosition(move.getToTileIndex());
+        validatePosition(MoveUtils.getFromTileIndex(move));
+        validatePosition(MoveUtils.getToTileIndex(move));
 
         // check if there is a piece at the starting tile
-        if (!board.isTileOccupied(move.getFromTileIndex())) {
+        if (!board.isTileOccupied(MoveUtils.getFromTileIndex(move))) {
             throw new ChessException("No piece is at the selected starting tile", ChessExceptionCodes.INVALID_MOVE);
         }
 
         // check if the destination tile is occupied by a friendly piece
-        if (board.getAllianceOfPieceAtPosition(move.getToTileIndex()) == board.getAllianceOfPieceAtPosition(move.getFromTileIndex())) {
+        if (board.getPieceAllianceAtPosition(MoveUtils.getToTileIndex(move)) == board.getPieceAllianceAtPosition(MoveUtils.getFromTileIndex(move))) {
             throw new ChessException("Can not move to a tile occupied by a friendly piece", ChessExceptionCodes.INVALID_MOVE);
         }
     }

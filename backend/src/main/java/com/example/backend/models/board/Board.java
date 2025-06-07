@@ -3,14 +3,15 @@ package com.example.backend.models.board;
 import com.example.backend.exceptions.ChessException;
 import com.example.backend.exceptions.ChessExceptionCodes;
 import com.example.backend.models.bitboards.PiecesBitBoards;
-import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveHistoryEntry;
+import com.example.backend.models.moves.MoveList;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.PieceType;
 import com.example.backend.utils.BitBoardUtils;
 import com.example.backend.utils.CastleUtils;
 import com.example.backend.utils.ChessUtils;
+import com.example.backend.utils.MoveUtils;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -68,6 +69,26 @@ public class Board {
     }
 
     /**
+     * Copy constructor for the Board class.
+     * Initializes a new Board object with the same state as the given Board object.
+     *
+     * @param otherBoard the Board object to copy
+     */
+    public Board(Board otherBoard) {
+        this.moveMaker = otherBoard.moveMaker;
+        this.enPassantPawnPosition = otherBoard.enPassantPawnPosition;
+        this.piecesBBs = new PiecesBitBoards(otherBoard.piecesBBs);
+        this.whiteLegalMovesBBs = new HashMap<>(otherBoard.whiteLegalMovesBBs);
+        this.blackLegalMovesBBs = new HashMap<>(otherBoard.blackLegalMovesBBs);
+        this.whiteAttacksBB = otherBoard.whiteAttacksBB;
+        this.blackAttacksBB = otherBoard.blackAttacksBB;
+        this.isBlackKingSideCastleCapable = otherBoard.isBlackKingSideCastleCapable;
+        this.isBlackQueenSideCastleCapable = otherBoard.isBlackQueenSideCastleCapable;
+        this.isWhiteKingSideCastleCapable = otherBoard.isWhiteKingSideCastleCapable;
+        this.isWhiteQueenSideCastleCapable = otherBoard.isWhiteQueenSideCastleCapable;
+    }
+
+    /**
      * Converts a map of piece positions and move-destination bitboards into a list of Move objects.
      * This method iterates over the map entries, determines the piece type at each key position,
      * and then calls Piece.generateLegalMovesList to create Move objects for each set bit in the
@@ -77,10 +98,10 @@ public class Board {
      *                  is a bitboard (long) indicating valid move destinations for that piece
      * @return a list of all Move objects representing the moves described by the bitboards
      */
-    private List<Move> convertBitBoardsToMoves(final Map<Integer, Long> bitBoards) {
-        List<Move> legalMoves = new ArrayList<>();
+    private MoveList convertBitBoardsToMoves(final Map<Integer, Long> bitBoards) {
+        MoveList legalMoves = new MoveList();
         for (final Map.Entry<Integer, Long> entry : bitBoards.entrySet()) {
-            legalMoves.addAll(Piece.generateLegalMovesList(this, entry.getKey(), moveMaker, getPieceTypeOfTile(entry.getKey()), entry.getValue()));
+            legalMoves.addAll(Piece.generateLegalMovesList(this, entry.getKey(), moveMaker, getPieceTypeAtPosition(entry.getKey()), entry.getValue()));
         }
         return legalMoves;
     }
@@ -220,13 +241,13 @@ public class Board {
      *
      * @param move the move to execute on the board
      */
-    public void executeMove(final Move move) {
-        final int fromTileIndex = move.getFromTileIndex();
-        final int toTileIndex = move.getToTileIndex();
+    public void executeMove(final int move) {
+        final int fromTileIndex = MoveUtils.getFromTileIndex(move);
+        final int toTileIndex = MoveUtils.getToTileIndex(move);
 
         // get the type of pieces involved in this move
-        PieceType movingPieceType = getPieceTypeOfTile(fromTileIndex);
-        PieceType capturedPieceType = getPieceTypeOfTile(toTileIndex);
+        PieceType movingPieceType = getPieceTypeAtPosition(fromTileIndex);
+        PieceType capturedPieceType = getPieceTypeAtPosition(toTileIndex);
 
         // create the move history entry
         MoveHistoryEntry moveHistoryEntry = new MoveHistoryEntry(
@@ -246,7 +267,7 @@ public class Board {
         );
 
         // handle enPassant move (set the captured piece type to PAWN)
-        if (move.getMoveType().isEnPassant()) {
+        if (MoveUtils.getMoveType(move).isEnPassant()) {
             moveHistoryEntry.setCapturedPieceType(PieceType.PAWN);
         }
 
@@ -254,7 +275,7 @@ public class Board {
         piecesBBs.updateMove(move, movingPieceType, moveMaker);
 
         // update the enPassantPawnPosition if the move was a double pawn advance, else set it to -1
-        enPassantPawnPosition = move.getMoveType().isDoublePawnAdvance() ? toTileIndex : -1;
+        enPassantPawnPosition = MoveUtils.getMoveType(move).isDoublePawnAdvance() ? toTileIndex : -1;
 
         // update castle capabilities
         updateCastleCapabilities(movingPieceType, capturedPieceType, fromTileIndex, toTileIndex);
@@ -300,24 +321,6 @@ public class Board {
     }
 
     /**
-     * Returns the alliance of the piece at the given position.
-     *
-     * @param position the position of the piece
-     * @return the alliance of the piece at the given position, or null if the tile is empty
-     * @throws ChessException if the position is invalid, i.e. not in the range [0, 63]
-     *                        with ChessExceptionCodes.INVALID_POSITION
-     */
-    public Alliance getAllianceOfPieceAtPosition(final int position) {
-        if (!ChessUtils.isValidPosition(position)) {
-            throw new ChessException("Invalid position " + position, ChessExceptionCodes.INVALID_POSITION);
-        }
-        if (!isTileOccupied(position)) {
-            return null;
-        }
-        return piecesBBs.getAllianceOfTile(position);
-    }
-
-    /**
      * Checks if the given alliance is in checkmate.
      * An alliance is in checkmate if it is in check, and it has no legal moves.
      *
@@ -325,7 +328,7 @@ public class Board {
      * @return true if the given alliance is in checkmate, false otherwise
      */
     public boolean isAllianceInCheckMate(final Alliance alliance) {
-        return isAllianceInCheck(alliance) && getAlliancesLegalMoves(alliance).isEmpty();
+        return isAllianceInCheck(alliance) && getAlliancesLegalMovesBBs(alliance).isEmpty();
     }
 
     /**
@@ -342,7 +345,7 @@ public class Board {
                 : Long.numberOfTrailingZeros(piecesBBs.getBlackBitboards()[BitBoardUtils.KING_INDEX]);
 
         // check if the king's position is attacked tiles of the opponent
-        return (getAlliancesLegalMovesBitBoard(alliance.getOpponent()) & (1L << kingPosition)) != 0;
+        return (getAlliancesLegalMovesBB(alliance.getOpponent()) & (1L << kingPosition)) != 0;
     }
 
     /**
@@ -356,13 +359,31 @@ public class Board {
     }
 
     /**
+     * Returns the alliance of the piece at the given position.
+     *
+     * @param position the position of the piece
+     * @return the alliance of the piece at the given position, or null if the tile is empty
+     * @throws ChessException if the position is invalid, i.e. not in the range [0, 63]
+     *                        with ChessExceptionCodes.INVALID_POSITION
+     */
+    public Alliance getPieceAllianceAtPosition(final int position) {
+        if (!ChessUtils.isValidPosition(position)) {
+            throw new ChessException("Invalid position " + position, ChessExceptionCodes.INVALID_POSITION);
+        }
+        if (!isTileOccupied(position)) {
+            return null;
+        }
+        return piecesBBs.getAllianceOfTile(position);
+    }
+
+    /**
      * Returns the type of the piece at the given position.
      *
-     * @param tileCoordinate the coordinate of the tile to check
+     * @param position the coordinate of the tile to check
      * @return the type of the piece at the given position, or null if the tile is empty
      */
-    public PieceType getPieceTypeOfTile(final int tileCoordinate) {
-        return piecesBBs.getPieceTypeOfTile(tileCoordinate);
+    public PieceType getPieceTypeAtPosition(final int position) {
+        return piecesBBs.getPieceTypeOfTile(position);
     }
 
     /**
@@ -374,9 +395,9 @@ public class Board {
      * @param alliance alliance for which to get the legal moves
      * @return a list of all legal moves for the given alliance
      */
-    public List<Move> getAlliancesLegalMoves(final Alliance alliance) {
-        List<Move> legalMoves = new ArrayList<>();
-        legalMoves.addAll(convertBitBoardsToMoves(getAlliancesLegalMovesBitBoards(alliance)));
+    public MoveList getAlliancesLegalMoves(final Alliance alliance) {
+        MoveList legalMoves = new MoveList();
+        legalMoves.addAll(convertBitBoardsToMoves(getAlliancesLegalMovesBBs(alliance)));
         legalMoves.addAll(CastleUtils.calculateCastleMoves(this, alliance));
         return ChessUtils.filterMovesResultingInCheck(legalMoves, piecesBBs, enPassantPawnPosition, alliance.getOpponent());
     }
@@ -388,7 +409,7 @@ public class Board {
      * @return a map where each key is the integer board coordinate of a piece, and each value
      * is a bitboard (long) indicating valid move destinations for that piece
      */
-    public Map<Integer, Long> getAlliancesLegalMovesBitBoards(final Alliance alliance) {
+    public Map<Integer, Long> getAlliancesLegalMovesBBs(final Alliance alliance) {
         return alliance.isWhite() ? whiteLegalMovesBBs : blackLegalMovesBBs;
     }
 
@@ -398,7 +419,7 @@ public class Board {
      * @param alliance the alliance for which to get the legal moves bitboard
      * @return a bitboard (long) indicating all the attacked tiles for the given alliance
      */
-    public long getAlliancesLegalMovesBitBoard(final Alliance alliance) {
+    public long getAlliancesLegalMovesBB(final Alliance alliance) {
         return alliance.isWhite() ? whiteAttacksBB : blackAttacksBB;
     }
 
@@ -415,7 +436,7 @@ public class Board {
         }
 
         // get the piece type
-        PieceType pieceType = getPieceTypeOfTile(position);
+        PieceType pieceType = getPieceTypeAtPosition(position);
         String pieceString = "";
         switch (pieceType) {
             case PAWN -> pieceString = "P";
@@ -426,7 +447,7 @@ public class Board {
             case KING -> pieceString = "K";
         }
 
-        return getAllianceOfPieceAtPosition(position).isWhite() ? pieceString : pieceString.toLowerCase();
+        return getPieceAllianceAtPosition(position).isWhite() ? pieceString : pieceString.toLowerCase();
     }
 
     @Override

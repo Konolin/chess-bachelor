@@ -2,14 +2,12 @@ package com.example.backend.models.pieces;
 
 import com.example.backend.models.bitboards.MagicBitBoards;
 import com.example.backend.models.board.Board;
-import com.example.backend.models.moves.Move;
+import com.example.backend.models.moves.MoveList;
 import com.example.backend.models.moves.MoveType;
 import com.example.backend.utils.BitBoardUtils;
 import com.example.backend.utils.ChessUtils;
+import com.example.backend.utils.MoveUtils;
 import lombok.Getter;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The Piece class represents a chess piece on the board.
@@ -46,12 +44,12 @@ public class Piece {
      * @param legalMovesBitBoard The bitboard representing all possible legal moves for the piece.
      * @return A list of legal moves for the piece.
      */
-    public static List<Move> generateLegalMovesList(final Board board,
-                                                    final int piecePosition,
-                                                    final Alliance alliance,
-                                                    final PieceType type,
-                                                    final long legalMovesBitBoard) {
-        List<Move> legalMoves = new ArrayList<>();
+    public static MoveList generateLegalMovesList(final Board board,
+                                                  final int piecePosition,
+                                                  final Alliance alliance,
+                                                  final PieceType type,
+                                                  final long legalMovesBitBoard) {
+        MoveList legalMoves = new MoveList();
 
         // get the bitboard of the opponent's pieces
         long opponentPiecesBitBoard = board.getPiecesBBs().getAllianceBitBoard(alliance.getOpponent());
@@ -214,7 +212,7 @@ public class Piece {
 
         // if there's an opponent piece there, it's valid
         if (board.isTileOccupied(candidatePos)
-                && board.getAllianceOfPieceAtPosition(candidatePos) == alliance.getOpponent()) {
+                && board.getPieceAllianceAtPosition(candidatePos) == alliance.getOpponent()) {
             return true;
         }
 
@@ -235,13 +233,12 @@ public class Piece {
      * @param piecePosition the position of the piece
      * @return a list of Move objects representing the possible moves
      */
-    private static List<Move> bitBoardToMoveList(long bitBoard, final MoveType moveType, final int piecePosition) {
-        int bitCount = Long.bitCount(bitBoard);
-        List<Move> legalMoves = new ArrayList<>(bitCount);
+    private static MoveList bitBoardToMoveList(long bitBoard, final MoveType moveType, final int piecePosition) {
+        MoveList legalMoves = new MoveList();
         while (bitBoard != 0) {
             int destination = Long.numberOfTrailingZeros(bitBoard);
             bitBoard &= bitBoard - 1;
-            legalMoves.add(new Move(piecePosition, destination, moveType));
+            legalMoves.add(MoveUtils.createMove(piecePosition, destination, moveType, null));
         }
         return legalMoves;
     }
@@ -256,12 +253,12 @@ public class Piece {
      * @param isCapture true if the move is a capture, false otherwise
      * @return a list of Move objects representing the possible moves
      */
-    private static List<Move> bitboardToPawnMoves(Board board,
+    private static MoveList bitboardToPawnMoves(Board board,
                                                   int piecePosition,
                                                   long squaresBB,
                                                   Alliance alliance,
                                                   boolean isCapture) {
-        List<Move> moves = new ArrayList<>();
+        MoveList moves = new MoveList();
 
         while (squaresBB != 0) {
             int destination = Long.numberOfTrailingZeros(squaresBB);
@@ -270,19 +267,17 @@ public class Piece {
             // check if it's a promotion square
             if (alliance.isPromotionSquare(destination)) {
                 for (PieceType promoType : PieceType.PROMOTABLE_TYPES) {
-                    moves.add(new Move(piecePosition, destination,
-                            isCapture ? MoveType.PROMOTION_ATTACK : MoveType.PROMOTION,
-                            promoType));
+                    moves.add(MoveUtils.createMove(piecePosition, destination, isCapture ? MoveType.PROMOTION_ATTACK : MoveType.PROMOTION, promoType));
                 }
             } else {
                 if (destination == board.getEnPassantPawnPosition() + (alliance.isWhite() ? -8 : 8)) {
-                    moves.add(new Move(piecePosition, destination, MoveType.EN_PASSANT));
+                    moves.add(MoveUtils.createMove(piecePosition, destination, MoveType.EN_PASSANT, null));
                 } else if (Math.abs(destination - piecePosition) == 16) {
-                    moves.add(new Move(piecePosition, destination, MoveType.DOUBLE_PAWN_ADVANCE));
+                    moves.add(MoveUtils.createMove(piecePosition, destination, MoveType.DOUBLE_PAWN_ADVANCE, null));
                 } else if (isCapture) {
-                    moves.add(new Move(piecePosition, destination, MoveType.ATTACK));
+                    moves.add(MoveUtils.createMove(piecePosition, destination, MoveType.ATTACK, null));
                 } else {
-                    moves.add(new Move(piecePosition, destination, MoveType.NORMAL));
+                    moves.add(MoveUtils.createMove(piecePosition, destination, MoveType.NORMAL, null));
                 }
             }
         }

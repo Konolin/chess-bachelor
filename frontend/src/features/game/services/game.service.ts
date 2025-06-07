@@ -54,6 +54,15 @@ export class GameService {
   }
 
   /**
+   * Sends a request to the server to make a move for the computer player.
+   *
+   * @returns An Observable containing the updated BoardState after the computer makes a move.
+   */
+  computerMakeMove(): Observable<BoardState> {
+    return this.http.get<BoardState>('http://localhost:8080/api/game/computer-make-move');
+  }
+
+  /**
    * Converts a FEN string to a FenObject that represents the board state and the current move maker.
    * The method parses each segment of the FEN to create an array of tiles and determines the current player.
    * @param fen The FEN string representing the board layout and game state.

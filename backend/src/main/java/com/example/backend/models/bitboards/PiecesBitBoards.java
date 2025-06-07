@@ -1,11 +1,11 @@
 package com.example.backend.models.bitboards;
 
-import com.example.backend.models.moves.Move;
 import com.example.backend.models.moves.MoveHistoryEntry;
 import com.example.backend.models.pieces.Alliance;
 import com.example.backend.models.pieces.Piece;
 import com.example.backend.models.pieces.PieceType;
 import com.example.backend.utils.BitBoardUtils;
+import com.example.backend.utils.MoveUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
@@ -54,6 +54,17 @@ public class PiecesBitBoards {
         updateAllPieces();
     }
 
+    public PiecesBitBoards(final PiecesBitBoards otherBoard) {
+        this.allPieces = otherBoard.allPieces;
+        this.whitePieces = otherBoard.whitePieces;
+        this.blackPieces = otherBoard.blackPieces;
+
+        for (int i = 0; i < 6; i++) {
+            this.whiteBitboards[i] = otherBoard.whiteBitboards[i];
+            this.blackBitboards[i] = otherBoard.blackBitboards[i];
+        }
+    }
+
     /**
      * Maps a PieceType to an index in our bitboard arrays.
      */
@@ -77,9 +88,9 @@ public class PiecesBitBoards {
      * @param movingPieceType The piece that is moving.
      * @param alliance        The alliance of the piece that is moving.
      */
-    public void updateMove(final Move move, final PieceType movingPieceType, final Alliance alliance) {
-        final long fromMask = ~(1L << move.getFromTileIndex());
-        final long toMask = (1L << move.getToTileIndex());
+    public void updateMove(final int move, final PieceType movingPieceType, final Alliance alliance) {
+        final long fromMask = ~(1L << MoveUtils.getFromTileIndex(move));
+        final long toMask = (1L << MoveUtils.getToTileIndex(move));
 
         // 1) Move piece from old to new position in piece-specific bitboards
         updateBitBoardForPiece(movingPieceType, fromMask, toMask, alliance);
@@ -93,29 +104,29 @@ public class PiecesBitBoards {
         updateAllPieces();
 
         // 3) Handle captures
-        if (move.getMoveType().isAttack()) {
-            removeCapturedPiece(move.getToTileIndex(), alliance.getOpponent());
+        if (MoveUtils.getMoveType(move).isAttack()) {
+            removeCapturedPiece(MoveUtils.getToTileIndex(move), alliance.getOpponent());
         }
 
         // 4) Handle promotion
-        if (move.getMoveType().isPromotion()) {
-            promotePawn(move.getToTileIndex(), move.getPromotedPieceType(), alliance);
+        if (MoveUtils.getMoveType(move).isPromotion()) {
+            promotePawn(MoveUtils.getToTileIndex(move), MoveUtils.getPromotedPieceType(move), alliance);
         }
 
         // 5) Handle en passant
-        if (move.getMoveType().isEnPassant()) {
-            final int captureIndex = move.getToTileIndex() + (alliance.isWhite() ? 8 : -8);
+        if (MoveUtils.getMoveType(move).isEnPassant()) {
+            final int captureIndex = MoveUtils.getToTileIndex(move) + (alliance.isWhite() ? 8 : -8);
             removeCapturedPawnEnPassant(captureIndex, alliance.getOpponent());
         }
 
         // 6) Handle castling (move the rook as well)
-        if (move.getMoveType().isCastleMove()) {
-            final int oldRookPosition = move.getMoveType().isKingSideCastle()
-                    ? move.getFromTileIndex() + 3
-                    : move.getFromTileIndex() - 4;
-            final int newRookPosition = move.getMoveType().isKingSideCastle()
-                    ? move.getFromTileIndex() + 1
-                    : move.getFromTileIndex() - 1;
+        if (MoveUtils.getMoveType(move).isCastleMove()) {
+            final int oldRookPosition = MoveUtils.getMoveType(move).isKingSideCastle()
+                    ? MoveUtils.getFromTileIndex(move) + 3
+                    : MoveUtils.getFromTileIndex(move) - 4;
+            final int newRookPosition = MoveUtils.getMoveType(move).isKingSideCastle()
+                    ? MoveUtils.getFromTileIndex(move) + 1
+                    : MoveUtils.getFromTileIndex(move) - 1;
             moveRookForCastling(oldRookPosition, newRookPosition, alliance);
         }
     }
@@ -126,20 +137,20 @@ public class PiecesBitBoards {
      * @param moveHistoryEntry The record of the last move, including moving/captured pieces.
      */
     public void undoMove(final MoveHistoryEntry moveHistoryEntry) {
-        final Move move = moveHistoryEntry.getMove();
+        final int move = moveHistoryEntry.getMove();
         final PieceType movingPiece = moveHistoryEntry.getMovingPieceType();
         final PieceType captured = moveHistoryEntry.getCapturedPieceType();
         final Alliance moveMaker = moveHistoryEntry.getMoveMaker();
 
-        final int fromTileIndex = move.getFromTileIndex();
-        final int toTileIndex = move.getToTileIndex();
+        final int fromTileIndex = MoveUtils.getFromTileIndex(move);
+        final int toTileIndex = MoveUtils.getToTileIndex(move);
 
         // 1) Undo castling first: put the rook back where it was
-        if (move.getMoveType().isCastleMove()) {
-            final int oldRookPosition = move.getMoveType().isKingSideCastle()
+        if (MoveUtils.getMoveType(move).isCastleMove()) {
+            final int oldRookPosition = MoveUtils.getMoveType(move).isKingSideCastle()
                     ? fromTileIndex + 3
                     : fromTileIndex - 4;
-            final int newRookPosition = move.getMoveType().isKingSideCastle()
+            final int newRookPosition = MoveUtils.getMoveType(move).isKingSideCastle()
                     ? fromTileIndex + 1
                     : fromTileIndex - 1;
 
@@ -161,8 +172,8 @@ public class PiecesBitBoards {
         }
 
         // 2) Undo promotion: remove the promoted piece, restore the pawn
-        if (move.getMoveType().isPromotion()) {
-            removePieceFromBitBoard(move.getPromotedPieceType(), moveMaker, toTileIndex);
+        if (MoveUtils.getMoveType(move).isPromotion()) {
+            removePieceFromBitBoard(MoveUtils.getPromotedPieceType(move), moveMaker, toTileIndex);
             addPieceToBitBoard(PieceType.PAWN, moveMaker, fromTileIndex);
         }
         // For a non-promotion move: remove piece from "to", add it back to "from"
@@ -173,7 +184,7 @@ public class PiecesBitBoards {
 
         // 3) If something was captured (including en passant), restore it
         if (captured != null) {
-            if (move.getMoveType().isEnPassant()) {
+            if (MoveUtils.getMoveType(move).isEnPassant()) {
                 addPieceToBitBoard(captured, moveMaker.getOpponent(), toTileIndex - 8 * moveMaker.getDirection());
             } else {
                 addPieceToBitBoard(captured, moveMaker.getOpponent(), toTileIndex);
